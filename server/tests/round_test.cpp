@@ -127,9 +127,9 @@ TEST_CASE("Each player is dealt 7 cards", "[core][round]")
 
     // Everyone gets exactly kHandSize cards, except the first player (player(1): the dealer is
     // player(0)) when a Draw Two is flipped as the first card, which deals them 2 more (SPEC §3).
-    const auto firstPlayerExtra = round.discardPile().top().rank == Rank::DrawTwo ? 2 : 0;
+    const auto firstPlayerExtra = round.discardPile().top().rank == Rank::DrawTwo ? std::size_t{2} : std::size_t{0};
     for (const auto& seated : round.seats()) {
-        const auto extra = seated == player(1) ? firstPlayerExtra : 0;
+        const auto extra = seated == player(1) ? firstPlayerExtra : std::size_t{0};
         REQUIRE(handOf(round, seated).size() == kHandSize + extra);
     }
 }
@@ -264,7 +264,7 @@ TEST_CASE("Dealing conserves every card of the deck", "[core][round]")
     REQUIRE(allCardIds(round) == allIds);
     // A Draw Two flipped as the first card moves 2 more cards from the draw pile into a hand
     // (SPEC §3); the total is still conserved (checked above), just distributed differently.
-    const auto drawTwoExtra = round.discardPile().top().rank == Rank::DrawTwo ? 2 : 0;
+    const auto drawTwoExtra = round.discardPile().top().rank == Rank::DrawTwo ? std::size_t{2} : std::size_t{0};
     REQUIRE(round.drawPile().size() == uno::core::kStandardDeckSize - dealtCardCount(playerCount) - 1 - drawTwoExtra);
 }
 
