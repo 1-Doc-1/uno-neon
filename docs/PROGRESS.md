@@ -3,7 +3,7 @@
 > Tenu à jour par Claude Code à la fin de chaque étape. Les cases cochées = build + tests + lint verts.
 > Format d'une entrée de journal : `AAAA-MM-JJ — phase.étape — résumé — branche/PR`.
 
-## Phase en cours : 0 — Fondations
+## Phase en cours : 0 — Fondations (terminée, en relecture : PR #2) → ensuite 1 — Cœur du jeu
 
 ### Phase 0 — Fondations et contrat
 - [x] 0.1 Arborescence du monorepo, `.gitignore`, `.editorconfig`, README
@@ -11,8 +11,8 @@
 - [x] 0.3 Vérifier que `compile_commands.json` est généré et que clangd le trouve
 - [x] 0.4 Client : `ng new` Angular 22 (zoneless, SCSS, Vitest) + lint + 1 test
 - [x] 0.5 Protocole v1 : schémas JSON + exemples de messages + types TS générés
-- [ ] 0.6 CI GitHub Actions (build + tests serveur et client)
-- [ ] 0.7 Compléter la table des commandes dans CLAUDE.md
+- [x] 0.6 CI GitHub Actions (build + tests serveur et client)
+- [x] 0.7 Compléter la table des commandes dans CLAUDE.md
 
 ### Phase 1 — Cœur du jeu (C++, TDD)
 - [ ] 1.1 Cartes, deck de 108 cartes, `RandomSource`
@@ -72,3 +72,5 @@
 - 2026-09-30 — 0.3 — `.clangd` à la racine pointant vers `server/build/dev` ; `clangd --check` résout les en-têtes du projet et de vcpkg sans erreur — `chore/phase-0-foundations`
 - 2026-09-30 — 0.4 — client Angular 22 (zoneless, SCSS, Vitest, `strict` + `strictTemplates`), angular-eslint (`no-explicit-any`, `no-non-null-assertion` en erreur), Prettier, proxy `/ws` → `localhost:9001`, shell `<router-outlet />` + 2 tests — `chore/phase-0-foundations`
 - 2026-09-30 — 0.5 — protocole v1 : 7 schémas JSON Schema 2020-12, 39 exemples valides et 18 invalides, `npm run protocol:gen` (json-schema-to-typescript), test de contrat Vitest + ajv (63 tests verts), `@types/node` ajouté aux specs (validé), écarts SPEC tracés en ADR 0007 — `chore/phase-0-foundations`
+- 2026-09-30 — 0.6 — CI GitHub Actions : `server-linux` (GCC 14 + Clang 20, `debug-asan`, clang-format/clang-tidy 23 via apt.llvm.org), `server-windows` (MSVC, `dev`), `client` ; actions épinglées par SHA, cache binaire vcpkg ; corrigés en route : runtime des sanitizers Clang (`libclang-rt-20-dev`), `getenv` justifié pour clang-tidy, chemin du cache sans `..` — `chore/phase-0-foundations` / PR #2
+- 2026-09-30 — 0.7 — table des commandes de `CLAUDE.md` complétée et vérifiée (serveur, formatage/lint C++, client, protocole) ; `OnPush` par défaut depuis Angular 22 — `chore/phase-0-foundations` / PR #2

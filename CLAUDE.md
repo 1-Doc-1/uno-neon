@@ -17,20 +17,27 @@ Projet de groupe d'étudiants en développement d'applications : le code doit ê
 6. Fin d'étape : résume en 5-10 lignes ce qui a été fait, **pourquoi** les choix d'architecture/patterns (2-3 phrases pédagogiques), et ce qui reste.
 7. Ne modifie jamais `docs/SPEC.md` sans demande explicite.
 
-## Commandes (à compléter en phase 0, garder à jour)
+## Commandes (garder à jour)
+
+Serveur : depuis `server/`, dans un terminal où `dev64` a été lancé. Client : depuis `client/`.
 
 | Action | Commande |
 |---|---|
-| Configurer le serveur | `cmake --preset dev` (depuis `server/`) |
+| Configurer le serveur | `cmake --preset dev` (autres presets : `debug-asan`, `release`) |
 | Compiler le serveur | `cmake --build --preset dev` |
-| Tests C++ | `ctest --preset dev --output-on-failure` |
-| Lancer le serveur | à définir en phase 0 |
-| Client : dev | `npm start` (depuis `client/`) |
-| Client : tests | `npm test` |
+| Tests C++ | `ctest --preset dev` (sortie détaillée en cas d'échec déjà activée) |
+| Lancer le serveur | `build/dev/uno_server` (port : variable `UNO_PORT`, défaut 9001) |
+| Formater le C++ | `git ls-files '*.cpp' '*.hpp' '*.cpp.in' | xargs clang-format -i` (depuis `server/`) |
+| Vérifier le C++ (clang-tidy) | `clang-tidy -p build/dev main.cpp app/src/*.cpp net/src/*.cpp tests/*.cpp` |
+| Client : dev (proxy `/ws` → `localhost:9001`) | `npm start` |
+| Client : tests (unitaires + contrat du protocole) | `npm test` (mode watch : `npm run test:watch`) |
 | Client : lint | `npm run lint` |
-| E2E | `npx playwright test` (depuis `e2e/`) |
+| Client : formatage (client + `protocol/`) | `npm run format` / `npm run format:check` |
+| Client : build de production | `npm run build` |
+| Régénérer les types du protocole | `npm run protocol:gen` (après toute modification de `protocol/schema`) |
+| E2E (phase 4) | `npx playwright test` (depuis `e2e/`) |
 
-Environnement : Windows 10/11, Build Tools Visual Studio 2026, PowerShell initialisé avec la fonction `dev64` (MSVC **x64**, CMake, Ninja dans le PATH ; `VCPKG_ROOT=C:\dev\vcpkg`, notre clone, pas le vcpkg intégré à VS). Triplet vcpkg : `x64-windows`. Générateur CMake : **Ninja** (nécessaire pour `compile_commands.json` → clangd). Le CI tourne sous Linux (GCC + Clang).
+Environnement : Windows 10/11, Build Tools Visual Studio 2026, PowerShell initialisé avec la fonction `dev64` (MSVC **x64**, CMake, Ninja dans le PATH ; `VCPKG_ROOT=C:\dev\vcpkg`, notre clone, pas le vcpkg intégré à VS). Triplet vcpkg : `x64-windows`. Générateur CMake : **Ninja** (nécessaire pour `compile_commands.json` → clangd). Le CI (`.github/workflows/ci.yml`) tourne sous Linux (GCC + Clang, sanitizers : la référence) et Windows (MSVC). clang-format et clang-tidy : version majeure 23 sur les postes comme en CI.
 
 ## Standards de code
 
@@ -50,7 +57,7 @@ Pas de code mort, pas de TODO sans ticket/étape dans PROGRESS.md.
 
 **TypeScript / Angular (client/)**
 - `strict: true`, jamais de `any` (utiliser `unknown` + garde de type), pas de `!` non justifié.
-- Composants standalone, **zoneless**, **signals** pour l'état, `ChangeDetectionStrategy.OnPush`, control flow `@if/@for`.
+- Composants standalone, **zoneless**, **signals** pour l'état, `OnPush` (mode par défaut depuis Angular 22 : ne pas l'écrire), control flow `@if/@for`.
 - Séparation conteneurs (injectent le store) / composants de présentation (inputs/outputs uniquement).
 - Animations : CSS natif + `animate.enter` / `animate.leave` (le package `@angular/animations` est déprécié).
 - Jamais de `innerHTML` / `bypassSecurityTrust*` avec une donnée venant d'un joueur.
