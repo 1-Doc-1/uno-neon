@@ -1,0 +1,41 @@
+---
+Language: Cpp
+BasedOnStyle: LLVM
+Standard: Latest
+IndentWidth: 4
+ColumnLimit: 120
+AccessModifierOffset: -4
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterFunction: true
+  AfterClass: false
+  AfterStruct: false
+  AfterEnum: false
+  AfterNamespace: false
+  AfterControlStatement: Never
+  BeforeElse: false
+  BeforeCatch: false
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AlwaysBreakTemplateDeclarations: Yes
+BinPackArguments: true
+BinPackParameters: true
+FixNamespaceComments: true
+NamespaceIndentation: None
+PointerAlignment: Left
+QualifierAlignment: Leave
+SpaceBeforeCpp11BracedList: false
+IncludeBlocks: Regroup
+IncludeCategories:
+  # Our own headers first, then third-party, then the standard library.
+  - Regex: '^"uno/'
+    Priority: 1
+  - Regex: '^<(catch2|spdlog|nlohmann|sodium|uwebsockets|App\.h)'
+    Priority: 2
+  - Regex: '^<[a-z_]+>$'
+    Priority: 3
+  - Regex: '.*'
+    Priority: 2
+InsertNewlineAtEOF: true
+...

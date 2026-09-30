@@ -1,0 +1,14 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "uno-neon-server",
+  "version-semver": "0.1.0",
+  "description": "Authoritative UNO Néon game server",
+  "dependencies": [
+    "catch2",
+    "libsodium",
+    "nlohmann-json",
+    "spdlog",
+    "uwebsockets"
+  ],
+  "builtin-baseline": "4cb050be2cfa7a947cdd2dd1a70e24b17774c979"
+}
