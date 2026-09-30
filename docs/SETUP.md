@@ -262,3 +262,44 @@ nouvelle branche → /clear → plan mode → prompt de l'étape → relire le p
 - **Ne fusionne jamais un code que tu ne sais pas expliquer.** Demande « explique-moi ce choix comme si je devais le défendre à l'oral » : tu devras sûrement le faire devant un jury.
 - **Travail en parallèle** : après la phase 0, une personne peut prendre la phase 1 (cœur C++) pendant qu'une autre fait la phase 3 (UI sur données simulées), chacune sur sa branche et son PC. Si tu veux deux sessions sur ton propre PC, utilise `claude --worktree <nom>` (une copie de travail isolée par session).
 - **Si le design dérive** : prends une capture, colle-la (`Alt+V`) et cite la section de la SPEC (« ça ne respecte pas §11.2 : texte directement sur le fond »).
+
+---
+
+## Étape 10 — Vérifier le serveur sous Linux (WSL), avant de pousser
+
+Le CI compile et teste le serveur sous Linux (GCC 14 **et** Clang 20, sanitizers ASan+UBSan, `clang-format`/`clang-tidy` 23) en plus de Windows. Pour attraper ces problèmes **avant** la PR plutôt qu'en CI, on rejoue la même vérification localement dans WSL2 (Ubuntu 24.04, la même version que le runner du CI).
+
+### Une fois par PC : installer WSL et les outils
+
+1. **WSL2 + Ubuntu 24.04** (une fois par PC), dans PowerShell **en administrateur** :
+   ```powershell
+   wsl --install -d Ubuntu-24.04
+   ```
+   Redémarre si demandé, puis ouvre Ubuntu depuis le menu Démarrer pour créer ton utilisateur Unix (mot de passe différent de ton compte Windows, c'est normal).
+
+2. **Outils Linux** (GCC 14, Clang 20, clang-format/clang-tidy 23, autotools, ninja, cmake, rsync, vcpkg) : depuis PowerShell, à la racine du repo :
+   ```powershell
+   wsl -d Ubuntu-24.04 -- bash scripts/linux-setup.sh
+   ```
+   Demande ton mot de passe **sudo Linux** (celui créé à l'étape 1, pas ton mot de passe Windows). Installe tout depuis les mêmes sources que `.github/workflows/ci.yml` (versions identiques), clone `vcpkg` dans `~/vcpkg` à la baseline de `server/vcpkg.json` et le bootstrap. **Relançable sans risque** (idempotent) — à refaire si le CI change de version d'outil ou de baseline vcpkg.
+
+### À chaque fois : vérifier avant de pousser
+
+```powershell
+wsl -d Ubuntu-24.04 -- bash scripts/linux-check.sh
+```
+
+Ce script ne demande jamais sudo. Il copie l'arbre de travail vers `~/uno-neon-linux` (un dossier natif WSL — compiler directement sur `/mnt/c` est très lent), puis pour **GCC 14** et pour **Clang 20** : configure, build et `ctest` avec le preset `debug-asan`, puis `clang-format` et `clang-tidy` (une seule fois, sur le build Clang), exactement comme le job `server-linux` du CI. Si un outil manque, il s'arrête avec un message qui indique de relancer `linux-setup.sh`.
+
+Le tout premier lancement est long (vcpkg compile `libsodium`, `uwebsockets`, `spdlog`, etc. depuis les sources) ; vcpkg met les paquets compilés en cache dans `~/.cache/vcpkg/archives` sous WSL, donc les lancements suivants sont nettement plus rapides. En mode acceptation manuelle, autorise Claude Code à lancer ce script en arrière-plan si besoin pour ce premier build.
+
+**Définition de « terminé » (CLAUDE.md) :** `linux-check.sh` doit être vert avant tout push qui touche `server/`.
+
+### Hook automatique (`git push`)
+
+`.githooks/pre-push` (versionné) fait respecter cette règle sans y penser : à chaque `git push`, il regarde si les commits poussés modifient `server/` et, si oui, relance `wsl -d Ubuntu-24.04 -- bash scripts/linux-check.sh` ; le push est bloqué si le script échoue. Un push qui ne touche que `docs/`, `client/`, etc. ne déclenche rien.
+
+`scripts/setup-claude.ps1` (étape 8) exécute `git config core.hooksPath .githooks` pour l'activer — à faire une fois par poste, avant ton premier push.
+
+- **WSL absent, ou distribution `Ubuntu-24.04` non installée** : le hook affiche un avertissement et **laisse passer le push quand même** (pas de blocage pour qui n'a pas encore suivi l'étape 10) ; le CI fait office de filet dans ce cas.
+- **Contournement d'urgence** (le check est cassé, ou tu dois pousser vite) : `git push --no-verify`. Le CI (`server-linux`) vérifiera quand même à la PR — un push forcé sans vérification locale n'évite jamais la vérification du CI.
