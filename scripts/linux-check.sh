@@ -58,13 +58,17 @@ run_for_compiler() {
 run_for_compiler gcc gcc-14 g++-14
 run_for_compiler clang clang-20 clang++-20
 
+# $DEST_DIR has no .git (excluded from the rsync), so the tracked file list comes from the
+# original repo; paths are the same relative to server/ in both trees.
 echo
 echo "=== clang-format (dry-run) ==="
-git ls-files '*.cpp' '*.hpp' '*.cpp.in' | xargs clang-format-23 --dry-run --Werror
+git -C "$SRC_DIR" ls-files 'server/*.cpp' 'server/*.hpp' 'server/*.cpp.in' \
+  | sed 's|^server/||' | xargs clang-format-23 --dry-run --Werror
 
 echo
 echo "=== clang-tidy ==="
-git ls-files '*.cpp' | xargs clang-tidy-23 -p build/debug-asan --quiet
+git -C "$SRC_DIR" ls-files 'server/*.cpp' \
+  | sed 's|^server/||' | xargs clang-tidy-23 -p build/debug-asan --quiet
 
 echo
 echo "OK : gcc-14 et clang-20 compilent et testent en debug-asan, clang-format et clang-tidy propres."
