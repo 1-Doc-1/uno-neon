@@ -294,3 +294,12 @@ Ce script ne demande jamais sudo. Il copie l'arbre de travail vers `~/uno-neon-l
 Le tout premier lancement est long (vcpkg compile `libsodium`, `uwebsockets`, `spdlog`, etc. depuis les sources) ; vcpkg met les paquets compilés en cache dans `~/.cache/vcpkg/archives` sous WSL, donc les lancements suivants sont nettement plus rapides. En mode acceptation manuelle, autorise Claude Code à lancer ce script en arrière-plan si besoin pour ce premier build.
 
 **Définition de « terminé » (CLAUDE.md) :** `linux-check.sh` doit être vert avant tout push qui touche `server/`.
+
+### Hook automatique (`git push`)
+
+`.githooks/pre-push` (versionné) fait respecter cette règle sans y penser : à chaque `git push`, il regarde si les commits poussés modifient `server/` et, si oui, relance `wsl -d Ubuntu-24.04 -- bash scripts/linux-check.sh` ; le push est bloqué si le script échoue. Un push qui ne touche que `docs/`, `client/`, etc. ne déclenche rien.
+
+`scripts/setup-claude.ps1` (étape 8) exécute `git config core.hooksPath .githooks` pour l'activer — à faire une fois par poste, avant ton premier push.
+
+- **WSL absent, ou distribution `Ubuntu-24.04` non installée** : le hook affiche un avertissement et **laisse passer le push quand même** (pas de blocage pour qui n'a pas encore suivi l'étape 10) ; le CI fait office de filet dans ce cas.
+- **Contournement d'urgence** (le check est cassé, ou tu dois pousser vite) : `git push --no-verify`. Le CI (`server-linux`) vérifiera quand même à la PR — un push forcé sans vérification locale n'évite jamais la vérification du CI.

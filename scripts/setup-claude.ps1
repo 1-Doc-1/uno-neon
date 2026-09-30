@@ -16,6 +16,10 @@ if (-not (Get-Command claude -ErrorAction SilentlyContinue)) {
     throw "Claude Code n'est pas installé. Voir docs/SETUP.md, étape 1."
 }
 
+# Active le hook pre-push versionné (.githooks/pre-push) : vérification Linux (WSL) automatique
+# avant tout push qui touche server/. Voir docs/SETUP.md, étape 10.
+git config core.hooksPath .githooks
+
 # Le marketplace officiel est enregistré au premier lancement interactif ; on s'en assure sans échouer s'il existe déjà.
 try { $null = claude plugin marketplace add anthropics/claude-plugins-official 2>&1 } catch { }
 
