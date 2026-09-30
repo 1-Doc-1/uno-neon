@@ -1,11 +1,15 @@
 #include "uno/core/card.hpp"
 #include "uno/core/deck.hpp"
 #include "uno/core/domain_error.hpp"
+#include "uno/core/domain_event.hpp"
+#include "uno/core/player_action.hpp"
 #include "uno/core/player_id.hpp"
 #include "uno/core/random_source.hpp"
 #include "uno/core/round.hpp"
 #include "uno/core/turn_order.hpp"
+#include "uno/core/turn_phase.hpp"
 #include "uno/testing/fixtures.hpp"
+#include "uno/testing/round_invariants.hpp"
 #include "uno/testing/seeded_random_source.hpp"
 
 #include <catch2/catch_test_macros.hpp>
@@ -18,7 +22,7 @@
 #include <numeric>
 #include <optional>
 #include <span>
-#include <utility>
+#include <variant>
 #include <vector>
 
 using uno::core::Card;
@@ -26,16 +30,23 @@ using uno::core::CardId;
 using uno::core::Color;
 using uno::core::Direction;
 using uno::core::DomainError;
+using uno::core::DomainEvent;
 using uno::core::kHandSize;
 using uno::core::PlayerId;
 using uno::core::Rank;
 using uno::core::Round;
-using uno::core::RoundSetup;
+using uno::testing::allCardIds;
 using uno::testing::coloredCard;
+using uno::testing::deckFollowingTheHands;
+using uno::testing::handOf;
+using uno::testing::idsOf;
 using uno::testing::plainCards;
 using uno::testing::player;
 using uno::testing::players;
+using uno::testing::requireRoundInvariants;
 using uno::testing::SeededRandomSource;
+using uno::testing::startedRound;
+using uno::testing::startRound;
 using uno::testing::wildCard;
 
 namespace {
@@ -52,47 +63,6 @@ constexpr std::uint64_t kSeed = 42;
     auto deck = uno::core::createStandardDeck(random);
     uno::core::shuffle(std::span{deck}, random);
     return deck;
-}
-
-[[nodiscard]] Round startedRound(RoundSetup setup, SeededRandomSource& random)
-{
-    auto round = Round::start(std::move(setup), random);
-    REQUIRE(round.has_value());
-    return *std::move(round);
-}
-
-// Deals `playerCount` hands of plain cards, then the given cards follow in draw order.
-[[nodiscard]] std::vector<Card> deckFollowingTheHands(std::size_t playerCount, const std::vector<Card>& nextCards)
-{
-    auto deck = plainCards(dealtCardCount(playerCount));
-    std::ranges::copy(nextCards, std::back_inserter(deck));
-    return deck;
-}
-
-[[nodiscard]] std::span<const Card> handOf(const Round& round, const PlayerId& player)
-{
-    const auto hand = round.hand(player);
-    REQUIRE(hand.has_value());
-    return *hand;
-}
-
-[[nodiscard]] std::vector<std::uint32_t> idsOf(std::span<const Card> cards)
-{
-    std::vector<std::uint32_t> ids(cards.size());
-    std::ranges::transform(cards, ids.begin(), [](const Card& card) { return card.id.value; });
-    return ids;
-}
-
-// Every card of the round, wherever it is, as sorted ids.
-[[nodiscard]] std::vector<std::uint32_t> allCardIds(const Round& round)
-{
-    auto ids = idsOf(round.drawPile().cards());
-    std::ranges::copy(idsOf(round.discardPile().cards()), std::back_inserter(ids));
-    for (const auto& seated : round.seats()) {
-        std::ranges::copy(idsOf(handOf(round, seated)), std::back_inserter(ids));
-    }
-    std::ranges::sort(ids);
-    return ids;
 }
 
 struct SeatingCase {
@@ -155,8 +125,12 @@ TEST_CASE("Each player is dealt 7 cards", "[core][round]")
     const auto round = startedRound(
         {.seats = players(playerCount), .dealer = player(0), .deck = shuffledStandardDeck(random)}, random);
 
+    // Everyone gets exactly kHandSize cards, except the first player (player(1): the dealer is
+    // player(0)) when a Draw Two is flipped as the first card, which deals them 2 more (SPEC §3).
+    const auto firstPlayerExtra = round.discardPile().top().rank == Rank::DrawTwo ? 2 : 0;
     for (const auto& seated : round.seats()) {
-        REQUIRE(handOf(round, seated).size() == kHandSize);
+        const auto extra = seated == player(1) ? firstPlayerExtra : 0;
+        REQUIRE(handOf(round, seated).size() == kHandSize + extra);
     }
 }
 
@@ -288,7 +262,10 @@ TEST_CASE("Dealing conserves every card of the deck", "[core][round]")
         {.seats = players(playerCount), .dealer = player(1), .deck = shuffledStandardDeck(random)}, random);
 
     REQUIRE(allCardIds(round) == allIds);
-    REQUIRE(round.drawPile().size() == uno::core::kStandardDeckSize - dealtCardCount(playerCount) - 1);
+    // A Draw Two flipped as the first card moves 2 more cards from the draw pile into a hand
+    // (SPEC §3); the total is still conserved (checked above), just distributed differently.
+    const auto drawTwoExtra = round.discardPile().top().rank == Rank::DrawTwo ? 2 : 0;
+    REQUIRE(round.drawPile().size() == uno::core::kStandardDeckSize - dealtCardCount(playerCount) - 1 - drawTwoExtra);
 }
 
 TEST_CASE("Asking for the hand of an unknown player is an error", "[core][round]")
@@ -311,4 +288,114 @@ TEST_CASE("Starting a round is deterministic for a given seed", "[core][round]")
 
     REQUIRE(round == startWithSeed(kSeed));
     REQUIRE(round != startWithSeed(kSeed + 1));
+}
+
+TEST_CASE("Starting a round emits a RoundStarted event with the dealer and the first card", "[core][round]")
+{
+    SeededRandomSource random{kSeed};
+    const auto firstCard = coloredCard(14, Color::Blue, Rank::Seven);
+    const auto deck = deckFollowingTheHands(2, {firstCard});
+
+    const auto start = startRound({.seats = players(2), .dealer = player(0), .deck = deck}, random);
+
+    REQUIRE(start.events.size() == 1);
+    REQUIRE(start.events.front() == DomainEvent{uno::core::RoundStarted{.dealer = player(0), .firstCard = firstCard}});
+    requireRoundInvariants(start.round);
+}
+
+TEST_CASE("A Skip flipped as the first card skips the first player and emits the matching events", "[core][round]")
+{
+    SeededRandomSource random{kSeed};
+    const auto skip = coloredCard(21, Color::Blue, Rank::Skip);
+    const auto deck = deckFollowingTheHands(3, {skip});
+
+    const auto start = startRound({.seats = players(3), .dealer = player(2), .deck = deck}, random);
+
+    REQUIRE(start.round.currentPlayer() == player(1));
+    REQUIRE(start.events.size() == 3);
+    REQUIRE(start.events.at(1) == DomainEvent{uno::core::PlayerSkipped{.skippedPlayer = player(0)}});
+    REQUIRE(start.events.at(2) == DomainEvent{uno::core::TurnChanged{.player = player(1)}});
+    requireRoundInvariants(start.round);
+}
+
+TEST_CASE("A Reverse flipped as the first card makes the dealer play first in the opposite direction", "[core][round]")
+{
+    SeededRandomSource random{kSeed};
+    const auto reverseCard = coloredCard(28, Color::Blue, Rank::Reverse);
+    const auto deck = deckFollowingTheHands(4, {reverseCard});
+
+    const auto start = startRound({.seats = players(4), .dealer = player(3), .deck = deck}, random);
+
+    REQUIRE(start.round.currentPlayer() == player(3));
+    REQUIRE(start.round.direction() == Direction::CounterClockwise);
+    REQUIRE(start.events.size() == 3);
+    REQUIRE(start.events.at(1) == DomainEvent{uno::core::DirectionReversed{}});
+    REQUIRE(start.events.at(2) == DomainEvent{uno::core::TurnChanged{.player = player(3)}});
+    requireRoundInvariants(start.round);
+}
+
+TEST_CASE("A Reverse flipped as the first card with two players still makes the dealer play first", "[core][round]")
+{
+    SeededRandomSource random{kSeed};
+    const auto reverseCard = coloredCard(14, Color::Blue, Rank::Reverse);
+    const auto deck = deckFollowingTheHands(2, {reverseCard});
+
+    const auto start = startRound({.seats = players(2), .dealer = player(1), .deck = deck}, random);
+
+    REQUIRE(start.round.currentPlayer() == player(1));
+    requireRoundInvariants(start.round);
+}
+
+TEST_CASE("A DrawTwo flipped as the first card makes the first player draw two and skip their turn", "[core][round]")
+{
+    SeededRandomSource random{kSeed};
+    const auto drawTwo = coloredCard(14, Color::Blue, Rank::DrawTwo);
+    const std::vector nextCards{
+        drawTwo,
+        coloredCard(15, Color::Green, Rank::One),
+        coloredCard(16, Color::Green, Rank::Two),
+    };
+    const auto deck = deckFollowingTheHands(2, nextCards);
+
+    const auto start = startRound({.seats = players(2), .dealer = player(1), .deck = deck}, random);
+
+    REQUIRE(start.round.currentPlayer() == player(1));
+    REQUIRE(handOf(start.round, player(0)).size() == kHandSize + 2);
+    REQUIRE(start.events.size() == 4);
+    REQUIRE(start.events.at(1) ==
+            DomainEvent{uno::core::PenaltyCardsDrawn{.player = player(0), .cards = {CardId{15}, CardId{16}}}});
+    REQUIRE(start.events.at(2) == DomainEvent{uno::core::PlayerSkipped{.skippedPlayer = player(0)}});
+    REQUIRE(start.events.at(3) == DomainEvent{uno::core::TurnChanged{.player = player(1)}});
+    requireRoundInvariants(start.round);
+}
+
+TEST_CASE("A Wild flipped as the first card starts the round awaiting a color choice, without a TurnChanged event",
+          "[core][round]")
+{
+    SeededRandomSource random{kSeed};
+    const auto deck = deckFollowingTheHands(2, {wildCard(14, Rank::Wild)});
+
+    const auto start = startRound({.seats = players(2), .dealer = player(0), .deck = deck}, random);
+
+    // Dealer is player(0), so the first player (left of the dealer) is player(1).
+    REQUIRE(start.round.currentPlayer() == player(1));
+    REQUIRE(std::holds_alternative<uno::core::AwaitingColorChoice>(start.round.phase()));
+    REQUIRE(start.events.size() == 1);
+    requireRoundInvariants(start.round);
+}
+
+TEST_CASE("Choosing the color after a Wild first card starts play normally without skipping anyone", "[core][round]")
+{
+    SeededRandomSource random{kSeed};
+    const auto deck = deckFollowingTheHands(2, {wildCard(14, Rank::Wild)});
+    auto start = startRound({.seats = players(2), .dealer = player(0), .deck = deck}, random);
+
+    const auto events = start.round.apply(player(1), uno::core::ChooseColor{.color = Color::Green}, random);
+
+    REQUIRE(events.has_value());
+    REQUIRE(*events == std::vector<DomainEvent>{uno::core::ColorChosen{.player = player(1), .color = Color::Green}});
+    REQUIRE(start.round.currentColor() == Color::Green);
+    REQUIRE(start.round.currentPlayer() == player(1));
+    REQUIRE(std::holds_alternative<uno::core::AwaitingPlay>(start.round.phase()));
+    requireRoundInvariants(start.round);
 }

@@ -8,6 +8,8 @@ add_executable(uno_tests
     piles_test.cpp
     playability_test.cpp
     random_test.cpp
+    round_apply_test.cpp
+    round_effects_test.cpp
     round_test.cpp
     turn_order_test.cpp
     smoke_test.cpp)

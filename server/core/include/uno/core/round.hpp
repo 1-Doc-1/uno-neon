@@ -2,10 +2,13 @@
 
 #include "uno/core/card.hpp"
 #include "uno/core/domain_error.hpp"
+#include "uno/core/domain_event.hpp"
 #include "uno/core/piles.hpp"
+#include "uno/core/player_action.hpp"
 #include "uno/core/player_id.hpp"
 #include "uno/core/random_source.hpp"
 #include "uno/core/turn_order.hpp"
+#include "uno/core/turn_phase.hpp"
 
 #include <cstddef>
 #include <expected>
@@ -25,15 +28,24 @@ struct RoundSetup {
     std::vector<Card> deck; // already shuffled, in draw order: front() is drawn first
 };
 
+// Round::start returns one of these; defined below the class, since it holds a Round by value.
+struct RoundStart;
+
 // Aggregate of one round (SPEC §7.1). Invariants, established by start() and kept by every member:
 // 2 to 10 distinct seated players, one of them current; hands, draw pile and discard pile together
 // hold exactly the cards of the deck, each id once; the discard pile is never empty.
 // A plain value: copyable without shared state, so a round can be replayed and compared (ADR 0010).
 class Round {
 public:
-    // Deals 7 cards to each player, one at a time starting left of the dealer, then flips the
-    // next card onto the discard pile. `random` is only used if a Wild Draw Four is flipped.
-    [[nodiscard]] static std::expected<Round, DomainError> start(RoundSetup setup, RandomSource& random);
+    // Deals 7 cards to each player, one at a time starting left of the dealer, then flips the next
+    // card onto the discard pile and resolves its effect, if any (SPEC §3). `random` is used for a
+    // Wild Draw Four reflip and, when the flipped card is a Draw Two, its penalty draw.
+    [[nodiscard]] static std::expected<RoundStart, DomainError> start(RoundSetup setup, RandomSource& random);
+
+    // Validates and applies one player's intention (SPEC §7.2). Returns the events it produced, in
+    // emission order, or the reason it was rejected. Never throws: illegal input is a DomainError.
+    [[nodiscard]] std::expected<std::vector<DomainEvent>, DomainError>
+    apply(const PlayerId& actor, const PlayerAction& action, RandomSource& random);
 
     [[nodiscard]] std::span<const PlayerId> seats() const noexcept { return turnOrder_.seats(); }
     [[nodiscard]] const PlayerId& dealer() const noexcept { return dealer_; }
@@ -45,11 +57,30 @@ public:
     [[nodiscard]] const DiscardPile& discardPile() const noexcept { return discardPile_; }
     // Empty while a flipped Wild waits for the first player's color choice.
     [[nodiscard]] std::optional<Color> currentColor() const noexcept { return currentColor_; }
+    [[nodiscard]] const TurnPhase& phase() const noexcept { return phase_; }
 
     [[nodiscard]] bool operator==(const Round&) const = default;
 
 private:
     Round(TurnOrder turnOrder, PlayerId dealer, std::vector<Hand> hands, DrawPile drawPile, DiscardPile discardPile);
+
+    [[nodiscard]] std::expected<std::vector<DomainEvent>, DomainError>
+    applyPlayCard(const PlayerId& actor, const PlayCard& action, RandomSource& random);
+    [[nodiscard]] std::expected<std::vector<DomainEvent>, DomainError> applyDrawCard(const PlayerId& actor,
+                                                                                     RandomSource& random);
+    [[nodiscard]] std::expected<std::vector<DomainEvent>, DomainError> applyPass(const PlayerId& actor);
+    [[nodiscard]] std::expected<std::vector<DomainEvent>, DomainError> applyChooseColor(const PlayerId& actor,
+                                                                                        const ChooseColor& action);
+
+    // Resolves the turn-order effect of a card actually played during normal play: `turnOrder_`'s
+    // current player is the one who played it. Returns the events produced, always ending with
+    // TurnChanged.
+    [[nodiscard]] std::vector<DomainEvent> resolveEffect(Rank rank, RandomSource& random);
+    // Resolves the effect, if any, of the first card flipped onto the discard pile (SPEC §3). A
+    // flipped card has no real actor: Skip and Draw Two consume the first player's own turn
+    // (instead of the next player's, as a played card would), and Reverse hands the very first
+    // turn to the dealer. A flipped Wild is handled separately by start(), before this runs.
+    [[nodiscard]] std::vector<DomainEvent> resolveFirstCardEffect(Rank rank, RandomSource& random);
 
     TurnOrder turnOrder_;
     PlayerId dealer_;
@@ -57,6 +88,16 @@ private:
     DrawPile drawPile_;
     DiscardPile discardPile_;
     std::optional<Color> currentColor_;
+    TurnPhase phase_{AwaitingPlay{}};
+};
+
+// Result of Round::start(): the round itself, plus the events produced while resolving the first
+// flipped card's effect (SPEC §8.5). Symmetrical with apply()'s return type, so a consumer (the
+// future PlayerView projection, step 1.7) can treat both the same way; the event stream never
+// starts with a gap.
+struct RoundStart {
+    Round round;
+    std::vector<DomainEvent> events;
 };
 
 } // namespace uno::core

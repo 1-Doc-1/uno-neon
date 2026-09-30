@@ -2,11 +2,19 @@
 
 #include "uno/core/card.hpp"
 #include "uno/core/player_id.hpp"
+#include "uno/core/random_source.hpp"
+#include "uno/core/round.hpp"
 
+#include <catch2/catch_test_macros.hpp>
+
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <iterator>
 #include <optional>
+#include <span>
 #include <string>
+#include <utility>
 #include <vector>
 
 // Small builders shared by the engine tests: they keep test setups short and readable.
@@ -47,6 +55,56 @@ namespace uno::testing {
         cards.push_back(coloredCard(id, core::Color::Red, core::Rank::Five));
     }
     return cards;
+}
+
+// Starts a round and asserts it succeeded, returning the RoundStart (round + starting events)
+// unwrapped. Use this over startedRound() below when a test needs to inspect those events.
+[[nodiscard]] inline core::RoundStart startRound(core::RoundSetup setup, core::RandomSource& random)
+{
+    auto result = core::Round::start(std::move(setup), random);
+    REQUIRE(result.has_value());
+    return *std::move(result);
+}
+
+// Starts a round and asserts it succeeded, returning just the Round.
+[[nodiscard]] inline core::Round startedRound(core::RoundSetup setup, core::RandomSource& random)
+{
+    return startRound(std::move(setup), random).round;
+}
+
+// Deals `playerCount` hands of plain cards, then the given cards follow in draw order.
+[[nodiscard]] inline std::vector<core::Card> deckFollowingTheHands(std::size_t playerCount,
+                                                                   const std::vector<core::Card>& nextCards)
+{
+    auto deck = plainCards(playerCount * core::kHandSize);
+    std::ranges::copy(nextCards, std::back_inserter(deck));
+    return deck;
+}
+
+[[nodiscard]] inline std::span<const core::Card> handOf(const core::Round& round, const core::PlayerId& player)
+{
+    const auto hand = round.hand(player);
+    REQUIRE(hand.has_value());
+    return *hand;
+}
+
+[[nodiscard]] inline std::vector<std::uint32_t> idsOf(std::span<const core::Card> cards)
+{
+    std::vector<std::uint32_t> ids(cards.size());
+    std::ranges::transform(cards, ids.begin(), [](const core::Card& card) { return card.id.value; });
+    return ids;
+}
+
+// Every card of the round, wherever it is, as sorted ids.
+[[nodiscard]] inline std::vector<std::uint32_t> allCardIds(const core::Round& round)
+{
+    auto ids = idsOf(round.drawPile().cards());
+    std::ranges::copy(idsOf(round.discardPile().cards()), std::back_inserter(ids));
+    for (const auto& seated : round.seats()) {
+        std::ranges::copy(idsOf(handOf(round, seated)), std::back_inserter(ids));
+    }
+    std::ranges::sort(ids);
+    return ids;
 }
 
 } // namespace uno::testing
