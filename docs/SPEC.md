@@ -600,7 +600,7 @@ Chaque phase = une ou plusieurs branches + PR. Détail des étapes dans `docs/PR
 | **0 — Fondations et contrat** | monorepo, CMake/vcpkg/presets, Angular, lint/format, CI squelette, **protocole v1** (schémas + exemples + types TS générés), commandes dans CLAUDE.md | tout compile sur Windows (MSVC) et en CI Linux, clangd voit `compile_commands.json`, 1 test par côté passe, types générés à jour |
 | **1 — Cœur du jeu** | §3 à §5 et §7 en TDD | toutes les règles et options testées, simulation de 10 000 parties verte, test anti-fuite vert, ASan/UBSan propres |
 | **2 — Serveur réseau** | §9 | tests d'intégration verts ; une partie peut être jouée avec un petit script client de test |
-| **3 — Design system et UI** (en parallèle des phases 1-2) | §10 à §14 sur `FixtureTransport` | galerie complète, tous les scénarios capturés en 3 tailles et relus visuellement, axe sans erreur, navigation clavier complète |
+| **3 — Design system et UI** | §10 à §14 sur `FixtureTransport` | galerie complète, tous les scénarios capturés en 3 tailles et relus visuellement, axe sans erreur, navigation clavier complète |
 | **4 — Intégration** | `WebSocketTransport` branché, parcours complets | E2E verts (2 et 4 joueurs, reconnexion, clavier) |
 | **5 — Bots et finitions** | bots (`BotStrategy` : `RandomBot`, `GreedyBot` qui garde ses Jokers et vide ses grosses cartes ; un bot ne voit que sa `PlayerView` et agit via les mêmes `PlayerAction` qu'un humain, donc aucun cas particulier dans le moteur), son, réactions, audit `web-design-guidelines` + Lighthouse, corrections | audits sans problème majeur, objectifs §16 atteints |
 | **6 — Déploiement** | §18 | site accessible en HTTPS, partie jouée entre deux machines réelles |
