@@ -45,7 +45,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            ninja-build g++-14 autoconf autoconf-archive automake libtool pkg-config clang-20
+            ninja-build g++-14 autoconf autoconf-archive automake libtool pkg-config clang-20 libclang-rt-20-dev
           ${{ matrix.cxx }} --version
 
       # Same major version as the team's workstations (LLVM 23): format and lint results must match.
