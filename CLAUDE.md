@@ -28,7 +28,7 @@ Serveur : depuis `server/`, dans un terminal où `dev64` a été lancé. Client 
 | Tests C++ | `ctest --preset dev` (sortie détaillée en cas d'échec déjà activée) |
 | Lancer le serveur | `build/dev/uno_server` (port : variable `UNO_PORT`, défaut 9001) |
 | Formater le C++ | `git ls-files '*.cpp' '*.hpp' '*.cpp.in' | xargs clang-format -i` (depuis `server/`) |
-| Vérifier le C++ (clang-tidy) | `clang-tidy -p build/dev main.cpp app/src/*.cpp net/src/*.cpp tests/*.cpp` |
+| Vérifier le C++ (clang-tidy) | `git ls-files '*.cpp' | xargs clang-tidy -p build/dev --quiet` (depuis `server/`, comme le CI) |
 | Client : dev (proxy `/ws` → `localhost:9001`) | `npm start` |
 | Client : tests (unitaires + contrat du protocole) | `npm test` (mode watch : `npm run test:watch`) |
 | Client : lint | `npm run lint` |

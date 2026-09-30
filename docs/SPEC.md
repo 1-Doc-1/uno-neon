@@ -50,7 +50,7 @@ Objectifs de qualité, par ordre de priorité :
 | Défausse | `DiscardPile` | |
 | Main | `Hand` | |
 | Carte | `Card` | identifiée par un `CardId` unique dans la partie |
-| Couleur | `Color` | `Red`, `Yellow`, `Green`, `Blue` (+ `None` pour un Joker non posé) |
+| Couleur | `Color` | `Red`, `Yellow`, `Green`, `Blue` ; un Joker non posé n'a pas de couleur (`std::optional<Color>` vide, voir ADR 0009) |
 | Valeur | `Rank` | `Zero`…`Nine`, `Skip`, `Reverse`, `DrawTwo`, `Wild`, `WildDrawFour` |
 | Passe ton tour | `Skip` | |
 | Inversion | `Reverse` | |
@@ -186,7 +186,7 @@ Le moteur ne notifie personne : il **retourne** des événements. La couche `app
 | **Command** | `PlayerAction = std::variant<PlayCard, DrawCard, Pass, RespondPenalty, CallUno, CatchUno, TimeoutExpired>` | Chaque intention est un objet validable, journalisable et rejouable. Avec la graine + la liste des actions, on rejoue une partie à l'identique pour déboguer. |
 | **State** | `TurnPhase = std::variant<AwaitingPlay, AwaitingDrawnCardDecision, AwaitingPenaltyResponse, RoundOver>` + `std::visit` | Chaque phase n'accepte que ses actions ; les états invalides sont irreprésentables. Variante moderne du State du GoF : ensemble fermé, sémantique de valeur, pas d'allocation, exhaustivité vérifiée par le compilateur. Documenter dans une ADR pourquoi on préfère `std::variant` aux classes virtuelles ici. |
 | **Strategy / Policy** | `StackingPolicy`, `WildDrawFourPolicy`, `DrawPolicy`, `JumpInPolicy`, `SevenZeroPolicy`, construites depuis `RoomSettings` | Principe ouvert/fermé : une nouvelle option maison = une nouvelle politique, sans modifier les règles existantes. |
-| **Factory** | `DeckFactory::createStandardDeck(RandomSource&)` | Centralise la composition des 108 cartes et l'attribution aléatoire des identifiants. |
+| **Factory** | fonction libre `createStandardDeck(RandomSource&)` (voir ADR 0009) | Centralise la composition des 108 cartes et l'attribution aléatoire des identifiants. |
 | **Observer** (via événements retournés) | `app` diffuse les `DomainEvent` projetés à chaque joueur | Découple le moteur de la diffusion réseau. |
 | **Repository** | `RoomRepository` (interface) + `InMemoryRoomRepository` | La persistance peut changer sans toucher aux cas d'usage. |
 | **Injection de dépendances** | `RandomSource`, `Scheduler`, `RoomRepository` injectés par constructeur, câblés dans `main.cpp` | Inversion des dépendances : les tests injectent des implémentations déterministes. |
