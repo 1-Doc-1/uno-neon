@@ -1,0 +1,579 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uno-neon.invalid/protocol/v1/client-message.schema.json",
+  "title": "ClientMessage",
+  "description": "Every message a client may send (intentions only: the server validates everything). The server checks `v` then `type` before the payload, to answer UNSUPPORTED_VERSION or UNKNOWN_TYPE; any other violation is MALFORMED_MESSAGE.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/HelloMessage"
+    },
+    {
+      "$ref": "#/$defs/CreateRoomMessage"
+    },
+    {
+      "$ref": "#/$defs/JoinRoomMessage"
+    },
+    {
+      "$ref": "#/$defs/LeaveRoomMessage"
+    },
+    {
+      "$ref": "#/$defs/UpdateSettingsMessage"
+    },
+    {
+      "$ref": "#/$defs/SetReadyMessage"
+    },
+    {
+      "$ref": "#/$defs/KickMessage"
+    },
+    {
+      "$ref": "#/$defs/AddBotMessage"
+    },
+    {
+      "$ref": "#/$defs/StartMatchMessage"
+    },
+    {
+      "$ref": "#/$defs/RematchMessage"
+    },
+    {
+      "$ref": "#/$defs/ReadyForNextRoundMessage"
+    },
+    {
+      "$ref": "#/$defs/PlayCardMessage"
+    },
+    {
+      "$ref": "#/$defs/DrawCardMessage"
+    },
+    {
+      "$ref": "#/$defs/PassMessage"
+    },
+    {
+      "$ref": "#/$defs/ChooseColorMessage"
+    },
+    {
+      "$ref": "#/$defs/RespondPenaltyMessage"
+    },
+    {
+      "$ref": "#/$defs/CallUnoMessage"
+    },
+    {
+      "$ref": "#/$defs/CatchUnoMessage"
+    },
+    {
+      "$ref": "#/$defs/SendReactionMessage"
+    }
+  ],
+  "$defs": {
+    "HelloMessage": {
+      "title": "HelloMessage",
+      "description": "First message of every connection. Without a token a new session is created; with a valid token the session (and its room) is resumed.",
+      "type": "object",
+      "properties": {
+        "v": {
+          "$ref": "common.schema.json#/$defs/ProtocolVersion"
+        },
+        "id": {
+          "$ref": "common.schema.json#/$defs/MessageId"
+        },
+        "type": {
+          "const": "session.hello"
+        },
+        "payload": {
+          "title": "HelloPayload",
+          "type": "object",
+          "properties": {
+            "sessionToken": {
+              "$ref": "common.schema.json#/$defs/SessionToken"
+            },
+            "clientVersion": {
+              "type": "string",
+              "pattern": "^[0-9A-Za-z.+-]{1,32}$"
+            }
+          },
+          "required": ["clientVersion"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["v", "id", "type", "payload"],
+      "additionalProperties": false
+    },
+    "CreateRoomMessage": {
+      "title": "CreateRoomMessage",
+      "description": "Creates a room and makes the sender its host. Not allowed while already in a room.",
+      "type": "object",
+      "properties": {
+        "v": {
+          "$ref": "common.schema.json#/$defs/ProtocolVersion"
+        },
+        "id": {
+          "$ref": "common.schema.json#/$defs/MessageId"
+        },
+        "type": {
+          "const": "room.create"
+        },
+        "payload": {
+          "title": "CreateRoomPayload",
+          "type": "object",
+          "properties": {
+            "nickname": {
+              "$ref": "common.schema.json#/$defs/Nickname"
+            },
+            "settings": {
+              "$ref": "common.schema.json#/$defs/RoomSettingsPatch"
+            }
+          },
+          "required": ["nickname"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["v", "id", "type", "payload"],
+      "additionalProperties": false
+    },
+    "JoinRoomMessage": {
+      "title": "JoinRoomMessage",
+      "description": "Joins an existing room that is in the lobby and not full.",
+      "type": "object",
+      "properties": {
+        "v": {
+          "$ref": "common.schema.json#/$defs/ProtocolVersion"
+        },
+        "id": {
+          "$ref": "common.schema.json#/$defs/MessageId"
+        },
+        "type": {
+          "const": "room.join"
+        },
+        "payload": {
+          "title": "JoinRoomPayload",
+          "type": "object",
+          "properties": {
+            "code": {
+              "$ref": "common.schema.json#/$defs/RoomCode"
+            },
+            "nickname": {
+              "$ref": "common.schema.json#/$defs/Nickname"
+            }
+          },
+          "required": ["code", "nickname"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["v", "id", "type", "payload"],
+      "additionalProperties": false
+    },
+    "LeaveRoomMessage": {
+      "title": "LeaveRoomMessage",
+      "description": "Leaves the current room.",
+      "type": "object",
+      "properties": {
+        "v": {
+          "$ref": "common.schema.json#/$defs/ProtocolVersion"
+        },
+        "id": {
+          "$ref": "common.schema.json#/$defs/MessageId"
+        },
+        "type": {
+          "const": "room.leave"
+        },
+        "payload": {
+          "$ref": "common.schema.json#/$defs/EmptyPayload"
+        }
+      },
+      "required": ["v", "id", "type", "payload"],
+      "additionalProperties": false
+    },
+    "UpdateSettingsMessage": {
+      "title": "UpdateSettingsMessage",
+      "description": "Host only, in the lobby. INVALID_SETTINGS if the result is inconsistent (e.g. maxPlayers below the current number of players).",
+      "type": "object",
+      "properties": {
+        "v": {
+          "$ref": "common.schema.json#/$defs/ProtocolVersion"
+        },
+        "id": {
+          "$ref": "common.schema.json#/$defs/MessageId"
+        },
+        "type": {
+          "const": "room.updateSettings"
+        },
+        "payload": {
+          "title": "UpdateSettingsPayload",
+          "type": "object",
+          "properties": {
+            "settings": {
+              "$ref": "common.schema.json#/$defs/RoomSettingsPatch"
+            }
+          },
+          "required": ["settings"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["v", "id", "type", "payload"],
+      "additionalProperties": false
+    },
+    "SetReadyMessage": {
+      "title": "SetReadyMessage",
+      "description": "Marks the sender as ready (or not) in the lobby.",
+      "type": "object",
+      "properties": {
+        "v": {
+          "$ref": "common.schema.json#/$defs/ProtocolVersion"
+        },
+        "id": {
+          "$ref": "common.schema.json#/$defs/MessageId"
+        },
+        "type": {
+          "const": "room.setReady"
+        },
+        "payload": {
+          "title": "SetReadyPayload",
+          "type": "object",
+          "properties": {
+            "ready": {
+              "type": "boolean"
+            }
+          },
+          "required": ["ready"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["v", "id", "type", "payload"],
+      "additionalProperties": false
+    },
+    "KickMessage": {
+      "title": "KickMessage",
+      "description": "Host only, in the lobby: removes a player.",
+      "type": "object",
+      "properties": {
+        "v": {
+          "$ref": "common.schema.json#/$defs/ProtocolVersion"
+        },
+        "id": {
+          "$ref": "common.schema.json#/$defs/MessageId"
+        },
+        "type": {
+          "const": "room.kick"
+        },
+        "payload": {
+          "title": "KickPayload",
+          "type": "object",
+          "properties": {
+            "playerId": {
+              "$ref": "common.schema.json#/$defs/PlayerId"
+            }
+          },
+          "required": ["playerId"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["v", "id", "type", "payload"],
+      "additionalProperties": false
+    },
+    "AddBotMessage": {
+      "title": "AddBotMessage",
+      "description": "Host only, in the lobby: adds a bot (phase 5).",
+      "type": "object",
+      "properties": {
+        "v": {
+          "$ref": "common.schema.json#/$defs/ProtocolVersion"
+        },
+        "id": {
+          "$ref": "common.schema.json#/$defs/MessageId"
+        },
+        "type": {
+          "const": "room.addBot"
+        },
+        "payload": {
+          "title": "AddBotPayload",
+          "type": "object",
+          "properties": {
+            "strategy": {
+              "$ref": "common.schema.json#/$defs/BotStrategy"
+            }
+          },
+          "required": ["strategy"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["v", "id", "type", "payload"],
+      "additionalProperties": false
+    },
+    "StartMatchMessage": {
+      "title": "StartMatchMessage",
+      "description": "Host only: at least 2 players, all ready.",
+      "type": "object",
+      "properties": {
+        "v": {
+          "$ref": "common.schema.json#/$defs/ProtocolVersion"
+        },
+        "id": {
+          "$ref": "common.schema.json#/$defs/MessageId"
+        },
+        "type": {
+          "const": "match.start"
+        },
+        "payload": {
+          "$ref": "common.schema.json#/$defs/EmptyPayload"
+        }
+      },
+      "required": ["v", "id", "type", "payload"],
+      "additionalProperties": false
+    },
+    "RematchMessage": {
+      "title": "RematchMessage",
+      "description": "Host only, once the match is over: same room, scores reset.",
+      "type": "object",
+      "properties": {
+        "v": {
+          "$ref": "common.schema.json#/$defs/ProtocolVersion"
+        },
+        "id": {
+          "$ref": "common.schema.json#/$defs/MessageId"
+        },
+        "type": {
+          "const": "match.rematch"
+        },
+        "payload": {
+          "$ref": "common.schema.json#/$defs/EmptyPayload"
+        }
+      },
+      "required": ["v", "id", "type", "payload"],
+      "additionalProperties": false
+    },
+    "ReadyForNextRoundMessage": {
+      "title": "ReadyForNextRoundMessage",
+      "description": "After a round ends: the next round starts as soon as every connected player sent it, or at nextRoundDeadline.",
+      "type": "object",
+      "properties": {
+        "v": {
+          "$ref": "common.schema.json#/$defs/ProtocolVersion"
+        },
+        "id": {
+          "$ref": "common.schema.json#/$defs/MessageId"
+        },
+        "type": {
+          "const": "match.readyForNextRound"
+        },
+        "payload": {
+          "$ref": "common.schema.json#/$defs/EmptyPayload"
+        }
+      },
+      "required": ["v", "id", "type", "payload"],
+      "additionalProperties": false
+    },
+    "PlayCardMessage": {
+      "title": "PlayCardMessage",
+      "description": "Plays a card on your turn (or out of turn with jumpIn). chosenColor is required for wild cards, swapTargetId for a 7 with sevenZero.",
+      "type": "object",
+      "properties": {
+        "v": {
+          "$ref": "common.schema.json#/$defs/ProtocolVersion"
+        },
+        "id": {
+          "$ref": "common.schema.json#/$defs/MessageId"
+        },
+        "type": {
+          "const": "game.playCard"
+        },
+        "payload": {
+          "title": "PlayCardPayload",
+          "type": "object",
+          "properties": {
+            "cardId": {
+              "$ref": "common.schema.json#/$defs/CardId"
+            },
+            "chosenColor": {
+              "$ref": "common.schema.json#/$defs/Color"
+            },
+            "swapTargetId": {
+              "$ref": "common.schema.json#/$defs/PlayerId"
+            }
+          },
+          "required": ["cardId"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["v", "id", "type", "payload"],
+      "additionalProperties": false
+    },
+    "DrawCardMessage": {
+      "title": "DrawCardMessage",
+      "description": "Draws instead of playing (phase awaitingPlay).",
+      "type": "object",
+      "properties": {
+        "v": {
+          "$ref": "common.schema.json#/$defs/ProtocolVersion"
+        },
+        "id": {
+          "$ref": "common.schema.json#/$defs/MessageId"
+        },
+        "type": {
+          "const": "game.drawCard"
+        },
+        "payload": {
+          "$ref": "common.schema.json#/$defs/EmptyPayload"
+        }
+      },
+      "required": ["v", "id", "type", "payload"],
+      "additionalProperties": false
+    },
+    "PassMessage": {
+      "title": "PassMessage",
+      "description": "Ends the turn after drawing a card (phase awaitingDrawnCardDecision).",
+      "type": "object",
+      "properties": {
+        "v": {
+          "$ref": "common.schema.json#/$defs/ProtocolVersion"
+        },
+        "id": {
+          "$ref": "common.schema.json#/$defs/MessageId"
+        },
+        "type": {
+          "const": "game.pass"
+        },
+        "payload": {
+          "$ref": "common.schema.json#/$defs/EmptyPayload"
+        }
+      },
+      "required": ["v", "id", "type", "payload"],
+      "additionalProperties": false
+    },
+    "ChooseColorMessage": {
+      "title": "ChooseColorMessage",
+      "description": "Only when the first card turned over is a Wild: the first player picks the color (phase awaitingColorChoice).",
+      "type": "object",
+      "properties": {
+        "v": {
+          "$ref": "common.schema.json#/$defs/ProtocolVersion"
+        },
+        "id": {
+          "$ref": "common.schema.json#/$defs/MessageId"
+        },
+        "type": {
+          "const": "game.chooseColor"
+        },
+        "payload": {
+          "title": "ChooseColorPayload",
+          "type": "object",
+          "properties": {
+            "color": {
+              "$ref": "common.schema.json#/$defs/Color"
+            }
+          },
+          "required": ["color"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["v", "id", "type", "payload"],
+      "additionalProperties": false
+    },
+    "RespondPenaltyMessage": {
+      "title": "RespondPenaltyMessage",
+      "description": "Answer of the targeted player to a pending draw penalty. Stacking is done with game.playCard.",
+      "type": "object",
+      "properties": {
+        "v": {
+          "$ref": "common.schema.json#/$defs/ProtocolVersion"
+        },
+        "id": {
+          "$ref": "common.schema.json#/$defs/MessageId"
+        },
+        "type": {
+          "const": "game.respondPenalty"
+        },
+        "payload": {
+          "title": "RespondPenaltyPayload",
+          "type": "object",
+          "properties": {
+            "response": {
+              "type": "string",
+              "enum": ["accept", "challenge"]
+            }
+          },
+          "required": ["response"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["v", "id", "type", "payload"],
+      "additionalProperties": false
+    },
+    "CallUnoMessage": {
+      "title": "CallUnoMessage",
+      "description": "Announces UNO: with 2 cards on your turn, or with 1 card while the UNO window is open.",
+      "type": "object",
+      "properties": {
+        "v": {
+          "$ref": "common.schema.json#/$defs/ProtocolVersion"
+        },
+        "id": {
+          "$ref": "common.schema.json#/$defs/MessageId"
+        },
+        "type": {
+          "const": "game.callUno"
+        },
+        "payload": {
+          "$ref": "common.schema.json#/$defs/EmptyPayload"
+        }
+      },
+      "required": ["v", "id", "type", "payload"],
+      "additionalProperties": false
+    },
+    "CatchUnoMessage": {
+      "title": "CatchUnoMessage",
+      "description": "Catches a player who did not announce UNO while the window is open.",
+      "type": "object",
+      "properties": {
+        "v": {
+          "$ref": "common.schema.json#/$defs/ProtocolVersion"
+        },
+        "id": {
+          "$ref": "common.schema.json#/$defs/MessageId"
+        },
+        "type": {
+          "const": "game.catchUno"
+        },
+        "payload": {
+          "title": "CatchUnoPayload",
+          "type": "object",
+          "properties": {
+            "targetId": {
+              "$ref": "common.schema.json#/$defs/PlayerId"
+            }
+          },
+          "required": ["targetId"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["v", "id", "type", "payload"],
+      "additionalProperties": false
+    },
+    "SendReactionMessage": {
+      "title": "SendReactionMessage",
+      "description": "Predefined quick reaction (no free chat). At most one every 2 seconds.",
+      "type": "object",
+      "properties": {
+        "v": {
+          "$ref": "common.schema.json#/$defs/ProtocolVersion"
+        },
+        "id": {
+          "$ref": "common.schema.json#/$defs/MessageId"
+        },
+        "type": {
+          "const": "reaction.send"
+        },
+        "payload": {
+          "title": "SendReactionPayload",
+          "type": "object",
+          "properties": {
+            "emote": {
+              "$ref": "common.schema.json#/$defs/Emote"
+            }
+          },
+          "required": ["emote"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["v", "id", "type", "payload"],
+      "additionalProperties": false
+    }
+  }
+}

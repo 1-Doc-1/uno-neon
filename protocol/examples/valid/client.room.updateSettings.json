@@ -1,0 +1,11 @@
+{
+  "v": 1,
+  "id": "c-3",
+  "type": "room.updateSettings",
+  "payload": {
+    "settings": {
+      "jumpIn": true,
+      "turnTimerSeconds": 15
+    }
+  }
+}

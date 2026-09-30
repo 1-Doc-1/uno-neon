@@ -1,0 +1,9 @@
+{
+  "v": 1,
+  "type": "error",
+  "replyTo": "c-13",
+  "payload": {
+    "code": "NOT_YOUR_TURN",
+    "message": "It is not your turn"
+  }
+}

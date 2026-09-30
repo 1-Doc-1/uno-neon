@@ -1,0 +1,9 @@
+{
+  "v": 1,
+  "id": "c-11",
+  "type": "game.playCard",
+  "payload": {
+    "cardId": 77,
+    "chosenColor": "blue"
+  }
+}

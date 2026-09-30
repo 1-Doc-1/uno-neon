@@ -1,0 +1,50 @@
+{
+  "v": 1,
+  "type": "room.update",
+  "payload": {
+    "roomVersion": 4,
+    "room": {
+      "code": "K7M4XP",
+      "phase": "lobby",
+      "settings": {
+        "stacking": "off",
+        "jumpIn": false,
+        "sevenZero": false,
+        "drawUntilPlayable": false,
+        "wildDrawFourMode": "officialChallenge",
+        "turnTimerSeconds": 30,
+        "matchLength": "to500",
+        "maxPlayers": 6
+      },
+      "players": [
+        {
+          "playerId": "p_Lea4f9Kx2",
+          "nickname": "Léa",
+          "seat": 0,
+          "isHost": true,
+          "isReady": true,
+          "isConnected": true,
+          "isBot": false
+        },
+        {
+          "playerId": "p_Max8Qw3Zt",
+          "nickname": "Max",
+          "seat": 1,
+          "isHost": false,
+          "isReady": true,
+          "isConnected": true,
+          "isBot": false
+        },
+        {
+          "playerId": "p_Ines7Rt1Y",
+          "nickname": "Inès",
+          "seat": 2,
+          "isHost": false,
+          "isReady": false,
+          "isConnected": false,
+          "isBot": false
+        }
+      ]
+    }
+  }
+}

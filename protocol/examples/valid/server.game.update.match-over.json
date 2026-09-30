@@ -1,0 +1,133 @@
+{
+  "v": 1,
+  "type": "game.update",
+  "payload": {
+    "serverTime": 1790000900000,
+    "events": [
+      {
+        "kind": "cardPlayed",
+        "playerId": "p_Ines7Rt1Y",
+        "card": {
+          "id": 3999,
+          "color": "green",
+          "rank": "1"
+        },
+        "chosenColor": null,
+        "isJumpIn": true
+      },
+      {
+        "kind": "roundEnded",
+        "winnerId": "p_Ines7Rt1Y",
+        "points": 70
+      },
+      {
+        "kind": "matchEnded",
+        "winnerId": "p_Ines7Rt1Y"
+      }
+    ],
+    "view": {
+      "stateVersion": 210,
+      "phase": "matchOver",
+      "me": {
+        "playerId": "p_Lea4f9Kx2",
+        "hand": [
+          {
+            "id": 77,
+            "color": null,
+            "rank": "wild"
+          }
+        ],
+        "playableCardIds": [],
+        "canDraw": false,
+        "canPass": false,
+        "canCallUno": false,
+        "canChooseColor": false,
+        "penaltyResponse": null,
+        "catchableTargetIds": []
+      },
+      "players": [
+        {
+          "playerId": "p_Lea4f9Kx2",
+          "nickname": "Léa",
+          "seat": 0,
+          "cardCount": 1,
+          "score": 310,
+          "isConnected": true,
+          "isBot": false,
+          "isHost": true,
+          "hasCalledUno": false,
+          "isReadyForNextRound": false
+        },
+        {
+          "playerId": "p_Max8Qw3Zt",
+          "nickname": "Max",
+          "seat": 1,
+          "cardCount": 1,
+          "score": 245,
+          "isConnected": true,
+          "isBot": false,
+          "isHost": false,
+          "hasCalledUno": false,
+          "isReadyForNextRound": false
+        },
+        {
+          "playerId": "p_Ines7Rt1Y",
+          "nickname": "Inès",
+          "seat": 2,
+          "cardCount": 0,
+          "score": 512,
+          "isConnected": true,
+          "isBot": false,
+          "isHost": false,
+          "hasCalledUno": false,
+          "isReadyForNextRound": false
+        }
+      ],
+      "currentPlayerId": "p_Ines7Rt1Y",
+      "direction": "clockwise",
+      "currentColor": "green",
+      "discardTop": {
+        "id": 3999,
+        "color": "green",
+        "rank": "1"
+      },
+      "drawPileCount": 86,
+      "pendingDraw": 0,
+      "turnDeadline": null,
+      "nextRoundDeadline": null,
+      "round": 6,
+      "settings": {
+        "stacking": "off",
+        "jumpIn": true,
+        "sevenZero": false,
+        "drawUntilPlayable": false,
+        "wildDrawFourMode": "officialChallenge",
+        "turnTimerSeconds": 30,
+        "matchLength": "to500",
+        "maxPlayers": 6
+      },
+      "roundResult": {
+        "winnerId": "p_Ines7Rt1Y",
+        "points": 70,
+        "revealedHands": {
+          "p_Lea4f9Kx2": [
+            {
+              "id": 77,
+              "color": null,
+              "rank": "wild"
+            }
+          ],
+          "p_Max8Qw3Zt": [
+            {
+              "id": 5,
+              "color": "red",
+              "rank": "skip"
+            }
+          ],
+          "p_Ines7Rt1Y": []
+        }
+      },
+      "matchWinnerId": "p_Ines7Rt1Y"
+    }
+  }
+}

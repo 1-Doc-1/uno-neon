@@ -1,0 +1,8 @@
+{
+  "v": 1,
+  "id": "c-15",
+  "type": "game.respondPenalty",
+  "payload": {
+    "response": "challenge"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uno-neon.invalid/protocol/v1/room-view.schema.json",
+  "title": "RoomView",
+  "description": "State of a room as shown in the lobby. Identical for every member.",
+  "type": "object",
+  "properties": {
+    "code": { "$ref": "common.schema.json#/$defs/RoomCode" },
+    "phase": {
+      "description": "lobby: waiting for players; inGame: a match is running; matchOver: waiting for a rematch.",
+      "type": "string",
+      "enum": ["lobby", "inGame", "matchOver"]
+    },
+    "settings": { "$ref": "common.schema.json#/$defs/RoomSettings" },
+    "players": {
+      "type": "array",
+      "maxItems": 10,
+      "items": { "$ref": "#/$defs/RoomMember" }
+    }
+  },
+  "required": ["code", "phase", "settings", "players"],
+  "additionalProperties": false,
+  "$defs": {
+    "RoomMember": {
+      "title": "RoomMember",
+      "type": "object",
+      "properties": {
+        "playerId": { "$ref": "common.schema.json#/$defs/PlayerId" },
+        "nickname": { "type": "string" },
+        "seat": { "type": "integer", "minimum": 0, "maximum": 9 },
+        "isHost": { "type": "boolean" },
+        "isReady": { "type": "boolean" },
+        "isConnected": { "type": "boolean" },
+        "isBot": { "type": "boolean" }
+      },
+      "required": ["playerId", "nickname", "seat", "isHost", "isReady", "isConnected", "isBot"],
+      "additionalProperties": false
+    }
+  }
+}

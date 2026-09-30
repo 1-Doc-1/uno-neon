@@ -1,0 +1,12 @@
+{
+  "v": 1,
+  "type": "error",
+  "replyTo": "c-11",
+  "payload": {
+    "code": "ILLEGAL_MOVE",
+    "message": "Wild Draw Four is not allowed while holding the current color",
+    "details": {
+      "reason": "WILD_DRAW_FOUR_ILLEGAL"
+    }
+  }
+}

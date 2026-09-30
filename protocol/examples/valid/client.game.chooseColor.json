@@ -1,0 +1,8 @@
+{
+  "v": 1,
+  "id": "c-8",
+  "type": "game.chooseColor",
+  "payload": {
+    "color": "green"
+  }
+}

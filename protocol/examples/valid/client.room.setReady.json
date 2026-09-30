@@ -1,0 +1,8 @@
+{
+  "v": 1,
+  "id": "c-4",
+  "type": "room.setReady",
+  "payload": {
+    "ready": true
+  }
+}

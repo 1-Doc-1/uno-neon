@@ -1,0 +1,158 @@
+{
+  "v": 1,
+  "type": "game.update",
+  "payload": {
+    "serverTime": 1790000100000,
+    "events": [
+      {
+        "kind": "cardPlayed",
+        "playerId": "p_Ines7Rt1Y",
+        "card": {
+          "id": 651,
+          "color": null,
+          "rank": "wildDrawFour"
+        },
+        "chosenColor": "green",
+        "isJumpIn": false
+      },
+      {
+        "kind": "colorChosen",
+        "playerId": "p_Ines7Rt1Y",
+        "color": "green"
+      },
+      {
+        "kind": "challengeResolved",
+        "challengerId": "p_Lea4f9Kx2",
+        "challengedId": "p_Ines7Rt1Y",
+        "wasBluff": true,
+        "penalizedPlayerId": "p_Ines7Rt1Y",
+        "penaltyAmount": 4,
+        "revealedHand": [
+          {
+            "id": 3050,
+            "color": "green",
+            "rank": "5"
+          },
+          {
+            "id": 1200,
+            "color": "red",
+            "rank": "reverse"
+          }
+        ]
+      },
+      {
+        "kind": "cardsDrawn",
+        "playerId": "p_Ines7Rt1Y",
+        "count": 4
+      },
+      {
+        "kind": "turnChanged",
+        "playerId": "p_Lea4f9Kx2"
+      }
+    ],
+    "view": {
+      "stateVersion": 12,
+      "phase": "awaitingPlay",
+      "me": {
+        "playerId": "p_Lea4f9Kx2",
+        "hand": [
+          {
+            "id": 1843,
+            "color": "red",
+            "rank": "7"
+          },
+          {
+            "id": 77,
+            "color": null,
+            "rank": "wild"
+          },
+          {
+            "id": 902,
+            "color": "blue",
+            "rank": "7"
+          },
+          {
+            "id": 4410,
+            "color": "green",
+            "rank": "skip"
+          },
+          {
+            "id": 12,
+            "color": "yellow",
+            "rank": "0"
+          }
+        ],
+        "playableCardIds": [77],
+        "canDraw": true,
+        "canPass": false,
+        "canCallUno": false,
+        "canChooseColor": false,
+        "penaltyResponse": null,
+        "catchableTargetIds": []
+      },
+      "players": [
+        {
+          "playerId": "p_Lea4f9Kx2",
+          "nickname": "Léa",
+          "seat": 0,
+          "cardCount": 5,
+          "score": 0,
+          "isConnected": true,
+          "isBot": false,
+          "isHost": true,
+          "hasCalledUno": false,
+          "isReadyForNextRound": false
+        },
+        {
+          "playerId": "p_Max8Qw3Zt",
+          "nickname": "Max",
+          "seat": 1,
+          "cardCount": 6,
+          "score": 0,
+          "isConnected": true,
+          "isBot": false,
+          "isHost": false,
+          "hasCalledUno": false,
+          "isReadyForNextRound": false
+        },
+        {
+          "playerId": "p_Ines7Rt1Y",
+          "nickname": "Inès",
+          "seat": 2,
+          "cardCount": 6,
+          "score": 0,
+          "isConnected": true,
+          "isBot": false,
+          "isHost": false,
+          "hasCalledUno": false,
+          "isReadyForNextRound": false
+        }
+      ],
+      "currentPlayerId": "p_Lea4f9Kx2",
+      "direction": "clockwise",
+      "currentColor": "green",
+      "discardTop": {
+        "id": 651,
+        "color": null,
+        "rank": "wildDrawFour"
+      },
+      "drawPileCount": 86,
+      "pendingDraw": 0,
+      "turnDeadline": 1790000030000,
+      "nextRoundDeadline": null,
+      "round": 1,
+      "settings": {
+        "stacking": "off",
+        "jumpIn": false,
+        "sevenZero": false,
+        "drawUntilPlayable": false,
+        "wildDrawFourMode": "officialChallenge",
+        "turnTimerSeconds": 30,
+        "matchLength": "to500",
+        "maxPlayers": 6
+      },
+      "roundResult": null,
+      "matchWinnerId": null
+    }
+  }
+}
