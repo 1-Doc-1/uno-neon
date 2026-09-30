@@ -6,6 +6,7 @@ add_executable(uno_tests
     card_test.cpp
     deck_test.cpp
     piles_test.cpp
+    playability_test.cpp
     random_test.cpp
     round_test.cpp
     turn_order_test.cpp
