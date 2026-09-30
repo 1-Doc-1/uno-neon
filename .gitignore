@@ -33,3 +33,5 @@ blob-report/
 *.log
 Thumbs.db
 .DS_Store
+# Playwright CLI output (may contain credentials)
+.playwright-cli/
