@@ -21,7 +21,8 @@ namespace {
 
 [[nodiscard]] bool hasDuplicateIds(const std::vector<Card>& deck)
 {
-    auto ids = deck | std::views::transform(&Card::id) | std::ranges::to<std::vector>();
+    std::vector<CardId> ids(deck.size());
+    std::ranges::transform(deck, ids.begin(), &Card::id);
     std::ranges::sort(ids);
     return std::ranges::adjacent_find(ids) != ids.end();
 }
@@ -71,7 +72,8 @@ std::expected<Round, DomainError> Round::start(RoundSetup setup, RandomSource& r
         ++dealt;
     }
 
-    DrawPile drawPile{setup.deck | std::views::drop(dealtCount) | std::ranges::to<std::vector>()};
+    const auto remaining = setup.deck | std::views::drop(dealtCount);
+    DrawPile drawPile{std::vector<Card>(remaining.begin(), remaining.end())};
     const auto flipped = flipStartingCard(drawPile, random);
     if (!flipped) {
         return std::unexpected{flipped.error()};

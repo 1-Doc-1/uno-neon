@@ -31,8 +31,9 @@ constexpr std::uint64_t kSeed = 42;
 
 [[nodiscard]] std::vector<std::uint32_t> idsOf(std::span<const Card> cards)
 {
-    return cards | std::views::transform([](const Card& card) { return card.id.value; }) |
-           std::ranges::to<std::vector>();
+    std::vector<std::uint32_t> ids(cards.size());
+    std::ranges::transform(cards, ids.begin(), [](const Card& card) { return card.id.value; });
+    return ids;
 }
 
 [[nodiscard]] std::vector<std::uint32_t> sortedIds(std::vector<std::uint32_t> ids)
