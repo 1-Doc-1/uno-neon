@@ -1,5 +1,7 @@
-# uno_testing: deterministic test doubles for uno_core, built only with the test suite.
-add_library(uno_testing STATIC src/seeded_random_source.cpp)
+# uno_testing: deterministic test doubles and fixtures for uno_core, built only with the test suite.
+find_package(Catch2 3 CONFIG REQUIRED)
+
+add_library(uno_testing STATIC src/seeded_random_source.cpp src/round_invariants.cpp)
 target_include_directories(uno_testing PUBLIC include)
-target_link_libraries(uno_testing PUBLIC uno_core)
+target_link_libraries(uno_testing PUBLIC uno_core PRIVATE Catch2::Catch2)
 uno_set_warnings(uno_testing)

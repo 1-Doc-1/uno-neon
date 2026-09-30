@@ -17,7 +17,8 @@
 ### Phase 1 — Cœur du jeu (C++, TDD)
 - [x] 1.1 Cartes, deck de 108 cartes, `RandomSource`
 - [x] 1.2 État de partie, tour, sens, pioche/défausse, remélange
-- [ ] 1.3 Règles officielles : jouabilité, effets, cartes Joker, première carte retournée
+- [x] 1.3a Jouabilité, effets (Skip/Reverse/DrawTwo/Wild), choix de couleur, première carte retournée
+- [ ] 1.3b Wild Draw Four : légalité stricte et contestation officielle
 - [ ] 1.4 UNO : annonce, contre-UNO, pénalités
 - [ ] 1.5 Fin de manche, score, fin de partie (500 pts ou manche unique)
 - [ ] 1.6 Options maison (politiques injectables)
@@ -79,3 +80,4 @@
 - 2026-09-30 — 0.7 — table des commandes de `CLAUDE.md` complétée et vérifiée (serveur, formatage/lint C++, client, protocole) ; `OnPush` par défaut depuis Angular 22 — `chore/phase-0-foundations` / PR #2
 - 2026-09-30 — 1.1 — `Card`/`CardId`/`Color`/`Rank`, interface `RandomSource` + Fisher-Yates `shuffle`, `createStandardDeck` (108 cartes, identifiants permutés aléatoirement), `SeededRandomSource` dans la bibliothèque `uno_testing` (jamais liée au binaire), 20 nouveaux tests dont la valeur de référence de `std::mt19937_64` ([rand.predef]) ; ADR 0008 (déterminisme portable) et 0009 (modèle de carte), SPEC §2/§7.3 alignées ; commande clang-tidy de `CLAUDE.md` alignée sur le CI — `feat/core-deck`
 - 2026-09-30 — 1.2 — `PlayerId`, `DomainError`, `TurnOrder` (sièges, joueur courant, sens), `DrawPile`/`DiscardPile` + `drawCards` (remélange de la défausse sauf la carte du dessus, pioche partielle sans erreur), `Round::start` (fabrique qui valide : distribution une carte à la fois à partir de la gauche du donneur, première carte retournée, +4 remis dans la pioche remélangée) ; `Round` valeur pure, `RandomSource&` en paramètre (ADR 0010, ligne §7.2 de la SPEC corrigée) ; fixtures de test partagées dans `uno_testing` ; 41 nouveaux cas de test (67 au total) verts en `dev` et `debug-asan`, clang-tidy propre — `feat/core-round-state`
+- 2026-09-30 — 1.3a — `isPlayable` (jouabilité de base, +4 volontairement non spécial-casé, reporté en 1.3b) ; premier usage de `std::variant`+`std::visit` du projet (ADR 0006) : `PlayerAction`, `TurnPhase`, `DomainEvent` (alignés sur SPEC §8.5 : `DeckReshuffled`/`TurnChanged` sont des événements, pas des booléens) et le visiteur `Overloaded` ; `Round::apply` (tour/main/couleur validés, cycle piocher→décider→passer avec fin de tour automatique si la carte piochée n'est pas jouable ou si plus rien n'est piochable, effets Skip/Reverse — y compris « Reverse agit comme Skip » à 2 joueurs —/DrawTwo/Wild) ; `Round::start` renvoie désormais un `RoundStart` (manche + événements, dont `RoundStarted`) et résout l'effet de la première carte retournée ; `requireRoundInvariants` dans `uno_testing` (désormais lié à Catch2), réutilisable par la simulation de l'étape 1.8 ; 36 nouveaux cas de test (103 au total) verts en `dev` et `debug-asan`, clang-tidy propre — `feat/core-rules-basic`

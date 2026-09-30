@@ -14,6 +14,14 @@ enum class DomainError : std::uint8_t {
     DeckTooSmall,
     DuplicateCard,
     NoValidStartingCard,
+    // Step 1.3a: PlayerAction validation (SPEC §8.6).
+    NotYourTurn,
+    InvalidPhase,
+    CardNotInHand,
+    ColorMismatch,         // ILLEGAL_MOVE / COLOR_MISMATCH
+    ColorRequired,         // ILLEGAL_MOVE / COLOR_REQUIRED
+    ColorNotAllowed,       // ILLEGAL_MOVE / COLOR_NOT_ALLOWED
+    OnlyDrawnCardPlayable, // ILLEGAL_MOVE / ONLY_DRAWN_CARD_PLAYABLE
 };
 
 } // namespace uno::core
