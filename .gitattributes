@@ -1,0 +1,10 @@
+﻿# Fins de ligne : LF dans le repo et sur tous les postes (le CI est sous Linux)
+* text=auto eol=lf
+# Scripts Windows qui exigent CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+# Binaires : jamais convertis
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff2 binary

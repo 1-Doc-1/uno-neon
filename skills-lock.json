@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "skills": {
+    "angular-developer": {
+      "source": "angular/skills",
+      "sourceType": "github",
+      "skillPath": "angular-developer/SKILL.md",
+      "computedHash": "c800e2c304f88e402a6e00a1e09d176537b8ceb6de22fd9202ba7be4bf1c4230"
+    },
+    "modern-cpp": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "skillPath": "plugins/modern-cpp/skills/modern-cpp/SKILL.md",
+      "computedHash": "da28debe7451b6b24de69a3b43b43da61900d21ace3fc7dcb120b3710e1a4611"
+    },
+    "web-design-guidelines": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/web-design-guidelines/SKILL.md",
+      "computedHash": "d8e7d3afe37dcc8a97b99ffb5afdb4d0919ae0092ea8b68f44eb201f035e33ac"
+    }
+  }
+}
