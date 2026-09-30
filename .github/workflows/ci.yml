@@ -112,21 +112,21 @@ jobs:
     timeout-minutes: 60
     env:
       VCPKG_ROOT: ${{ github.workspace }}\..\vcpkg
-      VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}\..\vcpkg-cache,readwrite
+      VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}\.vcpkg-cache,readwrite
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Restore vcpkg binary cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: ${{ github.workspace }}\..\vcpkg-cache
+          path: ${{ github.workspace }}\.vcpkg-cache
           key: vcpkg-windows-msvc-${{ env.VCPKG_COMMIT }}-${{ hashFiles('server/vcpkg.json') }}
           restore-keys: vcpkg-windows-msvc-${{ env.VCPKG_COMMIT }}-
 
       - name: Install vcpkg
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force "$env:GITHUB_WORKSPACE\..\vcpkg-cache" | Out-Null
+          New-Item -ItemType Directory -Force "$env:GITHUB_WORKSPACE\.vcpkg-cache" | Out-Null
           git clone --filter=blob:none https://github.com/microsoft/vcpkg "$env:VCPKG_ROOT"
           git -C "$env:VCPKG_ROOT" checkout "$env:VCPKG_COMMIT"
           & "$env:VCPKG_ROOT\bootstrap-vcpkg.bat" -disableMetrics
