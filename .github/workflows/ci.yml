@@ -1,0 +1,188 @@
+# Intégration continue : build + tests du serveur (Linux, Windows) et du client, sur chaque PR.
+# Le job e2e (Playwright) sera ajouté en phase 4.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Même commit que la builtin-baseline de server/vcpkg.json.
+  VCPKG_COMMIT: 4cb050be2cfa7a947cdd2dd1a70e24b17774c979
+
+jobs:
+  server-linux:
+    name: server-linux (${{ matrix.compiler }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - compiler: gcc
+            cc: gcc-14
+            cxx: g++-14
+          - compiler: clang
+            cc: clang-20
+            cxx: clang++-20
+    env:
+      CC: ${{ matrix.cc }}
+      CXX: ${{ matrix.cxx }}
+      VCPKG_ROOT: ${{ github.workspace }}/../vcpkg
+      VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}/../vcpkg-cache,readwrite
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            ninja-build g++-14 autoconf autoconf-archive automake libtool pkg-config clang-20
+          ${{ matrix.cxx }} --version
+
+      # Same major version as the team's workstations (LLVM 23): format and lint results must match.
+      # The repository key is checked against its published fingerprint before being trusted.
+      - name: Install clang-format and clang-tidy 23 (apt.llvm.org)
+        if: matrix.compiler == 'clang'
+        env:
+          LLVM_KEY_FINGERPRINT: 6084F3CF814B57C1CF12EFD515CF4D18AF4F7421
+        run: |
+          curl -fsSL https://apt.llvm.org/llvm-snapshot.gpg.key -o "$RUNNER_TEMP/llvm.asc"
+          actual=$(gpg --show-keys --with-colons "$RUNNER_TEMP/llvm.asc" | awk -F: '$1 == "fpr" { print $10; exit }')
+          if [ "$actual" != "$LLVM_KEY_FINGERPRINT" ]; then
+            echo "Unexpected apt.llvm.org key fingerprint: $actual"
+            exit 1
+          fi
+          sudo install -D -m 0644 "$RUNNER_TEMP/llvm.asc" /etc/apt/keyrings/llvm.asc
+          echo "deb [signed-by=/etc/apt/keyrings/llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-23 main" \
+            | sudo tee /etc/apt/sources.list.d/llvm-23.list
+          sudo apt-get update
+          sudo apt-get install -y clang-format-23 clang-tidy-23
+
+      - name: Check LLVM tool versions
+        if: matrix.compiler == 'clang'
+        run: |
+          clang-format-23 --version | grep -E 'clang-format version 23\.'
+          clang-tidy-23 --version | grep -E 'LLVM version 23\.'
+
+      - name: Restore vcpkg binary cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ github.workspace }}/../vcpkg-cache
+          key: vcpkg-linux-${{ matrix.compiler }}-${{ env.VCPKG_COMMIT }}-${{ hashFiles('server/vcpkg.json') }}
+          restore-keys: vcpkg-linux-${{ matrix.compiler }}-${{ env.VCPKG_COMMIT }}-
+
+      - name: Install vcpkg
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/../vcpkg-cache"
+          git clone --filter=blob:none https://github.com/microsoft/vcpkg "$VCPKG_ROOT"
+          git -C "$VCPKG_ROOT" checkout "$VCPKG_COMMIT"
+          "$VCPKG_ROOT/bootstrap-vcpkg.sh" -disableMetrics
+
+      - name: Configure (debug-asan)
+        working-directory: server
+        run: cmake --preset debug-asan
+
+      - name: Build
+        working-directory: server
+        run: cmake --build --preset debug-asan
+
+      - name: Test
+        working-directory: server
+        run: ctest --preset debug-asan
+
+      - name: clang-format
+        if: matrix.compiler == 'clang'
+        run: git ls-files 'server/*.cpp' 'server/*.hpp' 'server/*.cpp.in' | xargs clang-format-23 --dry-run --Werror
+
+      - name: clang-tidy
+        if: matrix.compiler == 'clang'
+        run: git ls-files 'server/*.cpp' | xargs clang-tidy-23 -p server/build/debug-asan --quiet
+
+  server-windows:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    env:
+      VCPKG_ROOT: ${{ github.workspace }}\..\vcpkg
+      VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}\..\vcpkg-cache,readwrite
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Restore vcpkg binary cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ github.workspace }}\..\vcpkg-cache
+          key: vcpkg-windows-msvc-${{ env.VCPKG_COMMIT }}-${{ hashFiles('server/vcpkg.json') }}
+          restore-keys: vcpkg-windows-msvc-${{ env.VCPKG_COMMIT }}-
+
+      - name: Install vcpkg
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force "$env:GITHUB_WORKSPACE\..\vcpkg-cache" | Out-Null
+          git clone --filter=blob:none https://github.com/microsoft/vcpkg "$env:VCPKG_ROOT"
+          git -C "$env:VCPKG_ROOT" checkout "$env:VCPKG_COMMIT"
+          & "$env:VCPKG_ROOT\bootstrap-vcpkg.bat" -disableMetrics
+
+      # Same recipe as the `dev64` function of docs/SETUP.md: MSVC x64 environment (cl, CMake, Ninja).
+      # The environment only lives for this step, hence configure + build + test together.
+      - name: Configure, build and test (dev)
+        shell: pwsh
+        working-directory: server
+        run: |
+          $vsPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath
+          Import-Module "$vsPath\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
+          Enter-VsDevShell -VsInstallPath $vsPath -SkipAutomaticLocation -DevCmdArguments '-arch=x64 -host_arch=x64'
+          $env:VCPKG_ROOT = "$env:GITHUB_WORKSPACE\..\vcpkg"
+          cl 2>&1 | Select-Object -First 1
+          cmake --preset dev
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmake --build --preset dev
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          ctest --preset dev
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  client:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generated protocol types are up to date
+        run: |
+          npm run protocol:gen
+          git diff --exit-code -- src/app/protocol/generated
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Format
+        run: npm run format:check
+
+      - name: Unit and contract tests
+        run: npm test
+
+      - name: Production build
+        run: npm run build
+
+      - name: Audit dependencies
+        run: npm audit --audit-level=high
