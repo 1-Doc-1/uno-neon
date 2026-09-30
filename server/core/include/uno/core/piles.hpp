@@ -26,7 +26,7 @@ public:
     // Adds `cards` to the pile, then shuffles the whole pile.
     void shuffleIn(std::vector<Card> cards, RandomSource& random);
 
-    bool operator==(const DrawPile&) const = default;
+    [[nodiscard]] bool operator==(const DrawPile&) const = default;
 
 private:
     std::vector<Card> cards_; // top of the pile = back()
@@ -47,7 +47,7 @@ public:
     // Removes and returns every card but the top one, bottom card first.
     [[nodiscard]] std::vector<Card> takeAllButTop();
 
-    bool operator==(const DiscardPile&) const = default;
+    [[nodiscard]] bool operator==(const DiscardPile&) const = default;
 
 private:
     std::vector<Card> cards_; // top of the pile = back()
@@ -57,7 +57,7 @@ struct DrawResult {
     std::vector<Card> cards;
     bool reshuffled{false};
 
-    bool operator==(const DrawResult&) const = default;
+    [[nodiscard]] bool operator==(const DrawResult&) const = default;
 };
 
 // Draws up to `count` cards. When the draw pile runs out, the discard pile except its top card is

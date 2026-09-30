@@ -46,7 +46,7 @@ public:
     // Empty while a flipped Wild waits for the first player's color choice.
     [[nodiscard]] std::optional<Color> currentColor() const noexcept { return currentColor_; }
 
-    bool operator==(const Round&) const = default;
+    [[nodiscard]] bool operator==(const Round&) const = default;
 
 private:
     Round(TurnOrder turnOrder, PlayerId dealer, std::vector<Hand> hands, DrawPile drawPile, DiscardPile discardPile);

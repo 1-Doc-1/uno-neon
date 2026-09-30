@@ -1,6 +1,7 @@
 #include "uno/core/round.hpp"
 
 #include "uno/core/card.hpp"
+#include "uno/core/detail/duplicates.hpp"
 #include "uno/core/domain_error.hpp"
 #include "uno/core/piles.hpp"
 #include "uno/core/player_id.hpp"
@@ -23,8 +24,7 @@ namespace {
 {
     std::vector<CardId> ids(deck.size());
     std::ranges::transform(deck, ids.begin(), &Card::id);
-    std::ranges::sort(ids);
-    return std::ranges::adjacent_find(ids) != ids.end();
+    return detail::hasDuplicates(std::move(ids));
 }
 
 [[nodiscard]] bool isWildDrawFour(const Card& card)
@@ -67,9 +67,8 @@ std::expected<Round, DomainError> Round::start(RoundSetup setup, RandomSource& r
 
     std::vector<Hand> hands(playerCount);
     const auto firstSeat = turnOrder->currentSeat();
-    for (std::size_t dealt = 0; const auto& card : setup.deck | std::views::take(dealtCount)) {
-        hands.at((firstSeat + dealt) % playerCount).push_back(card);
-        ++dealt;
+    for (std::size_t dealt = 0; dealt < dealtCount; ++dealt) {
+        hands.at((firstSeat + dealt) % playerCount).push_back(setup.deck.at(dealt));
     }
 
     const auto remaining = setup.deck | std::views::drop(dealtCount);

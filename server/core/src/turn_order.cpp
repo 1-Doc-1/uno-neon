@@ -1,5 +1,6 @@
 #include "uno/core/turn_order.hpp"
 
+#include "uno/core/detail/duplicates.hpp"
 #include "uno/core/domain_error.hpp"
 #include "uno/core/player_id.hpp"
 
@@ -12,16 +13,6 @@
 
 namespace uno::core {
 
-namespace {
-
-[[nodiscard]] bool hasDuplicates(std::vector<PlayerId> players)
-{
-    std::ranges::sort(players);
-    return std::ranges::adjacent_find(players) != players.end();
-}
-
-} // namespace
-
 std::expected<TurnOrder, DomainError> TurnOrder::startingLeftOf(std::vector<PlayerId> seats, const PlayerId& dealer)
 {
     if (seats.size() < kMinPlayers) {
@@ -30,7 +21,7 @@ std::expected<TurnOrder, DomainError> TurnOrder::startingLeftOf(std::vector<Play
     if (seats.size() > kMaxPlayers) {
         return std::unexpected{DomainError::TooManyPlayers};
     }
-    if (hasDuplicates(seats)) {
+    if (detail::hasDuplicates(seats)) {
         return std::unexpected{DomainError::DuplicatePlayer};
     }
     const auto dealerSeat = std::ranges::find(seats, dealer);

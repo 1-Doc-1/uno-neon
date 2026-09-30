@@ -8,6 +8,7 @@
 #include <iterator>
 #include <optional>
 #include <span>
+#include <stdexcept>
 #include <utility>
 #include <vector>
 
@@ -62,9 +63,17 @@ DrawResult drawCards(DrawPile& drawPile, DiscardPile& discardPile, std::size_t c
             drawPile.shuffleIn(std::move(reshuffledCards), random);
             result.reshuffled = true;
         }
-        if (auto card = drawPile.drawTop()) {
-            result.cards.push_back(*card);
+        // drawPile is non-empty here: either it already was, or the reshuffle above just refilled
+        // it. A bare `*` would be UB if that invariant were ever broken, and would silently stop
+        // growing result.cards (an infinite loop, since drawPile.empty() would still be false). The
+        // explicit has_value() check makes the failure loud instead, and keeps clang-tidy's
+        // bugprone-unchecked-optional-access happy: it accepts operator* once the same optional has
+        // been checked, but not .value() alone or an unchecked operator*.
+        auto drawn = drawPile.drawTop();
+        if (!drawn.has_value()) {
+            throw std::logic_error{"drawCards: draw pile unexpectedly empty after a successful reshuffle"};
         }
+        result.cards.push_back(*drawn);
     }
     return result;
 }

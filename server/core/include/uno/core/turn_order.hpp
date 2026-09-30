@@ -37,7 +37,7 @@ public:
     void advance() noexcept { currentSeat_ = nextSeat(); }
     void reverse() noexcept;
 
-    bool operator==(const TurnOrder&) const = default;
+    [[nodiscard]] bool operator==(const TurnOrder&) const = default;
 
 private:
     TurnOrder(std::vector<PlayerId> seats, std::size_t currentSeat) noexcept;
