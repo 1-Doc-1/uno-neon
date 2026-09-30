@@ -12,7 +12,7 @@ Projet de groupe d'étudiants en développement d'applications : le code doit ê
 1. Au début d'une session : lis `docs/PROGRESS.md`, identifie la phase et l'étape en cours. Ne saute jamais de phase.
 2. Avant de coder une étape non triviale : propose un plan (fichiers touchés, tests prévus, risques). Attends la validation.
 3. Travaille par petits incréments vérifiables : test rouge → code → test vert → refactor → commit.
-4. Une étape n'est « terminée » que si : build OK, tests OK, lint OK, et `docs/PROGRESS.md` mis à jour.
+4. Une étape n'est « terminée » que si : build OK, tests OK, lint OK, et `docs/PROGRESS.md` mis à jour. Pour toute étape qui touche `server/` : lancer `scripts/linux-check.sh` (WSL) avant de pousser (voir `docs/SETUP.md`, étape 10).
 5. Si la SPEC est ambiguë ou contradictoire : pose la question, ne devine pas. Si tu t'écartes de la SPEC, écris une ADR.
 6. Fin d'étape : résume en 5-10 lignes ce qui a été fait, **pourquoi** les choix d'architecture/patterns (2-3 phrases pédagogiques), et ce qui reste.
 7. Ne modifie jamais `docs/SPEC.md` sans demande explicite.
@@ -36,6 +36,7 @@ Serveur : depuis `server/`, dans un terminal où `dev64` a été lancé. Client 
 | Client : build de production | `npm run build` |
 | Régénérer les types du protocole | `npm run protocol:gen` (après toute modification de `protocol/schema`) |
 | E2E (phase 4) | `npx playwright test` (depuis `e2e/`) |
+| Vérifier le serveur sous Linux (WSL, avant push serveur) | `wsl -d Ubuntu-24.04 -- bash scripts/linux-check.sh` (depuis la racine du repo ; installation unique : `scripts/linux-setup.sh`, voir `docs/SETUP.md` étape 10) |
 
 Environnement : Windows 10/11, Build Tools Visual Studio 2026, PowerShell initialisé avec la fonction `dev64` (MSVC **x64**, CMake, Ninja dans le PATH ; `VCPKG_ROOT=C:\dev\vcpkg`, notre clone, pas le vcpkg intégré à VS). Triplet vcpkg : `x64-windows`. Générateur CMake : **Ninja** (nécessaire pour `compile_commands.json` → clangd). Le CI (`.github/workflows/ci.yml`) tourne sous Linux (GCC + Clang, sanitizers : la référence) et Windows (MSVC). clang-format et clang-tidy : version majeure 23 sur les postes comme en CI.
 
