@@ -26,7 +26,7 @@ sudo apt-get install -y --no-install-recommends \
   build-essential ninja-build cmake g++-14 \
   autoconf autoconf-archive automake libtool pkg-config \
   clang-20 libclang-rt-20-dev \
-  curl gnupg ca-certificates rsync git
+  curl gnupg ca-certificates rsync git zip unzip
 
 echo "==> clang-format et clang-tidy 23 (apt.llvm.org, comme le CI — version des postes de l'équipe)"
 if ! command -v clang-format-23 >/dev/null 2>&1 || ! command -v clang-tidy-23 >/dev/null 2>&1; then
