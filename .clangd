@@ -1,0 +1,4 @@
+# clangd reads the compilation database produced by `cmake --preset dev` (server/).
+# The path is relative to this file. No symlink needed, which matters on Windows.
+CompileFlags:
+  CompilationDatabase: server/build/dev
