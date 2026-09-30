@@ -8,7 +8,7 @@
 ### Phase 0 — Fondations et contrat
 - [x] 0.1 Arborescence du monorepo, `.gitignore`, `.editorconfig`, README
 - [x] 0.2 Serveur : CMake + presets Ninja + vcpkg manifest + projet vide qui compile + 1 test Catch2
-- [ ] 0.3 Vérifier que `compile_commands.json` est généré et que clangd le trouve
+- [x] 0.3 Vérifier que `compile_commands.json` est généré et que clangd le trouve
 - [ ] 0.4 Client : `ng new` Angular 22 (zoneless, SCSS, Vitest) + lint + 1 test
 - [ ] 0.5 Protocole v1 : schémas JSON + exemples de messages + types TS générés
 - [ ] 0.6 CI GitHub Actions (build + tests serveur et client)
@@ -66,3 +66,4 @@
 ## Journal
 - 2026-09-30 — 0.1 — arborescence du monorepo, `.editorconfig`, README, modèle d'ADR, BOM retiré de `.gitattributes` — `chore/phase-0-foundations`
 - 2026-09-30 — 0.2 — CMake presets `dev`/`debug-asan`/`release` (Ninja), vcpkg manifest (5 dépendances, baseline figée), `uno_core`/`uno_app`/`uno_net`/`uno_server`, 6 tests Catch2, clang-format + clang-tidy propres — `chore/phase-0-foundations`
+- 2026-09-30 — 0.3 — `.clangd` à la racine pointant vers `server/build/dev` ; `clangd --check` résout les en-têtes du projet et de vcpkg sans erreur — `chore/phase-0-foundations`
