@@ -28,7 +28,8 @@ std::optional<std::string> readEnvironmentVariable(const char* name)
     const std::unique_ptr<char, decltype(&std::free)> owner(buffer, &std::free);
     return std::string(owner.get());
 #else
-    const char* const value = std::getenv(name);
+    // Read once at startup, before any other thread exists: no concurrent setenv possible.
+    const char* const value = std::getenv(name); // NOLINT(concurrency-mt-unsafe)
     return value == nullptr ? std::nullopt : std::optional<std::string>(value);
 #endif
 }
