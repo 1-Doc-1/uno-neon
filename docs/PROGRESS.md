@@ -6,7 +6,7 @@
 ## Phase en cours : 0 — Fondations
 
 ### Phase 0 — Fondations et contrat
-- [ ] 0.1 Arborescence du monorepo, `.gitignore`, `.editorconfig`, README
+- [x] 0.1 Arborescence du monorepo, `.gitignore`, `.editorconfig`, README
 - [ ] 0.2 Serveur : CMake + presets Ninja + vcpkg manifest + projet vide qui compile + 1 test Catch2
 - [ ] 0.3 Vérifier que `compile_commands.json` est généré et que clangd le trouve
 - [ ] 0.4 Client : `ng new` Angular 22 (zoneless, SCSS, Vitest) + lint + 1 test
@@ -58,7 +58,7 @@
 - [ ] 6.3 Documentation de déploiement
 
 ## Décisions
-- (ADR à lister ici : numéro, titre, lien)
+- [0001 — Un seul dépôt pour le serveur, le client et le protocole](adr/0001-monorepo.md)
 
 ## Journal
-- (vide)
+- 2026-09-30 — 0.1 — arborescence du monorepo, `.editorconfig`, README, modèle d'ADR, BOM retiré de `.gitattributes` — `chore/phase-0-foundations`
