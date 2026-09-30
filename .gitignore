@@ -13,11 +13,14 @@ out/
 CMakeUserPresets.json
 vcpkg_installed/
 .cache/
+# clangd lit server/build/dev/compile_commands.json via .clangd (versionné)
+compile_commands.json
 
 # Node / Angular
 node_modules/
 client/.angular/
 client/dist/
+client/coverage/
 dist/
 
 # Playwright
