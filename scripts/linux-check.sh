@@ -58,16 +58,18 @@ run_for_compiler() {
 run_for_compiler gcc gcc-14 g++-14
 run_for_compiler clang clang-20 clang++-20
 
-# $DEST_DIR has no .git (excluded from the rsync), so the tracked file list comes from the
-# original repo; paths are the same relative to server/ in both trees.
+# $DEST_DIR has no .git (excluded from the rsync), so the file list comes from the original
+# repo; paths are the same relative to server/ in both trees. --others --exclude-standard adds
+# not-yet-`git add`ed files too, so a new .cpp isn't missed locally only for the CI to catch it.
 echo
 echo "=== clang-format (dry-run) ==="
-git -C "$SRC_DIR" ls-files 'server/*.cpp' 'server/*.hpp' 'server/*.cpp.in' \
+git -C "$SRC_DIR" ls-files --cached --others --exclude-standard \
+  'server/*.cpp' 'server/*.hpp' 'server/*.cpp.in' \
   | sed 's|^server/||' | xargs clang-format-23 --dry-run --Werror
 
 echo
 echo "=== clang-tidy ==="
-git -C "$SRC_DIR" ls-files 'server/*.cpp' \
+git -C "$SRC_DIR" ls-files --cached --others --exclude-standard 'server/*.cpp' \
   | sed 's|^server/||' | xargs clang-tidy-23 -p build/debug-asan --quiet
 
 echo
