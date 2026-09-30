@@ -7,7 +7,7 @@
 
 ### Phase 0 — Fondations et contrat
 - [x] 0.1 Arborescence du monorepo, `.gitignore`, `.editorconfig`, README
-- [ ] 0.2 Serveur : CMake + presets Ninja + vcpkg manifest + projet vide qui compile + 1 test Catch2
+- [x] 0.2 Serveur : CMake + presets Ninja + vcpkg manifest + projet vide qui compile + 1 test Catch2
 - [ ] 0.3 Vérifier que `compile_commands.json` est généré et que clangd le trouve
 - [ ] 0.4 Client : `ng new` Angular 22 (zoneless, SCSS, Vitest) + lint + 1 test
 - [ ] 0.5 Protocole v1 : schémas JSON + exemples de messages + types TS générés
@@ -59,6 +59,10 @@
 
 ## Décisions
 - [0001 — Un seul dépôt pour le serveur, le client et le protocole](adr/0001-monorepo.md)
+- [0002 — CMake presets et générateur Ninja](adr/0002-cmake-presets-ninja.md)
+- [0003 — vcpkg en mode manifest avec baseline figée](adr/0003-vcpkg-manifest.md)
+- [0004 — Sanitizers : ASan + UBSan sous Linux, ASan seul sous MSVC](adr/0004-sanitizers-per-platform.md)
 
 ## Journal
 - 2026-09-30 — 0.1 — arborescence du monorepo, `.editorconfig`, README, modèle d'ADR, BOM retiré de `.gitattributes` — `chore/phase-0-foundations`
+- 2026-09-30 — 0.2 — CMake presets `dev`/`debug-asan`/`release` (Ninja), vcpkg manifest (5 dépendances, baseline figée), `uno_core`/`uno_app`/`uno_net`/`uno_server`, 6 tests Catch2, clang-format + clang-tidy propres — `chore/phase-0-foundations`

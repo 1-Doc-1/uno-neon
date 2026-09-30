@@ -1,0 +1,48 @@
+---
+# Disabled checks, with the reason:
+# - modernize-use-trailing-return-type: style choice, `auto f() -> T` everywhere hurts readability.
+# - readability-identifier-length: short names are fine in small scopes (i, it, n).
+# - cppcoreguidelines-avoid-magic-numbers / readability-magic-numbers: UNO rules are full of
+#   meaningful literals (7 cards, 108 cards, 500 points); named constants are enforced in review.
+# - misc-include-cleaner: noisy with umbrella headers (catch2, spdlog).
+# - misc-non-private-member-variables-in-classes: plain aggregates (struct) are intentional.
+# - portability-avoid-pragma-once: `#pragma once` is supported by MSVC, GCC and Clang, our only targets.
+Checks: >
+  bugprone-*,
+  cert-*,
+  clang-analyzer-*,
+  concurrency-*,
+  cppcoreguidelines-*,
+  misc-*,
+  modernize-*,
+  performance-*,
+  portability-*,
+  readability-*,
+  -modernize-use-trailing-return-type,
+  -readability-identifier-length,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -readability-magic-numbers,
+  -misc-include-cleaner,
+  -misc-non-private-member-variables-in-classes,
+  -portability-avoid-pragma-once
+WarningsAsErrors: '*'
+HeaderFilterRegex: '.*/(core|app|net|tests)/.*'
+FormatStyle: file
+CheckOptions:
+  - { key: readability-identifier-naming.NamespaceCase,          value: lower_case }
+  - { key: readability-identifier-naming.ClassCase,              value: CamelCase }
+  - { key: readability-identifier-naming.StructCase,             value: CamelCase }
+  - { key: readability-identifier-naming.EnumCase,               value: CamelCase }
+  - { key: readability-identifier-naming.EnumConstantCase,       value: CamelCase }
+  - { key: readability-identifier-naming.FunctionCase,           value: camelBack }
+  - { key: readability-identifier-naming.MethodCase,             value: camelBack }
+  - { key: readability-identifier-naming.VariableCase,           value: camelBack }
+  - { key: readability-identifier-naming.ParameterCase,          value: camelBack }
+  - { key: readability-identifier-naming.PrivateMemberCase,      value: camelBack }
+  - { key: readability-identifier-naming.PrivateMemberSuffix,    value: _ }
+  - { key: readability-identifier-naming.GlobalConstantCase,     value: CamelCase }
+  - { key: readability-identifier-naming.GlobalConstantPrefix,   value: k }
+  - { key: readability-identifier-naming.ConstexprVariableCase,  value: CamelCase }
+  - { key: readability-identifier-naming.ConstexprVariablePrefix, value: k }
+  - { key: readability-identifier-naming.TemplateParameterCase,  value: CamelCase }
+...
