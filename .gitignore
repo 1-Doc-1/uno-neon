@@ -1,0 +1,35 @@
+# Claude Code — réglages personnels
+.claude/settings.local.json
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# C++ / CMake / vcpkg
+server/build/
+build/
+out/
+CMakeUserPresets.json
+vcpkg_installed/
+.cache/
+
+# Node / Angular
+node_modules/
+client/.angular/
+client/dist/
+dist/
+
+# Playwright
+.playwright/
+test-results/
+playwright-report/
+blob-report/
+
+# IDE / OS
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.log
+Thumbs.db
+.DS_Store
