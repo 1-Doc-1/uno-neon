@@ -27,7 +27,7 @@ AVANT D'ÉCRIRE LE MOINDRE FICHIER
 Puis attends ma validation.
 
 PENDANT L'EXÉCUTION
-- Une étape à la fois. À la fin de chaque étape : build + tests + lint verts, docs/PROGRESS.md mis à jour, résumé court avec le POURQUOI des choix (je suis étudiant, je dois pouvoir les expliquer à l'oral), message de commit proposé. Puis arrête-toi et attends mon feu vert.
+- Une étape à la fois. À la fin de chaque étape : build + tests + lint verts, docs/PROGRESS.md mis à jour, résumé court avec le POURQUOI des choix, message de commit proposé. Puis arrête-toi et attends mon feu vert.
 - Serveur : trois bibliothèques vides mais compilables (uno_core, uno_app, uno_net) + exécutable uno_server + un test Catch2. Presets `dev`, `debug-asan`, `release` avec Ninja et CMAKE_EXPORT_COMPILE_COMMANDS=ON. Fais en sorte que clangd trouve compile_commands.json (fichier .clangd à la racine qui pointe vers le dossier de build ; pas de lien symbolique, on est sous Windows).
 - Client : crée l'app avec `npx @angular/cli@latest new client --ai-config=claude --style=scss --ssr=false --routing --skip-git` (vérifie les options avec --help si l'une a changé), configure le proxy de dev /ws → localhost:9001, ESLint, Prettier, un test Vitest qui passe. Consulte les bonnes pratiques via le MCP angular-cli.
 - Protocole v1 (§8) : schémas JSON Schema 2020-12 dans protocol/schema, au moins un exemple valide par message et quelques exemples invalides dans protocol/examples, script `npm run protocol:gen` qui génère les types TS dans client/src/app/protocol/generated.
@@ -117,9 +117,9 @@ Vérifie qu'aucune violation CSP n'apparaît dans la console du navigateur.
 Où en est-on ? Résume l'état à partir de docs/PROGRESS.md et de `git log --oneline -15`, puis propose la prochaine étape.
 ```
 
-**Comprendre (pour l'oral)**
+**Comprendre un choix**
 ```text
-Explique-moi <fichier / classe / choix> comme si je devais le défendre devant un jury : le problème résolu, l'alternative écartée et pourquoi, et comment c'est testé. Ne modifie rien.
+Explique-moi <fichier / classe / choix> : le problème résolu, l'alternative écartée et pourquoi, et comment c'est testé. Ne modifie rien.
 ```
 
 **Corriger un design qui ne va pas** (colle une capture avec Alt+V)

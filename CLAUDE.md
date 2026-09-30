@@ -1,7 +1,7 @@
 # UNO Néon — règles permanentes du projet
 
 Jeu de UNO multijoueur en ligne. **Serveur autoritaire en C++23** (WebSocket) + **client Angular 22** (navigateur).
-Projet de groupe d'étudiants en développement d'applications : le code doit être exemplaire ET compréhensible.
+Projet personnel : le code doit être exemplaire ET compréhensible.
 
 - Spécification complète : `docs/SPEC.md` (source de vérité). Elle est longue : lis les sections utiles à l'étape en cours plutôt que tout le fichier.
 - Avancement et décisions : @docs/PROGRESS.md (importé automatiquement ; mets-le à jour à la fin de chaque étape)
@@ -72,12 +72,12 @@ Pas de code mort, pas de TODO sans ticket/étape dans PROGRESS.md.
 4. Jetons de session et codes de salon générés par un générateur cryptographique, jamais par `std::mt19937`.
 5. Aucun secret dans le repo (`.env` ignoré, `.env.example` fourni).
 
-## Git (projet de groupe)
+## Git (projet personnel)
 
 - `main` protégée : on n'y pousse jamais directement, jamais de `--force`.
-- Une branche par étape : `feat/core-deck`, `feat/server-rooms`, `fix/…`, `chore/…`.
+- Une branche et une pull request par étape : `feat/core-deck`, `feat/server-rooms`, `fix/…`, `chore/…`.
 - Conventional Commits (`feat(core): add wild draw four legality check`).
-- Pull request pour tout merge ; avant de proposer une fusion, rappelle-nous de lancer `/code-review` (plugin) puis une relecture humaine.
+- Une pull request par étape, fusionnée seulement si le CI est vert et après un `/code-review` (plugin) ; pas de relecture humaine par un coéquipier — je travaille seul.
 - Ne jamais committer : `build/`, `node_modules/`, `.env`, `.claude/settings.local.json`.
 
 ## Outils Claude Code disponibles dans ce repo

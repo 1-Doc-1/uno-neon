@@ -228,7 +228,7 @@ Fusionne la PR sur GitHub, puis `git checkout main` et `git pull`.
 
 ---
 
-## Étape 8 — Pour chaque coéquipier
+## Étape 8 — Sur un nouveau poste
 
 1. Faire l'**étape 1** (outils).
 2. `git clone` le repo dans `C:\dev\uno-neon`, lancer `claude` une première fois (connexion, confiance, approbation du MCP), puis `/exit`.
