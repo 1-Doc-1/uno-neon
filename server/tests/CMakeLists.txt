@@ -5,7 +5,10 @@ include(Catch)
 add_executable(uno_tests
     card_test.cpp
     deck_test.cpp
+    piles_test.cpp
     random_test.cpp
+    round_test.cpp
+    turn_order_test.cpp
     smoke_test.cpp)
 target_link_libraries(uno_tests PRIVATE
     uno_core uno_app uno_net uno_testing Catch2::Catch2WithMain)

@@ -173,7 +173,7 @@ uno-neon/
 ### 7.2 API du moteur (« functional core, imperative shell »)
 ```cpp
 [[nodiscard]] std::expected<std::vector<DomainEvent>, DomainError>
-Round::apply(PlayerId actor, const PlayerAction& action);
+Round::apply(PlayerId actor, const PlayerAction& action, RandomSource& random); // RandomSource en paramètre : ADR 0010
 
 [[nodiscard]] PlayerView project(const Round& round, PlayerId viewer);
 [[nodiscard]] std::optional<ClientEvent> project(const DomainEvent& event, PlayerId viewer);

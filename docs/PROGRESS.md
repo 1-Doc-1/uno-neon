@@ -16,7 +16,7 @@
 
 ### Phase 1 — Cœur du jeu (C++, TDD)
 - [x] 1.1 Cartes, deck de 108 cartes, `RandomSource`
-- [ ] 1.2 État de partie, tour, sens, pioche/défausse, remélange
+- [x] 1.2 État de partie, tour, sens, pioche/défausse, remélange
 - [ ] 1.3 Règles officielles : jouabilité, effets, cartes Joker, première carte retournée
 - [ ] 1.4 UNO : annonce, contre-UNO, pénalités
 - [ ] 1.5 Fin de manche, score, fin de partie (500 pts ou manche unique)
@@ -67,6 +67,7 @@
 - [0007 — Écarts du protocole v1 par rapport à la SPEC §8](adr/0007-protocol-v1-deviations.md)
 - [0008 — Aléatoire déterministe et portable](adr/0008-portable-deterministic-randomness.md)
 - [0009 — Modélisation des cartes : `std::optional<Color>` et `createStandardDeck`](adr/0009-card-model.md)
+- [0010 — État de la manche : `Round` valeur pure, `RandomSource&` passé en paramètre](adr/0010-round-state.md)
 
 ## Journal
 - 2026-09-30 — 0.1 — arborescence du monorepo, `.editorconfig`, README, modèle d'ADR, BOM retiré de `.gitattributes` — `chore/phase-0-foundations`
@@ -77,3 +78,4 @@
 - 2026-09-30 — 0.6 — CI GitHub Actions : `server-linux` (GCC 14 + Clang 20, `debug-asan`, clang-format/clang-tidy 23 via apt.llvm.org), `server-windows` (MSVC, `dev`), `client` ; actions épinglées par SHA, cache binaire vcpkg ; corrigés en route : runtime des sanitizers Clang (`libclang-rt-20-dev`), `getenv` justifié pour clang-tidy, chemin du cache sans `..` — `chore/phase-0-foundations` / PR #2
 - 2026-09-30 — 0.7 — table des commandes de `CLAUDE.md` complétée et vérifiée (serveur, formatage/lint C++, client, protocole) ; `OnPush` par défaut depuis Angular 22 — `chore/phase-0-foundations` / PR #2
 - 2026-09-30 — 1.1 — `Card`/`CardId`/`Color`/`Rank`, interface `RandomSource` + Fisher-Yates `shuffle`, `createStandardDeck` (108 cartes, identifiants permutés aléatoirement), `SeededRandomSource` dans la bibliothèque `uno_testing` (jamais liée au binaire), 20 nouveaux tests dont la valeur de référence de `std::mt19937_64` ([rand.predef]) ; ADR 0008 (déterminisme portable) et 0009 (modèle de carte), SPEC §2/§7.3 alignées ; commande clang-tidy de `CLAUDE.md` alignée sur le CI — `feat/core-deck`
+- 2026-09-30 — 1.2 — `PlayerId`, `DomainError`, `TurnOrder` (sièges, joueur courant, sens), `DrawPile`/`DiscardPile` + `drawCards` (remélange de la défausse sauf la carte du dessus, pioche partielle sans erreur), `Round::start` (fabrique qui valide : distribution une carte à la fois à partir de la gauche du donneur, première carte retournée, +4 remis dans la pioche remélangée) ; `Round` valeur pure, `RandomSource&` en paramètre (ADR 0010, ligne §7.2 de la SPEC corrigée) ; fixtures de test partagées dans `uno_testing` ; 41 nouveaux cas de test (67 au total) verts en `dev` et `debug-asan`, clang-tidy propre — `feat/core-round-state`
