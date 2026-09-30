@@ -1,0 +1,430 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uno-neon.invalid/protocol/v1/client-event.schema.json",
+  "title": "ClientEvent",
+  "description": "Projected domain event, used by the client to animate before applying the view. Discriminated by `kind`.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/RoundStartedEvent"
+    },
+    {
+      "$ref": "#/$defs/CardPlayedEvent"
+    },
+    {
+      "$ref": "#/$defs/CardsDrawnEvent"
+    },
+    {
+      "$ref": "#/$defs/TurnChangedEvent"
+    },
+    {
+      "$ref": "#/$defs/PlayerSkippedEvent"
+    },
+    {
+      "$ref": "#/$defs/DirectionChangedEvent"
+    },
+    {
+      "$ref": "#/$defs/ColorChosenEvent"
+    },
+    {
+      "$ref": "#/$defs/PenaltyStackedEvent"
+    },
+    {
+      "$ref": "#/$defs/ChallengeResolvedEvent"
+    },
+    {
+      "$ref": "#/$defs/UnoCalledEvent"
+    },
+    {
+      "$ref": "#/$defs/UnoCaughtEvent"
+    },
+    {
+      "$ref": "#/$defs/HandsSwappedEvent"
+    },
+    {
+      "$ref": "#/$defs/HandsRotatedEvent"
+    },
+    {
+      "$ref": "#/$defs/DeckReshuffledEvent"
+    },
+    {
+      "$ref": "#/$defs/RoundEndedEvent"
+    },
+    {
+      "$ref": "#/$defs/MatchEndedEvent"
+    },
+    {
+      "$ref": "#/$defs/PlayerDisconnectedEvent"
+    },
+    {
+      "$ref": "#/$defs/PlayerReconnectedEvent"
+    },
+    {
+      "$ref": "#/$defs/HostChangedEvent"
+    }
+  ],
+  "$defs": {
+    "RoundStartedEvent": {
+      "title": "RoundStartedEvent",
+      "description": "A new round was dealt.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "roundStarted"
+        },
+        "round": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "dealerId": {
+          "$ref": "common.schema.json#/$defs/PlayerId"
+        }
+      },
+      "required": ["kind", "round", "dealerId"],
+      "additionalProperties": false
+    },
+    "CardPlayedEvent": {
+      "title": "CardPlayedEvent",
+      "description": "A card was put on the discard pile. isJumpIn: played out of turn (jumpIn rule).",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "cardPlayed"
+        },
+        "playerId": {
+          "$ref": "common.schema.json#/$defs/PlayerId"
+        },
+        "card": {
+          "$ref": "common.schema.json#/$defs/Card"
+        },
+        "chosenColor": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/Color"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "isJumpIn": {
+          "type": "boolean"
+        }
+      },
+      "required": ["kind", "playerId", "card", "chosenColor", "isJumpIn"],
+      "additionalProperties": false
+    },
+    "CardsDrawnEvent": {
+      "title": "CardsDrawnEvent",
+      "description": "A player drew cards. `cards` is present ONLY in the projection sent to the player who drew.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "cardsDrawn"
+        },
+        "playerId": {
+          "$ref": "common.schema.json#/$defs/PlayerId"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cards": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/Card"
+          }
+        }
+      },
+      "required": ["kind", "playerId", "count"],
+      "additionalProperties": false
+    },
+    "TurnChangedEvent": {
+      "title": "TurnChangedEvent",
+      "description": "It is now this player's turn.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "turnChanged"
+        },
+        "playerId": {
+          "$ref": "common.schema.json#/$defs/PlayerId"
+        }
+      },
+      "required": ["kind", "playerId"],
+      "additionalProperties": false
+    },
+    "PlayerSkippedEvent": {
+      "title": "PlayerSkippedEvent",
+      "description": "This player loses their turn (Skip, draw penalty, Reverse with 2 players).",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "playerSkipped"
+        },
+        "playerId": {
+          "$ref": "common.schema.json#/$defs/PlayerId"
+        }
+      },
+      "required": ["kind", "playerId"],
+      "additionalProperties": false
+    },
+    "DirectionChangedEvent": {
+      "title": "DirectionChangedEvent",
+      "description": "A Reverse changed the direction of play.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "directionChanged"
+        },
+        "direction": {
+          "$ref": "common.schema.json#/$defs/Direction"
+        }
+      },
+      "required": ["kind", "direction"],
+      "additionalProperties": false
+    },
+    "ColorChosenEvent": {
+      "title": "ColorChosenEvent",
+      "description": "The current color was chosen (Wild).",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "colorChosen"
+        },
+        "playerId": {
+          "$ref": "common.schema.json#/$defs/PlayerId"
+        },
+        "color": {
+          "$ref": "common.schema.json#/$defs/Color"
+        }
+      },
+      "required": ["kind", "playerId", "color"],
+      "additionalProperties": false
+    },
+    "PenaltyStackedEvent": {
+      "title": "PenaltyStackedEvent",
+      "description": "A draw card was stacked on a pending penalty.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "penaltyStacked"
+        },
+        "playerId": {
+          "$ref": "common.schema.json#/$defs/PlayerId"
+        },
+        "pendingDraw": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": ["kind", "playerId", "pendingDraw"],
+      "additionalProperties": false
+    },
+    "ChallengeResolvedEvent": {
+      "title": "ChallengeResolvedEvent",
+      "description": "Verdict of a Wild Draw Four challenge. `revealedHand` (hand of the challenged player when they played) is present ONLY in the projection sent to the challenger.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "challengeResolved"
+        },
+        "challengerId": {
+          "$ref": "common.schema.json#/$defs/PlayerId"
+        },
+        "challengedId": {
+          "$ref": "common.schema.json#/$defs/PlayerId"
+        },
+        "wasBluff": {
+          "type": "boolean"
+        },
+        "penalizedPlayerId": {
+          "$ref": "common.schema.json#/$defs/PlayerId"
+        },
+        "penaltyAmount": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "revealedHand": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/Card"
+          }
+        }
+      },
+      "required": [
+        "kind",
+        "challengerId",
+        "challengedId",
+        "wasBluff",
+        "penalizedPlayerId",
+        "penaltyAmount"
+      ],
+      "additionalProperties": false
+    },
+    "UnoCalledEvent": {
+      "title": "UnoCalledEvent",
+      "description": "A player announced UNO.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "unoCalled"
+        },
+        "playerId": {
+          "$ref": "common.schema.json#/$defs/PlayerId"
+        }
+      },
+      "required": ["kind", "playerId"],
+      "additionalProperties": false
+    },
+    "UnoCaughtEvent": {
+      "title": "UnoCaughtEvent",
+      "description": "A player was caught without announcing UNO and draws a penalty.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "unoCaught"
+        },
+        "catcherId": {
+          "$ref": "common.schema.json#/$defs/PlayerId"
+        },
+        "targetId": {
+          "$ref": "common.schema.json#/$defs/PlayerId"
+        },
+        "penaltyAmount": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": ["kind", "catcherId", "targetId", "penaltyAmount"],
+      "additionalProperties": false
+    },
+    "HandsSwappedEvent": {
+      "title": "HandsSwappedEvent",
+      "description": "sevenZero rule: a 7 swapped two hands.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "handsSwapped"
+        },
+        "playerId": {
+          "$ref": "common.schema.json#/$defs/PlayerId"
+        },
+        "targetId": {
+          "$ref": "common.schema.json#/$defs/PlayerId"
+        }
+      },
+      "required": ["kind", "playerId", "targetId"],
+      "additionalProperties": false
+    },
+    "HandsRotatedEvent": {
+      "title": "HandsRotatedEvent",
+      "description": "sevenZero rule: a 0 passed every hand to the next player in this direction.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "handsRotated"
+        },
+        "direction": {
+          "$ref": "common.schema.json#/$defs/Direction"
+        }
+      },
+      "required": ["kind", "direction"],
+      "additionalProperties": false
+    },
+    "DeckReshuffledEvent": {
+      "title": "DeckReshuffledEvent",
+      "description": "The discard pile (except its top card) was shuffled into a new draw pile.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "deckReshuffled"
+        },
+        "drawPileCount": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": ["kind", "drawPileCount"],
+      "additionalProperties": false
+    },
+    "RoundEndedEvent": {
+      "title": "RoundEndedEvent",
+      "description": "A player emptied their hand.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "roundEnded"
+        },
+        "winnerId": {
+          "$ref": "common.schema.json#/$defs/PlayerId"
+        },
+        "points": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": ["kind", "winnerId", "points"],
+      "additionalProperties": false
+    },
+    "MatchEndedEvent": {
+      "title": "MatchEndedEvent",
+      "description": "The match is over.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "matchEnded"
+        },
+        "winnerId": {
+          "$ref": "common.schema.json#/$defs/PlayerId"
+        }
+      },
+      "required": ["kind", "winnerId"],
+      "additionalProperties": false
+    },
+    "PlayerDisconnectedEvent": {
+      "title": "PlayerDisconnectedEvent",
+      "description": "A player lost their connection (grace period running).",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "playerDisconnected"
+        },
+        "playerId": {
+          "$ref": "common.schema.json#/$defs/PlayerId"
+        }
+      },
+      "required": ["kind", "playerId"],
+      "additionalProperties": false
+    },
+    "PlayerReconnectedEvent": {
+      "title": "PlayerReconnectedEvent",
+      "description": "A player came back.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "playerReconnected"
+        },
+        "playerId": {
+          "$ref": "common.schema.json#/$defs/PlayerId"
+        }
+      },
+      "required": ["kind", "playerId"],
+      "additionalProperties": false
+    },
+    "HostChangedEvent": {
+      "title": "HostChangedEvent",
+      "description": "The host role moved to another player.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "hostChanged"
+        },
+        "playerId": {
+          "$ref": "common.schema.json#/$defs/PlayerId"
+        }
+      },
+      "required": ["kind", "playerId"],
+      "additionalProperties": false
+    }
+  }
+}

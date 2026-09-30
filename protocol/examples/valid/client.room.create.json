@@ -1,0 +1,12 @@
+{
+  "v": 1,
+  "id": "c-2",
+  "type": "room.create",
+  "payload": {
+    "nickname": "Léa",
+    "settings": {
+      "stacking": "mixed",
+      "matchLength": "singleRound"
+    }
+  }
+}

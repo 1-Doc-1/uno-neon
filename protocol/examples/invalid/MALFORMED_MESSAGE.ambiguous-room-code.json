@@ -1,0 +1,6 @@
+{
+  "v": 1,
+  "id": "c-10",
+  "type": "room.join",
+  "payload": { "code": "K7M4X0", "nickname": "Max" }
+}

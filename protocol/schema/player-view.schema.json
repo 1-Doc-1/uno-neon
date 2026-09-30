@@ -1,0 +1,185 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uno-neon.invalid/protocol/v1/player-view.schema.json",
+  "title": "PlayerView",
+  "description": "Projection of a round for ONE player: the only game state ever sent to a client. It never contains the other players' cards, the draw pile order or the random seed. Everything the client may do is precomputed by the server (playableCardIds, canDraw...).",
+  "type": "object",
+  "properties": {
+    "stateVersion": {
+      "description": "Increases by 1 with every accepted action. A gap means a missed update: skip animations and apply the view.",
+      "type": "integer",
+      "minimum": 0
+    },
+    "phase": { "$ref": "#/$defs/GamePhase" },
+    "me": { "$ref": "#/$defs/MyState" },
+    "players": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 10,
+      "items": { "$ref": "#/$defs/SeatView" }
+    },
+    "currentPlayerId": { "$ref": "common.schema.json#/$defs/PlayerId" },
+    "direction": { "$ref": "common.schema.json#/$defs/Direction" },
+    "currentColor": {
+      "description": "null only while the first player chooses the color of a Wild turned over at the start of the round.",
+      "anyOf": [{ "$ref": "common.schema.json#/$defs/Color" }, { "type": "null" }]
+    },
+    "discardTop": { "$ref": "common.schema.json#/$defs/Card" },
+    "drawPileCount": { "type": "integer", "minimum": 0 },
+    "pendingDraw": {
+      "description": "Accumulated draw penalty waiting for an answer (0 if none).",
+      "type": "integer",
+      "minimum": 0
+    },
+    "turnDeadline": {
+      "description": "End of the current turn (server clock), null without a turn timer.",
+      "anyOf": [{ "$ref": "common.schema.json#/$defs/EpochMillis" }, { "type": "null" }]
+    },
+    "nextRoundDeadline": {
+      "description": "In phase roundOver: when the next round starts automatically (server clock).",
+      "anyOf": [{ "$ref": "common.schema.json#/$defs/EpochMillis" }, { "type": "null" }]
+    },
+    "round": { "type": "integer", "minimum": 1 },
+    "settings": { "$ref": "common.schema.json#/$defs/RoomSettings" },
+    "roundResult": {
+      "anyOf": [{ "$ref": "#/$defs/RoundResult" }, { "type": "null" }]
+    },
+    "matchWinnerId": {
+      "description": "Set in phase matchOver.",
+      "anyOf": [{ "$ref": "common.schema.json#/$defs/PlayerId" }, { "type": "null" }]
+    }
+  },
+  "required": [
+    "stateVersion",
+    "phase",
+    "me",
+    "players",
+    "currentPlayerId",
+    "direction",
+    "currentColor",
+    "discardTop",
+    "drawPileCount",
+    "pendingDraw",
+    "turnDeadline",
+    "nextRoundDeadline",
+    "round",
+    "settings",
+    "roundResult",
+    "matchWinnerId"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "GamePhase": {
+      "title": "GamePhase",
+      "type": "string",
+      "enum": [
+        "awaitingPlay",
+        "awaitingDrawnCardDecision",
+        "awaitingPenaltyResponse",
+        "awaitingColorChoice",
+        "roundOver",
+        "matchOver"
+      ]
+    },
+    "MyState": {
+      "title": "MyState",
+      "description": "What the viewer holds and may do right now.",
+      "type": "object",
+      "properties": {
+        "playerId": { "$ref": "common.schema.json#/$defs/PlayerId" },
+        "hand": {
+          "type": "array",
+          "items": { "$ref": "common.schema.json#/$defs/Card" }
+        },
+        "playableCardIds": {
+          "type": "array",
+          "items": { "$ref": "common.schema.json#/$defs/CardId" }
+        },
+        "canDraw": { "type": "boolean" },
+        "canPass": { "type": "boolean" },
+        "canCallUno": { "type": "boolean" },
+        "canChooseColor": { "type": "boolean" },
+        "penaltyResponse": {
+          "anyOf": [{ "$ref": "#/$defs/PenaltyResponseOptions" }, { "type": "null" }]
+        },
+        "catchableTargetIds": {
+          "type": "array",
+          "items": { "$ref": "common.schema.json#/$defs/PlayerId" }
+        }
+      },
+      "required": [
+        "playerId",
+        "hand",
+        "playableCardIds",
+        "canDraw",
+        "canPass",
+        "canCallUno",
+        "canChooseColor",
+        "penaltyResponse",
+        "catchableTargetIds"
+      ],
+      "additionalProperties": false
+    },
+    "PenaltyResponseOptions": {
+      "title": "PenaltyResponseOptions",
+      "description": "Present when the viewer is targeted by a pending draw penalty.",
+      "type": "object",
+      "properties": {
+        "amount": { "type": "integer", "minimum": 1 },
+        "canChallenge": { "type": "boolean" },
+        "canStack": { "type": "boolean" }
+      },
+      "required": ["amount", "canChallenge", "canStack"],
+      "additionalProperties": false
+    },
+    "SeatView": {
+      "title": "SeatView",
+      "description": "Public information about one player (the viewer included).",
+      "type": "object",
+      "properties": {
+        "playerId": { "$ref": "common.schema.json#/$defs/PlayerId" },
+        "nickname": { "type": "string" },
+        "seat": { "type": "integer", "minimum": 0, "maximum": 9 },
+        "cardCount": { "type": "integer", "minimum": 0 },
+        "score": { "type": "integer", "minimum": 0 },
+        "isConnected": { "type": "boolean" },
+        "isBot": { "type": "boolean" },
+        "isHost": { "type": "boolean" },
+        "hasCalledUno": { "type": "boolean" },
+        "isReadyForNextRound": { "type": "boolean" }
+      },
+      "required": [
+        "playerId",
+        "nickname",
+        "seat",
+        "cardCount",
+        "score",
+        "isConnected",
+        "isBot",
+        "isHost",
+        "hasCalledUno",
+        "isReadyForNextRound"
+      ],
+      "additionalProperties": false
+    },
+    "RoundResult": {
+      "title": "RoundResult",
+      "type": "object",
+      "properties": {
+        "winnerId": { "$ref": "common.schema.json#/$defs/PlayerId" },
+        "points": { "type": "integer", "minimum": 0 },
+        "revealedHands": {
+          "description": "Remaining hands of every player, by playerId (they are counted in the score).",
+          "type": "object",
+          "propertyNames": { "$ref": "common.schema.json#/$defs/PlayerId" },
+          "additionalProperties": {
+            "type": "array",
+            "items": { "$ref": "common.schema.json#/$defs/Card" }
+          }
+        }
+      },
+      "required": ["winnerId", "points", "revealedHands"],
+      "additionalProperties": false
+    }
+  }
+}

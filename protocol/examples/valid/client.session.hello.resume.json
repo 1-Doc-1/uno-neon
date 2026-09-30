@@ -1,0 +1,9 @@
+{
+  "v": 1,
+  "id": "c-1",
+  "type": "session.hello",
+  "payload": {
+    "sessionToken": "Q2hhbmdlTWVQbGVhc2UxMg",
+    "clientVersion": "0.1.0"
+  }
+}

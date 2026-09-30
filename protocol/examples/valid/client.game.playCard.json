@@ -1,0 +1,8 @@
+{
+  "v": 1,
+  "id": "c-10",
+  "type": "game.playCard",
+  "payload": {
+    "cardId": 1843
+  }
+}

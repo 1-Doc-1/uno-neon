@@ -1,0 +1,6 @@
+{
+  "v": 1,
+  "id": "c-11",
+  "type": "room.updateSettings",
+  "payload": { "settings": { "maxPlayers": 11 } }
+}

@@ -1,0 +1,7 @@
+{
+  "v": 1,
+  "type": "room.closed",
+  "payload": {
+    "reason": "expired"
+  }
+}

@@ -1,0 +1,250 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uno-neon.invalid/protocol/v1/server-message.schema.json",
+  "title": "ServerMessage",
+  "description": "Every message the server may send: replies (ack, error) and pushed messages.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/AckMessage"
+    },
+    {
+      "$ref": "#/$defs/ErrorMessage"
+    },
+    {
+      "$ref": "#/$defs/WelcomeMessage"
+    },
+    {
+      "$ref": "#/$defs/RoomUpdateMessage"
+    },
+    {
+      "$ref": "#/$defs/GameUpdateMessage"
+    },
+    {
+      "$ref": "#/$defs/ReactionMessage"
+    },
+    {
+      "$ref": "#/$defs/RoomClosedMessage"
+    }
+  ],
+  "$defs": {
+    "AckMessage": {
+      "title": "AckMessage",
+      "description": "The client message `replyTo` was accepted.",
+      "type": "object",
+      "properties": {
+        "v": {
+          "$ref": "common.schema.json#/$defs/ProtocolVersion"
+        },
+        "type": {
+          "const": "ack"
+        },
+        "replyTo": {
+          "$ref": "common.schema.json#/$defs/MessageId"
+        }
+      },
+      "required": ["v", "type", "replyTo"],
+      "additionalProperties": false
+    },
+    "ErrorMessage": {
+      "title": "ErrorMessage",
+      "description": "The client message `replyTo` was rejected. `replyTo` is absent when the message could not be read at all.",
+      "type": "object",
+      "properties": {
+        "v": {
+          "$ref": "common.schema.json#/$defs/ProtocolVersion"
+        },
+        "type": {
+          "const": "error"
+        },
+        "replyTo": {
+          "$ref": "common.schema.json#/$defs/MessageId"
+        },
+        "payload": {
+          "$ref": "#/$defs/ErrorPayload"
+        }
+      },
+      "required": ["v", "type", "payload"],
+      "additionalProperties": false
+    },
+    "ErrorPayload": {
+      "title": "ErrorPayload",
+      "type": "object",
+      "properties": {
+        "code": {
+          "$ref": "common.schema.json#/$defs/ErrorCode"
+        },
+        "message": {
+          "description": "Technical English text for logs. The client shows its own French text for each code.",
+          "type": "string"
+        },
+        "details": {
+          "$ref": "#/$defs/ErrorDetails"
+        }
+      },
+      "required": ["code", "message"],
+      "additionalProperties": false
+    },
+    "ErrorDetails": {
+      "title": "ErrorDetails",
+      "type": "object",
+      "properties": {
+        "reason": {
+          "$ref": "common.schema.json#/$defs/IllegalMoveReason"
+        }
+      },
+      "required": ["reason"],
+      "additionalProperties": false
+    },
+    "WelcomeMessage": {
+      "title": "WelcomeMessage",
+      "description": "Answer to session.hello. Keep the token in sessionStorage to resume after a reconnection.",
+      "type": "object",
+      "properties": {
+        "v": {
+          "$ref": "common.schema.json#/$defs/ProtocolVersion"
+        },
+        "type": {
+          "const": "session.welcome"
+        },
+        "payload": {
+          "title": "WelcomePayload",
+          "type": "object",
+          "properties": {
+            "sessionToken": {
+              "$ref": "common.schema.json#/$defs/SessionToken"
+            },
+            "playerId": {
+              "$ref": "common.schema.json#/$defs/PlayerId"
+            },
+            "resumedRoomCode": {
+              "$ref": "common.schema.json#/$defs/RoomCode"
+            }
+          },
+          "required": ["sessionToken", "playerId"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["v", "type", "payload"],
+      "additionalProperties": false
+    },
+    "RoomUpdateMessage": {
+      "title": "RoomUpdateMessage",
+      "type": "object",
+      "properties": {
+        "v": {
+          "$ref": "common.schema.json#/$defs/ProtocolVersion"
+        },
+        "type": {
+          "const": "room.update"
+        },
+        "payload": {
+          "title": "RoomUpdatePayload",
+          "type": "object",
+          "properties": {
+            "roomVersion": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "room": {
+              "$ref": "room-view.schema.json"
+            }
+          },
+          "required": ["roomVersion", "room"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["v", "type", "payload"],
+      "additionalProperties": false
+    },
+    "GameUpdateMessage": {
+      "title": "GameUpdateMessage",
+      "description": "Sent to every player after each accepted action: the events to animate, then the full view to apply. The state version lives in view.stateVersion.",
+      "type": "object",
+      "properties": {
+        "v": {
+          "$ref": "common.schema.json#/$defs/ProtocolVersion"
+        },
+        "type": {
+          "const": "game.update"
+        },
+        "payload": {
+          "title": "GameUpdatePayload",
+          "type": "object",
+          "properties": {
+            "serverTime": {
+              "$ref": "common.schema.json#/$defs/EpochMillis"
+            },
+            "events": {
+              "type": "array",
+              "items": {
+                "$ref": "client-event.schema.json"
+              }
+            },
+            "view": {
+              "$ref": "player-view.schema.json"
+            }
+          },
+          "required": ["serverTime", "events", "view"],
+          "additionalProperties": false,
+          "description": "serverTime is the server clock when the message was sent: it lets the client correct its own clock offset for turnDeadline and nextRoundDeadline."
+        }
+      },
+      "required": ["v", "type", "payload"],
+      "additionalProperties": false
+    },
+    "ReactionMessage": {
+      "title": "ReactionMessage",
+      "type": "object",
+      "properties": {
+        "v": {
+          "$ref": "common.schema.json#/$defs/ProtocolVersion"
+        },
+        "type": {
+          "const": "reaction"
+        },
+        "payload": {
+          "title": "ReactionPayload",
+          "type": "object",
+          "properties": {
+            "playerId": {
+              "$ref": "common.schema.json#/$defs/PlayerId"
+            },
+            "emote": {
+              "$ref": "common.schema.json#/$defs/Emote"
+            }
+          },
+          "required": ["playerId", "emote"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["v", "type", "payload"],
+      "additionalProperties": false
+    },
+    "RoomClosedMessage": {
+      "title": "RoomClosedMessage",
+      "type": "object",
+      "properties": {
+        "v": {
+          "$ref": "common.schema.json#/$defs/ProtocolVersion"
+        },
+        "type": {
+          "const": "room.closed"
+        },
+        "payload": {
+          "title": "RoomClosedPayload",
+          "type": "object",
+          "properties": {
+            "reason": {
+              "type": "string",
+              "enum": ["expired", "kicked", "hostClosed"]
+            }
+          },
+          "required": ["reason"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["v", "type", "payload"],
+      "additionalProperties": false
+    }
+  }
+}

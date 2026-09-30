@@ -1,0 +1,281 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uno-neon.invalid/protocol/v1/common.schema.json",
+  "title": "Common",
+  "description": "Types shared by every message of protocol v1.",
+  "$defs": {
+    "ProtocolVersion": {
+      "title": "ProtocolVersion",
+      "description": "Value of the `v` field of every envelope.",
+      "const": 1
+    },
+    "MessageId": {
+      "title": "MessageId",
+      "description": "Client-chosen identifier, unique per connection, echoed in `replyTo`.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{1,32}$"
+    },
+    "EpochMillis": {
+      "title": "EpochMillis",
+      "description": "Server clock, milliseconds since the Unix epoch.",
+      "type": "integer",
+      "minimum": 0
+    },
+    "SessionToken": {
+      "title": "SessionToken",
+      "description": "128 cryptographically random bits, base64url without padding.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{22}$"
+    },
+    "PlayerId": {
+      "title": "PlayerId",
+      "description": "Opaque random identifier of a player (never a seat number).",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{8,32}$"
+    },
+    "RoomCode": {
+      "title": "RoomCode",
+      "description": "6 characters, without the ambiguous I, L, O, 0 and 1.",
+      "type": "string",
+      "pattern": "^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$"
+    },
+    "Nickname": {
+      "title": "Nickname",
+      "description": "Raw nickname. The server trims it and checks the rules (2 to 16 letters, digits, space, _ or -), answering NICKNAME_INVALID: only the size is bounded here.",
+      "type": "string",
+      "maxLength": 64
+    },
+    "CardId": {
+      "title": "CardId",
+      "description": "Identifier of a card, randomly assigned for each match: it reveals nothing about the card.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 2147483647
+    },
+    "Color": {
+      "title": "Color",
+      "type": "string",
+      "enum": ["red", "yellow", "green", "blue"]
+    },
+    "Rank": {
+      "title": "Rank",
+      "type": "string",
+      "enum": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "skip",
+        "reverse",
+        "drawTwo",
+        "wild",
+        "wildDrawFour"
+      ]
+    },
+    "Card": {
+      "title": "Card",
+      "description": "A card. Wild cards have no color of their own (`color: null`).",
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/CardId"
+        },
+        "color": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Color"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "rank": {
+          "$ref": "#/$defs/Rank"
+        }
+      },
+      "required": ["id", "color", "rank"],
+      "additionalProperties": false
+    },
+    "Direction": {
+      "title": "Direction",
+      "type": "string",
+      "enum": ["clockwise", "counterClockwise"]
+    },
+    "Emote": {
+      "title": "Emote",
+      "type": "string",
+      "enum": ["gg", "wow", "lol", "ouch", "think", "fire"]
+    },
+    "BotStrategy": {
+      "title": "BotStrategy",
+      "type": "string",
+      "enum": ["random", "greedy"]
+    },
+    "StackingMode": {
+      "title": "StackingMode",
+      "type": "string",
+      "enum": ["off", "sameType", "mixed"]
+    },
+    "WildDrawFourMode": {
+      "title": "WildDrawFourMode",
+      "type": "string",
+      "enum": ["officialChallenge", "strict"]
+    },
+    "TurnTimerSeconds": {
+      "title": "TurnTimerSeconds",
+      "description": "0 disables the turn timer.",
+      "type": "integer",
+      "enum": [0, 15, 30, 60]
+    },
+    "MatchLength": {
+      "title": "MatchLength",
+      "description": "singleRound: one round decides the winner; to250 / to500: first player to reach the score.",
+      "type": "string",
+      "enum": ["singleRound", "to250", "to500"]
+    },
+    "MaxPlayers": {
+      "title": "MaxPlayers",
+      "type": "integer",
+      "minimum": 2,
+      "maximum": 10
+    },
+    "RoomSettings": {
+      "title": "RoomSettings",
+      "description": "House rules chosen by the host (see SPEC §4).",
+      "type": "object",
+      "properties": {
+        "stacking": {
+          "$ref": "#/$defs/StackingMode"
+        },
+        "jumpIn": {
+          "type": "boolean"
+        },
+        "sevenZero": {
+          "type": "boolean"
+        },
+        "drawUntilPlayable": {
+          "type": "boolean"
+        },
+        "wildDrawFourMode": {
+          "$ref": "#/$defs/WildDrawFourMode"
+        },
+        "turnTimerSeconds": {
+          "$ref": "#/$defs/TurnTimerSeconds"
+        },
+        "matchLength": {
+          "$ref": "#/$defs/MatchLength"
+        },
+        "maxPlayers": {
+          "$ref": "#/$defs/MaxPlayers"
+        }
+      },
+      "required": [
+        "stacking",
+        "jumpIn",
+        "sevenZero",
+        "drawUntilPlayable",
+        "wildDrawFourMode",
+        "turnTimerSeconds",
+        "matchLength",
+        "maxPlayers"
+      ],
+      "additionalProperties": false
+    },
+    "RoomSettingsPatch": {
+      "title": "RoomSettingsPatch",
+      "description": "Partial settings: only the fields to change.",
+      "type": "object",
+      "properties": {
+        "stacking": {
+          "$ref": "#/$defs/StackingMode"
+        },
+        "jumpIn": {
+          "type": "boolean"
+        },
+        "sevenZero": {
+          "type": "boolean"
+        },
+        "drawUntilPlayable": {
+          "type": "boolean"
+        },
+        "wildDrawFourMode": {
+          "$ref": "#/$defs/WildDrawFourMode"
+        },
+        "turnTimerSeconds": {
+          "$ref": "#/$defs/TurnTimerSeconds"
+        },
+        "matchLength": {
+          "$ref": "#/$defs/MatchLength"
+        },
+        "maxPlayers": {
+          "$ref": "#/$defs/MaxPlayers"
+        }
+      },
+      "minProperties": 1,
+      "additionalProperties": false
+    },
+    "ErrorCode": {
+      "title": "ErrorCode",
+      "description": "Every error the server can answer. MESSAGE_TOO_LARGE is reported as the WebSocket close reason (code 1009), not as an `error` message.",
+      "type": "string",
+      "enum": [
+        "MALFORMED_MESSAGE",
+        "UNKNOWN_TYPE",
+        "UNSUPPORTED_VERSION",
+        "MESSAGE_TOO_LARGE",
+        "RATE_LIMITED",
+        "SESSION_REQUIRED",
+        "SESSION_EXPIRED",
+        "NICKNAME_INVALID",
+        "NICKNAME_TAKEN",
+        "ALREADY_IN_ROOM",
+        "NOT_IN_ROOM",
+        "ROOM_NOT_FOUND",
+        "ROOM_FULL",
+        "MATCH_IN_PROGRESS",
+        "NOT_HOST",
+        "CANNOT_KICK_SELF",
+        "INVALID_SETTINGS",
+        "NOT_ENOUGH_PLAYERS",
+        "PLAYERS_NOT_READY",
+        "NOT_YOUR_TURN",
+        "INVALID_PHASE",
+        "CARD_NOT_IN_HAND",
+        "ILLEGAL_MOVE",
+        "UNO_WINDOW_CLOSED"
+      ]
+    },
+    "IllegalMoveReason": {
+      "title": "IllegalMoveReason",
+      "description": "Detail of an ILLEGAL_MOVE error.",
+      "type": "string",
+      "enum": [
+        "COLOR_MISMATCH",
+        "WILD_DRAW_FOUR_ILLEGAL",
+        "COLOR_REQUIRED",
+        "COLOR_NOT_ALLOWED",
+        "SWAP_TARGET_REQUIRED",
+        "SWAP_TARGET_INVALID",
+        "ONLY_DRAWN_CARD_PLAYABLE",
+        "JUMP_IN_TOO_LATE",
+        "CANNOT_STACK",
+        "CANNOT_CHALLENGE"
+      ]
+    },
+    "EmptyPayload": {
+      "title": "EmptyPayload",
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false,
+      "description": "Payload of messages without parameters. tsType is a json-schema-to-typescript extension: an empty object type that rejects any property.",
+      "tsType": "Record<string, never>"
+    }
+  }
+}

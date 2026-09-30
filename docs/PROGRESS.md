@@ -10,7 +10,7 @@
 - [x] 0.2 Serveur : CMake + presets Ninja + vcpkg manifest + projet vide qui compile + 1 test Catch2
 - [x] 0.3 Vérifier que `compile_commands.json` est généré et que clangd le trouve
 - [x] 0.4 Client : `ng new` Angular 22 (zoneless, SCSS, Vitest) + lint + 1 test
-- [ ] 0.5 Protocole v1 : schémas JSON + exemples de messages + types TS générés
+- [x] 0.5 Protocole v1 : schémas JSON + exemples de messages + types TS générés
 - [ ] 0.6 CI GitHub Actions (build + tests serveur et client)
 - [ ] 0.7 Compléter la table des commandes dans CLAUDE.md
 
@@ -62,9 +62,13 @@
 - [0002 — CMake presets et générateur Ninja](adr/0002-cmake-presets-ninja.md)
 - [0003 — vcpkg en mode manifest avec baseline figée](adr/0003-vcpkg-manifest.md)
 - [0004 — Sanitizers : ASan + UBSan sous Linux, ASan seul sous MSVC](adr/0004-sanitizers-per-platform.md)
+- [0005 — JSON Schema 2020-12 comme source de vérité du protocole](adr/0005-json-schema-protocol.md)
+- [0006 — `std::variant` pour les ensembles fermés, interfaces pour les dépendances injectées](adr/0006-variant-closed-sets.md)
+- [0007 — Écarts du protocole v1 par rapport à la SPEC §8](adr/0007-protocol-v1-deviations.md)
 
 ## Journal
 - 2026-09-30 — 0.1 — arborescence du monorepo, `.editorconfig`, README, modèle d'ADR, BOM retiré de `.gitattributes` — `chore/phase-0-foundations`
 - 2026-09-30 — 0.2 — CMake presets `dev`/`debug-asan`/`release` (Ninja), vcpkg manifest (5 dépendances, baseline figée), `uno_core`/`uno_app`/`uno_net`/`uno_server`, 6 tests Catch2, clang-format + clang-tidy propres — `chore/phase-0-foundations`
 - 2026-09-30 — 0.3 — `.clangd` à la racine pointant vers `server/build/dev` ; `clangd --check` résout les en-têtes du projet et de vcpkg sans erreur — `chore/phase-0-foundations`
 - 2026-09-30 — 0.4 — client Angular 22 (zoneless, SCSS, Vitest, `strict` + `strictTemplates`), angular-eslint (`no-explicit-any`, `no-non-null-assertion` en erreur), Prettier, proxy `/ws` → `localhost:9001`, shell `<router-outlet />` + 2 tests — `chore/phase-0-foundations`
+- 2026-09-30 — 0.5 — protocole v1 : 7 schémas JSON Schema 2020-12, 39 exemples valides et 18 invalides, `npm run protocol:gen` (json-schema-to-typescript), test de contrat Vitest + ajv (63 tests verts), `@types/node` ajouté aux specs (validé), écarts SPEC tracés en ADR 0007 — `chore/phase-0-foundations`

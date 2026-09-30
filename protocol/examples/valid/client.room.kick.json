@@ -1,0 +1,8 @@
+{
+  "v": 1,
+  "id": "c-5",
+  "type": "room.kick",
+  "payload": {
+    "playerId": "p_Ines7Rt1Y"
+  }
+}

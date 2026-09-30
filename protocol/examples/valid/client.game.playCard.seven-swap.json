@@ -1,0 +1,9 @@
+{
+  "v": 1,
+  "id": "c-12",
+  "type": "game.playCard",
+  "payload": {
+    "cardId": 902,
+    "swapTargetId": "p_Max8Qw3Zt"
+  }
+}

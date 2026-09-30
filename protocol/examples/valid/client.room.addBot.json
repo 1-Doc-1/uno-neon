@@ -1,0 +1,8 @@
+{
+  "v": 1,
+  "id": "c-6",
+  "type": "room.addBot",
+  "payload": {
+    "strategy": "greedy"
+  }
+}
