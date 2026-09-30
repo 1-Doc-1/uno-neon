@@ -32,5 +32,7 @@ uno_set_warnings(uno_server)
 
 if(UNO_BUILD_TESTS)
     enable_testing()
+    # Test doubles (SeededRandomSource): never linked into the production binary (SPEC §7.4).
+    add_subdirectory(testing)
     add_subdirectory(tests)
 endif()
