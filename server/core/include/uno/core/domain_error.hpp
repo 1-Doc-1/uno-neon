@@ -22,6 +22,9 @@ enum class DomainError : std::uint8_t {
     ColorRequired,         // ILLEGAL_MOVE / COLOR_REQUIRED
     ColorNotAllowed,       // ILLEGAL_MOVE / COLOR_NOT_ALLOWED
     OnlyDrawnCardPlayable, // ILLEGAL_MOVE / ONLY_DRAWN_CARD_PLAYABLE
+    // Step 1.4: UNO.
+    UnoWindowClosed, // UNO_WINDOW_CLOSED: nobody can be caught right now (or no longer, or not that player)
+    CannotCatchSelf,
 };
 
 } // namespace uno::core

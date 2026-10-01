@@ -3,6 +3,7 @@ configure_file(src/build_info.cpp.in "${CMAKE_CURRENT_BINARY_DIR}/generated/buil
 
 add_library(uno_core STATIC
     src/deck.cpp
+    src/match.cpp
     src/piles.cpp
     src/round.cpp
     src/turn_order.cpp

@@ -23,8 +23,8 @@
 - [x] 1.2 État de partie, tour, sens, pioche/défausse, remélange
 - [x] 1.3a Jouabilité, effets (Skip/Reverse/DrawTwo/Wild), choix de couleur, première carte retournée
 - [x] 1.3b Wild Draw Four : légalité stricte et contestation officielle
-- [ ] 1.4 UNO : annonce, contre-UNO, pénalités
-- [ ] 1.5 Fin de manche, score, fin de partie (500 pts ou manche unique)
+- [x] 1.4 UNO : annonce, contre-UNO, pénalités
+- [x] 1.5 Fin de manche, score, fin de partie (500 pts ou manche unique)
 - [ ] 1.7 Projection `PlayerView` + test anti-fuite
 - [ ] 1.8 Simulation aléatoire massive (invariants)
 
@@ -80,6 +80,8 @@
 - [0008 — Aléatoire déterministe et portable](adr/0008-portable-deterministic-randomness.md)
 - [0009 — Modélisation des cartes : `std::optional<Color>` et `createStandardDeck`](adr/0009-card-model.md)
 - [0010 — État de la manche : `Round` valeur pure, `RandomSource&` passé en paramètre](adr/0010-round-state.md)
+- [0011 — Fenêtre UNO : définition précise](adr/0011-uno-window.md)
+- [0012 — Fin de manche et `Match` : score, donneur, fin de partie](adr/0012-round-end-and-match.md)
 
 ## Journal
 - 2026-09-30 — 0.1 — arborescence du monorepo, `.editorconfig`, README, modèle d'ADR, BOM retiré de `.gitattributes` — `chore/phase-0-foundations`
@@ -94,3 +96,6 @@
 - 2026-09-30 — 1.3a — `isPlayable` (jouabilité de base, +4 volontairement non spécial-casé, reporté en 1.3b) ; premier usage de `std::variant`+`std::visit` du projet (ADR 0006) : `PlayerAction`, `TurnPhase`, `DomainEvent` (alignés sur SPEC §8.5 : `DeckReshuffled`/`TurnChanged` sont des événements, pas des booléens) et le visiteur `Overloaded` ; `Round::apply` (tour/main/couleur validés, cycle piocher→décider→passer avec fin de tour automatique si la carte piochée n'est pas jouable ou si plus rien n'est piochable, effets Skip/Reverse — y compris « Reverse agit comme Skip » à 2 joueurs —/DrawTwo/Wild) ; `Round::start` renvoie désormais un `RoundStart` (manche + événements, dont `RoundStarted`) et résout l'effet de la première carte retournée ; `requireRoundInvariants` dans `uno_testing` (désormais lié à Catch2), réutilisable par la simulation de l'étape 1.8 ; 36 nouveaux cas de test (103 au total) verts en `dev` et `debug-asan`, clang-tidy propre — `feat/core-rules-basic`
 - 2026-10-01 — 1.3b — Joker +4 et contestation officielle (`wildDrawFourMode: officialChallenge`, seul mode de cette étape — `strict` et le cumul restent en 1.6) : `isPlayable` traite désormais le +4 comme le Wild (toujours tentable, y compris en bluff) ; `isWildDrawFourLegal` (nouvelle fonction pure) juge sa légalité à la pose, à partir d'une `Color` définie plutôt qu'un `optional<Color>` (pour ne jamais confondre deux couleurs absentes) ; `PlayerAction::RespondPenalty`, `TurnPhase::AwaitingPenaltyResponse` et `DomainEvent::ChallengeResolved` ajoutés sous les noms déjà prévus par la SPEC §7.3 (aucune ADR nécessaire) ; poser un +4 déplace immédiatement le tour vers le joueur visé (contrairement au +2, sans fenêtre de réponse) et fige dans la phase l'identité du poseur et la légalité calculée, jamais recalculée ; `ChallengeResolved` porte son propre `penaltyAmount` (4 ou 6), distinct des cartes réellement piochées par le `PenaltyCardsDrawn` qui suit (piles proches de l'épuisement, SPEC §5) ; nouvel invariant (le poseur d'un +4 en attente de réponse n'est jamais le joueur courant) ; 9 nouveaux cas de test dédiés + 3 sur `isWildDrawFourLegal` (115 au total) verts en `dev` et `debug-asan`, clang-tidy propre — `feat/core-wild-draw-four`
 - 2026-10-01 — chore — passage en workflow rapide : mode autonome, un commit par étape et une PR par lot de 2-3 étapes, une seule revue par phase, `linux-check.sh` silencieux (log dans `~/uno-neon-linux/linux-check.log`), PROGRESS réordonné vers un MVP jouable (1.6 reportée après le MVP) — `chore/fast-workflow`
+- 2026-10-01 — 1.3b (correctif) — commentaire de `AwaitingPenaltyResponse` : la légalité du +4 est figée à la pose parce qu'elle se juge contre la couleur courante d'*avant* le choix de couleur, pas par économie ; test « aucune carte rouge, une bleue, choisit bleu : légal » — `feat/core-uno-and-round-end`
+- 2026-10-01 — 1.4 — `CallUno`/`CatchUno`, `UnoCalled`/`UnoCaught`, fenêtre UNO (`Round::unoWindow`, `hasCalledUno`) définie dans l'ADR 0011 (ouverture à 1 carte non annoncée, fermeture au prochain `PlayCard`/`DrawCard` accepté, contre-UNO ou annonce ; une annonce non due est sans effet), `giveCards` centralise les ajouts en main, 17 nouveaux cas de test (cas limites : contre-UNO simultané, action refusée, Skip à 2 joueurs, +4 en attente, annonce perdue en piochant ou en passant) et deux invariants — `feat/core-uno-and-round-end`
+- 2026-10-01 — 1.5 — `RoundOver` et `RoundEnded` (dernière carte : un +2 ou +4 final fait quand même piocher le suivant, sans contestation, et ces cartes comptent), `scoring.hpp` (`cardPoints`, `handPoints`), classe `Match` (scores par siège, donneur tournant, `targetScore` ou manche unique, `MatchEnded`, `startNextRound`) — ADR 0012 ; `drawPenalty` remplace six copies de la pioche de pénalité ; `legalActionsOfCurrentPlayer` dans `uno_testing` (réutilisée par la simulation 1.8) ; invariants « main vide seulement chez le gagnant » et « points = valeur des mains adverses » ; 18 nouveaux cas de test (151 au total) verts en `dev`, clang-tidy et clang-format propres — `feat/core-uno-and-round-end`

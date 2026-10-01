@@ -2,6 +2,7 @@
 
 #include "uno/core/card.hpp"
 #include "uno/core/round.hpp"
+#include "uno/core/scoring.hpp"
 #include "uno/core/turn_phase.hpp"
 
 #include <catch2/catch_test_macros.hpp>
@@ -81,6 +82,52 @@ void requireWildDrawFourPlayerIsNotCurrent(const core::Round& round)
     REQUIRE(round.currentPlayer() != awaiting->wildDrawFourPlayer);
 }
 
+// The UNO window only ever concerns a player holding exactly one card who did not announce it.
+void requireUnoWindowIsCoherent(const core::Round& round)
+{
+    const auto& window = round.unoWindow();
+    if (!window.has_value()) {
+        return;
+    }
+    const auto hand = round.hand(*window);
+    REQUIRE(hand.has_value());
+    REQUIRE(hand->size() == 1);
+    REQUIRE(!round.hasCalledUno(*window));
+}
+
+// An announcement is only kept while the hand it was made for (one or two cards) is unchanged.
+void requireAnnouncementsAreCoherent(const core::Round& round)
+{
+    for (const auto& seated : round.seats()) {
+        const auto hand = round.hand(seated);
+        REQUIRE(hand.has_value());
+        REQUIRE((!round.hasCalledUno(seated) || hand->size() <= 2));
+    }
+}
+
+// A hand is only ever empty once its owner has won: while the round is in progress everybody holds
+// cards. Once over, the winner holds none, the others do, and the points are the value of their cards.
+void requireHandMatchesRoundState(const core::Round& round, const core::PlayerId& seated)
+{
+    const auto* over = std::get_if<core::RoundOver>(&round.phase());
+    const auto hand = round.hand(seated);
+    REQUIRE(hand.has_value());
+    REQUIRE(hand->empty() == (over != nullptr && seated == over->winner));
+}
+
+void requireRoundOverIsCoherent(const core::Round& round)
+{
+    std::uint32_t othersPoints = 0;
+    for (const auto& seated : round.seats()) {
+        requireHandMatchesRoundState(round, seated);
+        othersPoints += core::handPoints(round.hand(seated).value_or(std::span<const core::Card>{}));
+    }
+    if (const auto* over = std::get_if<core::RoundOver>(&round.phase())) {
+        REQUIRE(over->points == othersPoints);
+        REQUIRE(round.unoWindow() == std::nullopt);
+    }
+}
+
 } // namespace
 
 void requireRoundInvariants(const core::Round& round)
@@ -90,6 +137,9 @@ void requireRoundInvariants(const core::Round& round)
     requireCurrentColorMatchesPhase(round);
     requireDrawnCardStillInHand(round);
     requireWildDrawFourPlayerIsNotCurrent(round);
+    requireRoundOverIsCoherent(round);
+    requireUnoWindowIsCoherent(round);
+    requireAnnouncementsAreCoherent(round);
 }
 
 } // namespace uno::testing

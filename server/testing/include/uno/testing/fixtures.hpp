@@ -81,6 +81,28 @@ namespace uno::testing {
     return deck;
 }
 
+// Deck for a round whose first player (seat 0; the last seat deals) holds exactly the 7 cards of
+// `firstHand`, while every other seat holds red Fives (ids from 100). `top` is flipped first, then
+// `afterTop` follows in draw order.
+[[nodiscard]] inline std::vector<core::Card> deckGivingFirstHand(std::size_t playerCount,
+                                                                 const std::vector<core::Card>& firstHand,
+                                                                 const core::Card& top,
+                                                                 const std::vector<core::Card>& afterTop = {})
+{
+    std::vector<core::Card> deck;
+    deck.reserve((playerCount * core::kHandSize) + 1 + afterTop.size());
+    for (std::size_t slot = 0; slot < core::kHandSize; ++slot) {
+        deck.push_back(firstHand.at(slot));
+        for (std::size_t seat = 1; seat < playerCount; ++seat) {
+            const auto id = 100 + static_cast<std::uint32_t>((seat * core::kHandSize) + slot);
+            deck.push_back(coloredCard(id, core::Color::Red, core::Rank::Five));
+        }
+    }
+    deck.push_back(top);
+    std::ranges::copy(afterTop, std::back_inserter(deck));
+    return deck;
+}
+
 [[nodiscard]] inline std::span<const core::Card> handOf(const core::Round& round, const core::PlayerId& player)
 {
     const auto hand = round.hand(player);
