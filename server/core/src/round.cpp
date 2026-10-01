@@ -122,8 +122,15 @@ std::expected<RoundStart, DomainError> Round::start(RoundSetup setup, RandomSour
 
 Round::Round(TurnOrder turnOrder, PlayerId dealer, std::vector<Hand> hands, DrawPile drawPile, DiscardPile discardPile)
     : turnOrder_{std::move(turnOrder)}, dealer_{std::move(dealer)}, hands_{std::move(hands)},
-      drawPile_{std::move(drawPile)}, discardPile_{std::move(discardPile)}, currentColor_{discardPile_.top().color}
+      drawPile_{std::move(drawPile)}, discardPile_{std::move(discardPile)}, currentColor_{discardPile_.top().color},
+      unoCalled_(hands_.size(), false)
 {
+}
+
+bool Round::hasCalledUno(const PlayerId& player) const
+{
+    const auto seat = turnOrder_.seatOf(player);
+    return seat.has_value() && unoCalled_.at(*seat);
 }
 
 std::expected<std::span<const Card>, DomainError> Round::hand(const PlayerId& player) const
@@ -145,6 +152,8 @@ std::expected<std::vector<DomainEvent>, DomainError> Round::apply(const PlayerId
             [&](const Pass&) { return applyPass(actor); },
             [&](const ChooseColor& chooseColor) { return applyChooseColor(actor, chooseColor); },
             [&](const RespondPenalty& respondPenalty) { return applyRespondPenalty(actor, respondPenalty, random); },
+            [&](const CallUno&) { return applyCallUno(actor); },
+            [&](const CatchUno& catchUno) { return applyCatchUno(actor, catchUno, random); },
         },
         action);
 }
@@ -163,7 +172,8 @@ std::expected<std::vector<DomainEvent>, DomainError> Round::applyPlayCard(const 
         return std::unexpected{DomainError::InvalidPhase};
     }
 
-    auto& hand = hands_.at(turnOrder_.currentSeat());
+    const auto actorSeat = turnOrder_.currentSeat();
+    auto& hand = hands_.at(actorSeat);
     const auto found = std::ranges::find(hand, action.cardId, &Card::id);
     if (found == hand.end()) {
         return std::unexpected{DomainError::CardNotInHand};
@@ -181,6 +191,9 @@ std::expected<std::vector<DomainEvent>, DomainError> Round::applyPlayCard(const 
     if (!isPlayable(card, discardPile_.top(), currentColor_)) {
         return std::unexpected{DomainError::ColorMismatch};
     }
+
+    // The next turn has begun: nobody can be caught for the previous play any more (ADR 0011).
+    unoWindow_.reset();
 
     const auto previousColor = currentColor_;
 
@@ -216,6 +229,7 @@ std::expected<std::vector<DomainEvent>, DomainError> Round::applyPlayCard(const 
         phase_ = AwaitingPlay{};
         std::ranges::copy(resolveEffect(card.rank, random), std::back_inserter(events));
     }
+    openUnoWindowIfNeeded(actor, actorSeat);
     return events;
 }
 
@@ -227,9 +241,10 @@ std::expected<std::vector<DomainEvent>, DomainError> Round::applyDrawCard(const 
     if (!std::holds_alternative<AwaitingPlay>(phase_)) {
         return std::unexpected{DomainError::InvalidPhase};
     }
+    unoWindow_.reset(); // The next turn has begun (ADR 0011).
 
     auto drawn = drawCards(drawPile_, discardPile_, 1, random);
-    std::ranges::copy(drawn.cards, std::back_inserter(hands_.at(turnOrder_.currentSeat())));
+    giveCards(turnOrder_.currentSeat(), drawn.cards);
 
     std::vector<DomainEvent> events;
     if (drawn.reshuffled) {
@@ -260,6 +275,7 @@ std::expected<std::vector<DomainEvent>, DomainError> Round::applyPass(const Play
         return std::unexpected{DomainError::InvalidPhase};
     }
 
+    unoCalled_.at(turnOrder_.currentSeat()) = false; // An announcement only holds for one play.
     std::vector<DomainEvent> events{TurnPassed{.player = actor}};
     turnOrder_.advance();
     phase_ = AwaitingPlay{};
@@ -304,7 +320,7 @@ Round::applyRespondPenalty(const PlayerId& actor, const RespondPenalty& action, 
         if (drawn.reshuffled) {
             events.emplace_back(DeckReshuffled{});
         }
-        std::ranges::copy(drawn.cards, std::back_inserter(hands_.at(turnOrder_.currentSeat())));
+        giveCards(turnOrder_.currentSeat(), drawn.cards);
         events.emplace_back(PenaltyCardsDrawn{.player = target, .cards = idsOf(drawn.cards)});
         turnOrder_.advance();
         events.emplace_back(PlayerSkipped{.skippedPlayer = target});
@@ -334,7 +350,7 @@ Round::applyRespondPenalty(const PlayerId& actor, const RespondPenalty& action, 
         if (drawn.reshuffled) {
             events.emplace_back(DeckReshuffled{});
         }
-        std::ranges::copy(drawn.cards, std::back_inserter(hands_.at(poserSeat)));
+        giveCards(poserSeat, drawn.cards);
         events.emplace_back(PenaltyCardsDrawn{.player = poser, .cards = idsOf(drawn.cards)});
         phase_ = AwaitingPlay{};
         return events;
@@ -355,13 +371,80 @@ Round::applyRespondPenalty(const PlayerId& actor, const RespondPenalty& action, 
     if (drawn.reshuffled) {
         events.emplace_back(DeckReshuffled{});
     }
-    std::ranges::copy(drawn.cards, std::back_inserter(hands_.at(turnOrder_.currentSeat())));
+    giveCards(turnOrder_.currentSeat(), drawn.cards);
     events.emplace_back(PenaltyCardsDrawn{.player = target, .cards = idsOf(drawn.cards)});
     turnOrder_.advance();
     events.emplace_back(PlayerSkipped{.skippedPlayer = target});
     phase_ = AwaitingPlay{};
     events.emplace_back(TurnChanged{.player = turnOrder_.current()});
     return events;
+}
+
+std::expected<std::vector<DomainEvent>, DomainError> Round::applyCallUno(const PlayerId& actor)
+{
+    const auto seat = turnOrder_.seatOf(actor);
+    if (!seat) {
+        return std::unexpected{DomainError::UnknownPlayer};
+    }
+    // A call that is not due changes nothing (SPEC §3): the client never offers the button then.
+    const bool inWindow = unoWindow_ == actor;
+    const bool aboutToPlayWithTwoCards =
+        actor == turnOrder_.current() && hands_.at(*seat).size() == 2 &&
+        (std::holds_alternative<AwaitingPlay>(phase_) || std::holds_alternative<AwaitingDrawnCardDecision>(phase_));
+    if (unoCalled_.at(*seat) || !(inWindow || aboutToPlayWithTwoCards)) {
+        return std::vector<DomainEvent>{};
+    }
+    if (inWindow) {
+        unoWindow_.reset();
+    }
+    unoCalled_.at(*seat) = true;
+    return std::vector<DomainEvent>{UnoCalled{.player = actor}};
+}
+
+std::expected<std::vector<DomainEvent>, DomainError> Round::applyCatchUno(const PlayerId& actor, const CatchUno& action,
+                                                                          RandomSource& random)
+{
+    if (!turnOrder_.seatOf(actor)) {
+        return std::unexpected{DomainError::UnknownPlayer};
+    }
+    // The first catch closes the window, so a second, simultaneous one lands here (SPEC §5).
+    if (unoWindow_ != action.target) {
+        return std::unexpected{DomainError::UnoWindowClosed};
+    }
+    if (actor == action.target) {
+        return std::unexpected{DomainError::CannotCatchSelf};
+    }
+
+    const auto targetSeat = seatOfOrThrow(turnOrder_, action.target);
+    std::vector<DomainEvent> events{UnoCaught{.catcher = actor, .target = action.target}};
+    auto drawn = drawCards(drawPile_, discardPile_, kUnoPenaltyCards, random);
+    if (drawn.reshuffled) {
+        events.emplace_back(DeckReshuffled{});
+    }
+    giveCards(targetSeat, drawn.cards);
+    events.emplace_back(PenaltyCardsDrawn{.player = action.target, .cards = idsOf(drawn.cards)});
+    return events;
+}
+
+void Round::giveCards(std::size_t seat, std::span<const Card> cards)
+{
+    if (cards.empty()) {
+        return;
+    }
+    std::ranges::copy(cards, std::back_inserter(hands_.at(seat)));
+    unoCalled_.at(seat) = false;
+    if (unoWindow_.has_value() && turnOrder_.seatOf(*unoWindow_) == seat) {
+        unoWindow_.reset();
+    }
+}
+
+void Round::openUnoWindowIfNeeded(const PlayerId& player, std::size_t seat)
+{
+    if (hands_.at(seat).size() != 1) {
+        unoCalled_.at(seat) = false;
+    } else if (!unoCalled_.at(seat)) {
+        unoWindow_ = player;
+    }
 }
 
 std::vector<DomainEvent> Round::resolveEffect(Rank rank, RandomSource& random)
@@ -396,7 +479,7 @@ std::vector<DomainEvent> Round::resolveEffect(Rank rank, RandomSource& random)
         if (drawn.reshuffled) {
             events.emplace_back(DeckReshuffled{});
         }
-        std::ranges::copy(drawn.cards, std::back_inserter(hands_.at(targetSeat)));
+        giveCards(targetSeat, drawn.cards);
         events.emplace_back(PenaltyCardsDrawn{.player = target, .cards = idsOf(drawn.cards)});
         turnOrder_.advance();
         turnOrder_.advance();
@@ -437,7 +520,7 @@ std::vector<DomainEvent> Round::resolveFirstCardEffect(Rank rank, RandomSource& 
         if (drawn.reshuffled) {
             events.emplace_back(DeckReshuffled{});
         }
-        std::ranges::copy(drawn.cards, std::back_inserter(hands_.at(targetSeat)));
+        giveCards(targetSeat, drawn.cards);
         events.emplace_back(PenaltyCardsDrawn{.player = target, .cards = idsOf(drawn.cards)});
         turnOrder_.advance();
         events.emplace_back(PlayerSkipped{.skippedPlayer = target});

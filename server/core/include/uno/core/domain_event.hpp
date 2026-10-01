@@ -97,7 +97,24 @@ struct ChallengeResolved {
     bool operator==(const ChallengeResolved&) const = default;
 };
 
-using DomainEvent = std::variant<RoundStarted, CardPlayed, CardsDrawn, PenaltyCardsDrawn, DeckReshuffled, TurnPassed,
-                                 PlayerSkipped, DirectionReversed, ColorChosen, TurnChanged, ChallengeResolved>;
+// A player announced UNO, in time (before playing their second-to-last card, or in the UNO window).
+struct UnoCalled {
+    PlayerId player;
+
+    bool operator==(const UnoCalled&) const = default;
+};
+
+// `catcher` caught `target` leaving themselves with one card without announcing it: the cards they
+// draw as a penalty follow as a PenaltyCardsDrawn.
+struct UnoCaught {
+    PlayerId catcher;
+    PlayerId target;
+
+    bool operator==(const UnoCaught&) const = default;
+};
+
+using DomainEvent =
+    std::variant<RoundStarted, CardPlayed, CardsDrawn, PenaltyCardsDrawn, DeckReshuffled, TurnPassed, PlayerSkipped,
+                 DirectionReversed, ColorChosen, TurnChanged, ChallengeResolved, UnoCalled, UnoCaught>;
 
 } // namespace uno::core

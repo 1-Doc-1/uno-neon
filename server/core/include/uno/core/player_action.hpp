@@ -1,6 +1,7 @@
 #pragma once
 
 #include "uno/core/card.hpp"
+#include "uno/core/player_id.hpp"
 
 #include <cstdint>
 #include <optional>
@@ -45,6 +46,21 @@ struct RespondPenalty {
     bool operator==(const RespondPenalty&) const = default;
 };
 
-using PlayerAction = std::variant<PlayCard, DrawCard, Pass, ChooseColor, RespondPenalty>;
+// Announces UNO, out of turn if need be (SPEC §3). Accepted in two situations only: the player is
+// about to play with exactly two cards in hand, or the UNO window is open on them (Round::unoWindow).
+// In any other case it is a harmless no-op: no events, no state change.
+struct CallUno {
+    bool operator==(const CallUno&) const = default;
+};
+
+// Catches a player who left themselves with one card without announcing it. Legal only while the
+// UNO window is open on `target` (see Round::unoWindow).
+struct CatchUno {
+    PlayerId target;
+
+    bool operator==(const CatchUno&) const = default;
+};
+
+using PlayerAction = std::variant<PlayCard, DrawCard, Pass, ChooseColor, RespondPenalty, CallUno, CatchUno>;
 
 } // namespace uno::core

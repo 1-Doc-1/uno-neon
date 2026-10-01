@@ -81,6 +81,29 @@ void requireWildDrawFourPlayerIsNotCurrent(const core::Round& round)
     REQUIRE(round.currentPlayer() != awaiting->wildDrawFourPlayer);
 }
 
+// The UNO window only ever concerns a player holding exactly one card who did not announce it.
+void requireUnoWindowIsCoherent(const core::Round& round)
+{
+    const auto& window = round.unoWindow();
+    if (!window.has_value()) {
+        return;
+    }
+    const auto hand = round.hand(*window);
+    REQUIRE(hand.has_value());
+    REQUIRE(hand->size() == 1);
+    REQUIRE(!round.hasCalledUno(*window));
+}
+
+// An announcement is only kept while the hand it was made for (one or two cards) is unchanged.
+void requireAnnouncementsAreCoherent(const core::Round& round)
+{
+    for (const auto& seated : round.seats()) {
+        const auto hand = round.hand(seated);
+        REQUIRE(hand.has_value());
+        REQUIRE((!round.hasCalledUno(seated) || hand->size() <= 2));
+    }
+}
+
 } // namespace
 
 void requireRoundInvariants(const core::Round& round)
@@ -90,6 +113,8 @@ void requireRoundInvariants(const core::Round& round)
     requireCurrentColorMatchesPhase(round);
     requireDrawnCardStillInHand(round);
     requireWildDrawFourPlayerIsNotCurrent(round);
+    requireUnoWindowIsCoherent(round);
+    requireAnnouncementsAreCoherent(round);
 }
 
 } // namespace uno::testing

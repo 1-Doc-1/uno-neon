@@ -19,6 +19,7 @@
 namespace uno::core {
 
 inline constexpr std::size_t kHandSize = 7;
+inline constexpr std::size_t kUnoPenaltyCards = 2;
 
 using Hand = std::vector<Card>;
 
@@ -58,6 +59,11 @@ public:
     // Empty while a flipped Wild waits for the first player's color choice.
     [[nodiscard]] std::optional<Color> currentColor() const noexcept { return currentColor_; }
     [[nodiscard]] const TurnPhase& phase() const noexcept { return phase_; }
+    // Whether the player announced UNO and still holds the hand they announced it for.
+    [[nodiscard]] bool hasCalledUno(const PlayerId& player) const;
+    // The UNO window (SPEC §3, ADR 0011): open on a player who just left themselves with one card
+    // without announcing it, until the next play or draw. While open, CatchUno{player} is accepted.
+    [[nodiscard]] const std::optional<PlayerId>& unoWindow() const noexcept { return unoWindow_; }
 
     [[nodiscard]] bool operator==(const Round&) const = default;
 
@@ -73,6 +79,15 @@ private:
                                                                                         const ChooseColor& action);
     [[nodiscard]] std::expected<std::vector<DomainEvent>, DomainError>
     applyRespondPenalty(const PlayerId& actor, const RespondPenalty& action, RandomSource& random);
+    [[nodiscard]] std::expected<std::vector<DomainEvent>, DomainError> applyCallUno(const PlayerId& actor);
+    [[nodiscard]] std::expected<std::vector<DomainEvent>, DomainError>
+    applyCatchUno(const PlayerId& actor, const CatchUno& action, RandomSource& random);
+
+    // Adds drawn or penalty cards to a hand. A player who receives cards is no longer in the UNO
+    // situation they announced, or could be caught in.
+    void giveCards(std::size_t seat, std::span<const Card> cards);
+    // Opens the UNO window on `player` if they just left themselves with one unannounced card.
+    void openUnoWindowIfNeeded(const PlayerId& player, std::size_t seat);
 
     // Resolves the turn-order effect of a card actually played during normal play: `turnOrder_`'s
     // current player is the one who played it. Returns the events produced, always ending with
@@ -91,6 +106,8 @@ private:
     DiscardPile discardPile_;
     std::optional<Color> currentColor_;
     TurnPhase phase_{AwaitingPlay{}};
+    std::vector<bool> unoCalled_; // indexed by seat
+    std::optional<PlayerId> unoWindow_;
 };
 
 // Result of Round::start(): the round itself, plus the events produced while resolving the first
