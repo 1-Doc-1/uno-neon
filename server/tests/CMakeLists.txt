@@ -11,6 +11,7 @@ add_executable(uno_tests
     round_apply_test.cpp
     round_effects_test.cpp
     round_test.cpp
+    round_wild_draw_four_test.cpp
     turn_order_test.cpp
     smoke_test.cpp)
 target_link_libraries(uno_tests PRIVATE

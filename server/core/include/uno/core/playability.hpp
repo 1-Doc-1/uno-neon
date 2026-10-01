@@ -30,10 +30,10 @@ namespace uno::core {
 // definite `currentColor` (not `optional<Color>`) on purpose: a Joker's empty color must never be
 // compared against an empty current color, which `std::optional` would consider equal.
 [[nodiscard]] constexpr bool isWildDrawFourLegal(std::span<const Card> handWithoutPlayedCard,
-                                                  Color currentColor) noexcept
+                                                 Color currentColor) noexcept
 {
     return std::ranges::none_of(handWithoutPlayedCard,
-                                 [currentColor](const Card& card) { return card.color == currentColor; });
+                                [currentColor](const Card& card) { return card.color == currentColor; });
 }
 
 } // namespace uno::core

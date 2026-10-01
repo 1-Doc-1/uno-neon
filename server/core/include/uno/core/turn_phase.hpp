@@ -1,6 +1,7 @@
 #pragma once
 
 #include "uno/core/card.hpp"
+#include "uno/core/player_id.hpp"
 
 #include <variant>
 
@@ -27,6 +28,17 @@ struct AwaitingColorChoice {
     bool operator==(const AwaitingColorChoice&) const = default;
 };
 
-using TurnPhase = std::variant<AwaitingPlay, AwaitingDrawnCardDecision, AwaitingColorChoice>;
+// A Wild Draw Four was just played: the turn has already moved to the targeted player (SPEC §3),
+// who must accept the penalty or challenge the card's legality (RespondPenalty). `wildDrawFourPlayer`
+// and `wasLegal` are recorded once, when the card is played, and never recomputed: the player who
+// posed it can no longer act while this phase lasts, so their hand cannot have changed in between.
+struct AwaitingPenaltyResponse {
+    PlayerId wildDrawFourPlayer;
+    bool wasLegal{};
+
+    bool operator==(const AwaitingPenaltyResponse&) const = default;
+};
+
+using TurnPhase = std::variant<AwaitingPlay, AwaitingDrawnCardDecision, AwaitingColorChoice, AwaitingPenaltyResponse>;
 
 } // namespace uno::core

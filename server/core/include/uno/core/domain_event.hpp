@@ -3,6 +3,7 @@
 #include "uno/core/card.hpp"
 #include "uno/core/player_id.hpp"
 
+#include <cstddef>
 #include <variant>
 #include <vector>
 
@@ -79,7 +80,24 @@ struct TurnChanged {
     bool operator==(const TurnChanged&) const = default;
 };
 
+// Verdict of a Wild Draw Four challenge (SPEC §3). `penaltyAmount` is the amount decided by the
+// verdict (4 if the poser bluffed, 6 if the challenge failed) — kept apart from the `cards` field
+// of the `PenaltyCardsDrawn` that follows, since a near-empty draw and discard pile (SPEC §5) can
+// make the actual draw smaller than the decided amount. `revealedHand` is the challenged player's
+// hand at the moment they played the card; ADR 0007 restricts it, in the projection (step 1.7), to
+// the challenger alone — at this level the event carries the full information.
+struct ChallengeResolved {
+    PlayerId challenger;
+    PlayerId challenged;
+    bool wasBluff{};
+    PlayerId penalizedPlayer;
+    std::size_t penaltyAmount{};
+    std::vector<Card> revealedHand;
+
+    bool operator==(const ChallengeResolved&) const = default;
+};
+
 using DomainEvent = std::variant<RoundStarted, CardPlayed, CardsDrawn, PenaltyCardsDrawn, DeckReshuffled, TurnPassed,
-                                 PlayerSkipped, DirectionReversed, ColorChosen, TurnChanged>;
+                                 PlayerSkipped, DirectionReversed, ColorChosen, TurnChanged, ChallengeResolved>;
 
 } // namespace uno::core
