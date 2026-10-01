@@ -13,35 +13,38 @@ using uno::net::TokenBucket;
 
 namespace {
 
-const RateClock::time_point kStart{};
+RateClock::time_point start()
+{
+    return RateClock::time_point{};
+}
 
 } // namespace
 
 TEST_CASE("A token bucket allows a burst of its capacity, then the refill rate", "[net][rate]")
 {
-    TokenBucket bucket(20, 10, kStart);
+    TokenBucket bucket(20, 10, start());
 
     int allowedAtOnce = 0;
     for (int attempt = 0; attempt < 30; ++attempt) {
-        allowedAtOnce += bucket.tryTake(kStart) ? 1 : 0;
+        allowedAtOnce += bucket.tryTake(start()) ? 1 : 0;
     }
     REQUIRE(allowedAtOnce == 20);
 
     // 10 tokens per second: after 300 ms, three more.
     int allowedLater = 0;
     for (int attempt = 0; attempt < 10; ++attempt) {
-        allowedLater += bucket.tryTake(kStart + 300ms) ? 1 : 0;
+        allowedLater += bucket.tryTake(start() + 300ms) ? 1 : 0;
     }
     REQUIRE(allowedLater == 3);
 }
 
 TEST_CASE("A token bucket never holds more than its capacity", "[net][rate]")
 {
-    TokenBucket bucket(5, 10, kStart);
+    TokenBucket bucket(5, 10, start());
 
     int allowed = 0;
     for (int attempt = 0; attempt < 20; ++attempt) {
-        allowed += bucket.tryTake(kStart + 1h) ? 1 : 0;
+        allowed += bucket.tryTake(start() + 1h) ? 1 : 0;
     }
 
     REQUIRE(allowed == 5);
@@ -51,35 +54,35 @@ TEST_CASE("A sliding window allows N events per window for each key", "[net][rat
 {
     SlidingWindowLimiter limiter(3, 1min);
 
-    REQUIRE(limiter.tryRecord("a", kStart));
-    REQUIRE(limiter.tryRecord("a", kStart + 10s));
-    REQUIRE(limiter.tryRecord("a", kStart + 20s));
-    REQUIRE_FALSE(limiter.tryRecord("a", kStart + 30s));
-    REQUIRE(limiter.tryRecord("b", kStart + 30s)); // another key has its own count
-    REQUIRE(limiter.tryRecord("a", kStart + 61s)); // the first event left the window
-    REQUIRE_FALSE(limiter.tryRecord("a", kStart + 62s));
+    REQUIRE(limiter.tryRecord("a", start()));
+    REQUIRE(limiter.tryRecord("a", start() + 10s));
+    REQUIRE(limiter.tryRecord("a", start() + 20s));
+    REQUIRE_FALSE(limiter.tryRecord("a", start() + 30s));
+    REQUIRE(limiter.tryRecord("b", start() + 30s)); // another key has its own count
+    REQUIRE(limiter.tryRecord("a", start() + 61s)); // the first event left the window
+    REQUIRE_FALSE(limiter.tryRecord("a", start() + 62s));
 }
 
 TEST_CASE("A refused event is not counted against the key", "[net][rate]")
 {
     SlidingWindowLimiter limiter(1, 1min);
 
-    REQUIRE(limiter.tryRecord("a", kStart));
+    REQUIRE(limiter.tryRecord("a", start()));
     for (int attempt = 1; attempt < 50; ++attempt) {
-        REQUIRE_FALSE(limiter.tryRecord("a", kStart + std::chrono::seconds(attempt) / 2));
+        REQUIRE_FALSE(limiter.tryRecord("a", start() + std::chrono::seconds(attempt) / 2));
     }
-    REQUIRE(limiter.tryRecord("a", kStart + 61s));
+    REQUIRE(limiter.tryRecord("a", start() + 61s));
 }
 
 TEST_CASE("Keys whose events all expired are forgotten", "[net][rate]")
 {
     SlidingWindowLimiter limiter(1, 1min);
     for (int key = 0; key < 1000; ++key) {
-        REQUIRE(limiter.tryRecord(std::to_string(key), kStart));
+        REQUIRE(limiter.tryRecord(std::to_string(key), start()));
     }
 
     for (int key = 0; key < 300; ++key) {
-        REQUIRE(limiter.tryRecord("late" + std::to_string(key), kStart + 5min));
+        REQUIRE(limiter.tryRecord("late" + std::to_string(key), start() + 5min));
     }
 
     REQUIRE(limiter.trackedKeys() < 400);

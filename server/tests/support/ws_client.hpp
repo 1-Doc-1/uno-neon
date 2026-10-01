@@ -29,7 +29,8 @@ public:
     std::string send(app::request::Body body)
     {
         std::string id = "c-" + std::to_string(++lastRequest_);
-        REQUIRE(socket_.send(net::encodeClientMessage(app::request::Envelope{.id = id, .body = std::move(body)})));
+        const std::string text = net::encodeClientMessage(app::request::Envelope{.id = id, .body = std::move(body)});
+        REQUIRE(socket_.send(text));
         return id;
     }
 

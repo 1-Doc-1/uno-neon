@@ -15,6 +15,7 @@
 #include <cstdint>
 #include <deque>
 #include <optional>
+#include <span>
 #include <string>
 #include <utility>
 #include <variant>
@@ -115,11 +116,12 @@ inline std::vector<app::response::Message> TestPlayer::received()
     // step would make the tests quadratic.
     const auto& sent = harness_->sink.sent;
     std::vector<app::response::Message> fresh;
-    for (; consumed_ < sent.size(); ++consumed_) {
-        if (sent[consumed_].connection == connection_) {
-            fresh.push_back(sent[consumed_].message);
+    for (const auto& entry : std::span(sent).subspan(consumed_)) {
+        if (entry.connection == connection_) {
+            fresh.push_back(entry.message);
         }
     }
+    consumed_ = sent.size();
     return fresh;
 }
 
