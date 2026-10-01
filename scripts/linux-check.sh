@@ -37,6 +37,17 @@ export VCPKG_ROOT
 # Même nombre de parties simulées que le CI des PR.
 export UNO_SIMULATION_GAMES=100
 
+# Une compilation ASan peut prendre 1 à 2 Go : le parallélisme est borné par la mémoire disponible
+# (au plus un job pour 2 Go) autant que par les cœurs, sinon Ninja (un job par cœur) sature la machine.
+available_gb=$(awk '/^MemAvailable:/ { printf "%d", $2 / 1048576 }' /proc/meminfo)
+jobs=$(( available_gb / 2 ))
+cores=$(nproc)
+[ "$jobs" -gt "$cores" ] && jobs=$cores
+[ "$jobs" -lt 1 ] && jobs=1
+export CMAKE_BUILD_PARALLEL_LEVEL="$jobs"
+export VCPKG_MAX_CONCURRENCY="$jobs"
+echo "Parallélisme : $jobs (mémoire disponible : ${available_gb} Go, cœurs : $cores)" >> "$HOME/uno-neon-linux-parallelism.log"
+
 LOG="$DEST_DIR/linux-check.log"
 mkdir -p "$DEST_DIR"
 : > "$LOG"
