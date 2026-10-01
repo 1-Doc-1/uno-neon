@@ -15,6 +15,7 @@
 #include <cstdint>
 #include <deque>
 #include <optional>
+#include <ranges>
 #include <span>
 #include <string>
 #include <utility>
@@ -129,9 +130,9 @@ template <typename T>
 std::optional<T> TestPlayer::last() const
 {
     const auto& sent = harness_->sink.sent;
-    for (auto entry = sent.rbegin(); entry != sent.rend(); ++entry) {
-        if (entry->connection == connection_) {
-            if (const auto* typed = std::get_if<T>(&entry->message)) {
+    for (const auto& entry : std::views::reverse(sent)) {
+        if (entry.connection == connection_) {
+            if (const auto* typed = std::get_if<T>(&entry.message)) {
                 return *typed;
             }
         }
