@@ -29,8 +29,8 @@
 - [x] 1.8 Simulation aléatoire massive (invariants)
 
 #### Phase 2 — Serveur réseau
-- [ ] 2.1 Serveur uWebSockets, `/health`, vérification Origin, limites de taille
-- [ ] 2.2 Codec JSON + validation stricte + erreurs typées
+- [x] 2.1 Serveur uWebSockets, `/health`, vérification Origin, limites de taille
+- [x] 2.2 Codec JSON + validation stricte + erreurs typées
 - [ ] 2.3 Sessions, salons, codes, hôte, paramètres
 - [ ] 2.4 Démarrage de partie, diffusion des vues et des événements (inclut la projection `DomainEvent` → `ClientEvent` et son test anti-fuite, reportés de 1.7 : ADR 0013)
 - [ ] 2.5 Timers (tour, reconnexion, salons inactifs), rate limiting
@@ -83,6 +83,7 @@
 - [0011 — Fenêtre UNO : définition précise](adr/0011-uno-window.md)
 - [0012 — Fin de manche et `Match` : score, donneur, fin de partie](adr/0012-round-end-and-match.md)
 - [0013 — Projection `PlayerView` : périmètre du cœur et test anti-fuite](adr/0013-player-view-projection.md)
+- [0014 — Couche réseau : modèle de messages dans `app`, limites du transport, client de test sans dépendance](adr/0014-network-layer.md)
 
 ## Journal
 - 2026-09-30 — 0.1 — arborescence du monorepo, `.editorconfig`, README, modèle d'ADR, BOM retiré de `.gitattributes` — `chore/phase-0-foundations`
@@ -103,3 +104,6 @@
 - 2026-10-01 — 1.5 (alignement) — `MatchSettings::matchLength` (`SingleRound`/`To250`/`To500`, `targetPoints()`) remplace `targetScore`, comme le prévoit l'ADR 0007 n°3 ; tests de fin de partie rejoués jusqu'à ce qu'un joueur atteigne 250 points — `feat/core-projection-and-simulation`
 - 2026-10-01 — 1.7 — `PlayerView` (partie « jeu » du schéma du protocole : main du joueur, `playableCardIds`, `canDraw`/`canPass`/`canCallUno`/`canChooseColor`, `penaltyResponse`, `catchableTargetIds`, joueurs par siège avec nombre de cartes, `roundResult` avec mains révélées en fin de manche) et `project(Round, viewer, MatchProgress)` / `project(Match, viewer)` ; `Match` regroupe son état dans `MatchProgress` ; `Round::canCallUno` ; test anti-fuite à trois niveaux (non-interférence : mains adverses, ordre de la pioche et légalité d'un +4 ne changent pas la vue ; inventaire des identifiants de cartes ; parties aléatoires) via `requireViewLeaksNothing` et `deckFromHands` dans `uno_testing` ; la projection des événements est reportée en 2.4 (ADR 0013) ; 16 nouveaux cas de test (167 au total) verts en `dev`, clang-tidy et clang-format propres — `feat/core-projection-and-simulation`
 - 2026-10-01 — 1.8 — simulation massive (`tests/simulation_test.cpp`) : des parties entières à 2-10 joueurs (manche unique, 250, 500), actions légales aléatoires mêlées à 15 % d'actions hors tour ou arbitraires (contre-UNO, annonce, cartes inconnues…) ; après chaque action, soit elle est refusée et l'état est strictement inchangé, soit elle est acceptée et `requireRoundInvariants`, la conservation des 108 cartes et `requireViewLeaksNothing` tiennent ; scores = somme des points de manche ; même graine = même partie. Nombre de parties réglé par `UNO_SIMULATION_GAMES` (défaut 50, 500 dans le CI Linux sous sanitizers) ; **10 000 parties vertes en `release` (555 millions d'assertions, environ 2 minutes)** ; invariants du cœur condensés (une assertion par table plutôt que par siège) — `feat/core-projection-and-simulation`
+- 2026-10-01 — chore — CI des PR et `linux-check.sh` : 100 parties simulées au lieu de 500 ; nouveau workflow `simulation.yml` (manuel + chaque lundi) : 10 000 parties en release — `chore/ci-simulation` / PR #13
+- 2026-10-01 — 2.2 — modèle de messages dans `uno_app` (`request::Envelope` à 19 corps, `response::Message`, `RoomSettings` et son patch, `ErrorCode`), codec de `uno_net` : décodage strict sans exception (version → type → forme, `replyTo` repris quand l'`id` est lisible, entiers stricts, pseudo borné en points de code), encodage client et serveur, tables de noms de fil partagées ; test de contrat sur `protocol/examples` (39 valides client/ack/error rejoués à l'identique, 18 invalides rejetés avec le bon code), 11 tests de cas hostiles ; `CryptoRandomSource` (libsodium) pour le mélange, les jetons et les codes ; ADR 0014 — `feat/net-server-and-codec`
+- 2026-10-01 — 2.1 — `WebSocketServer` uWebSockets mono-thread (`/ws`, `GET /health`, 404 ailleurs), `OriginPolicy` (liste exacte, `Origin` absent refusé), messages > 4 Kio : 1009, > 8 Kio coupés par le transport, binaire : 1003, 10 messages mal formés : 1008, `UNO_ALLOWED_ORIGINS`/`UNO_LOG_LEVEL`, arrêt propre sur SIGINT/SIGTERM, port exclusif ; client HTTP/WebSocket de test sur sockets bruts (aucune dépendance vcpkg, ADR 0014) et 12 tests d'intégration sur un vrai serveur ; un test a révélé qu'un entier non signé sous le minimum passait la validation (corrigé) — `feat/net-server-and-codec`

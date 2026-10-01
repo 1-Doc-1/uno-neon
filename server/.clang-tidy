@@ -7,6 +7,8 @@
 # - misc-include-cleaner: noisy with umbrella headers (catch2, spdlog).
 # - misc-non-private-member-variables-in-classes: plain aggregates (struct) are intentional.
 # - portability-avoid-pragma-once: `#pragma once` is supported by MSVC, GCC and Clang, our only targets.
+# - clang-analyzer-optin.core.EnumCastOutOfRange: flags flag-combining casts in third-party headers (uWebSockets
+#   TopicTree.h, Catch2) that our code instantiates; we have no such cast ourselves.
 Checks: >
   bugprone-*,
   cert-*,
@@ -24,7 +26,8 @@ Checks: >
   -readability-magic-numbers,
   -misc-include-cleaner,
   -misc-non-private-member-variables-in-classes,
-  -portability-avoid-pragma-once
+  -portability-avoid-pragma-once,
+  -clang-analyzer-optin.core.EnumCastOutOfRange
 WarningsAsErrors: '*'
 HeaderFilterRegex: '.*/(core|app|net|tests)/.*'
 FormatStyle: file
