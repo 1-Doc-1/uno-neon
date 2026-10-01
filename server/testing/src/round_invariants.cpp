@@ -69,6 +69,18 @@ void requireDrawnCardStillInHand(const core::Round& round)
     REQUIRE(has);
 }
 
+// While awaiting a penalty response, the player who played the Wild Draw Four is seated and is not
+// the current player: the turn already moved to the one who must respond (SPEC §3).
+void requireWildDrawFourPlayerIsNotCurrent(const core::Round& round)
+{
+    const auto* awaiting = std::get_if<core::AwaitingPenaltyResponse>(&round.phase());
+    if (awaiting == nullptr) {
+        return;
+    }
+    REQUIRE(round.hand(awaiting->wildDrawFourPlayer).has_value());
+    REQUIRE(round.currentPlayer() != awaiting->wildDrawFourPlayer);
+}
+
 } // namespace
 
 void requireRoundInvariants(const core::Round& round)
@@ -77,6 +89,7 @@ void requireRoundInvariants(const core::Round& round)
     REQUIRE(round.discardPile().size() >= 1);
     requireCurrentColorMatchesPhase(round);
     requireDrawnCardStillInHand(round);
+    requireWildDrawFourPlayerIsNotCurrent(round);
 }
 
 } // namespace uno::testing

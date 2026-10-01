@@ -71,6 +71,8 @@ private:
     [[nodiscard]] std::expected<std::vector<DomainEvent>, DomainError> applyPass(const PlayerId& actor);
     [[nodiscard]] std::expected<std::vector<DomainEvent>, DomainError> applyChooseColor(const PlayerId& actor,
                                                                                         const ChooseColor& action);
+    [[nodiscard]] std::expected<std::vector<DomainEvent>, DomainError>
+    applyRespondPenalty(const PlayerId& actor, const RespondPenalty& action, RandomSource& random);
 
     // Resolves the turn-order effect of a card actually played during normal play: `turnOrder_`'s
     // current player is the one who played it. Returns the events produced, always ending with

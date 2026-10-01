@@ -138,13 +138,15 @@ std::expected<std::span<const Card>, DomainError> Round::hand(const PlayerId& pl
 std::expected<std::vector<DomainEvent>, DomainError> Round::apply(const PlayerId& actor, const PlayerAction& action,
                                                                   RandomSource& random)
 {
-    return std::visit(detail::Overloaded{
-                          [&](const PlayCard& playCard) { return applyPlayCard(actor, playCard, random); },
-                          [&](const DrawCard&) { return applyDrawCard(actor, random); },
-                          [&](const Pass&) { return applyPass(actor); },
-                          [&](const ChooseColor& chooseColor) { return applyChooseColor(actor, chooseColor); },
-                      },
-                      action);
+    return std::visit(
+        detail::Overloaded{
+            [&](const PlayCard& playCard) { return applyPlayCard(actor, playCard, random); },
+            [&](const DrawCard&) { return applyDrawCard(actor, random); },
+            [&](const Pass&) { return applyPass(actor); },
+            [&](const ChooseColor& chooseColor) { return applyChooseColor(actor, chooseColor); },
+            [&](const RespondPenalty& respondPenalty) { return applyRespondPenalty(actor, respondPenalty, random); },
+        },
+        action);
 }
 
 std::expected<std::vector<DomainEvent>, DomainError> Round::applyPlayCard(const PlayerId& actor, const PlayCard& action,
@@ -168,7 +170,7 @@ std::expected<std::vector<DomainEvent>, DomainError> Round::applyPlayCard(const 
     }
     const Card card = *found;
 
-    if (card.rank == Rank::Wild) {
+    if (isWild(card.rank)) {
         if (!action.chosenColor.has_value()) {
             return std::unexpected{DomainError::ColorRequired};
         }
@@ -180,12 +182,13 @@ std::expected<std::vector<DomainEvent>, DomainError> Round::applyPlayCard(const 
         return std::unexpected{DomainError::ColorMismatch};
     }
 
+    const auto previousColor = currentColor_;
+
     hand.erase(found);
     discardPile_.place(card);
-    phase_ = AwaitingPlay{};
 
     std::vector<DomainEvent> events{CardPlayed{.player = actor, .cardId = card.id}};
-    if (card.rank == Rank::Wild) {
+    if (isWild(card.rank)) {
         currentColor_ = action.chosenColor;
         // action.chosenColor was already checked above; re-checking here (rather than a bare *)
         // keeps this access in the same scope as its check for bugprone-unchecked-optional-access.
@@ -195,7 +198,24 @@ std::expected<std::vector<DomainEvent>, DomainError> Round::applyPlayCard(const 
     } else {
         currentColor_ = card.color;
     }
-    std::ranges::copy(resolveEffect(card.rank, random), std::back_inserter(events));
+
+    if (card.rank == Rank::WildDrawFour) {
+        // previousColor is only ever empty while awaiting the very first color choice (ADR 0007),
+        // a phase that never accepts PlayCard: it is always set here. Same pattern as the
+        // chosenColor re-check above, for the same clang-tidy reason.
+        if (!previousColor.has_value()) {
+            throw std::logic_error{"applyPlayCard: current color unset while playing Wild Draw Four"};
+        }
+        const bool wasLegal = isWildDrawFourLegal(hand, *previousColor);
+        // SPEC §3: the targeted player is the one who must act next — accept or challenge — so the
+        // turn moves to them right away, unlike Draw Two (1.3a), which has no response window.
+        turnOrder_.advance();
+        phase_ = AwaitingPenaltyResponse{.wildDrawFourPlayer = actor, .wasLegal = wasLegal};
+        events.emplace_back(TurnChanged{.player = turnOrder_.current()});
+    } else {
+        phase_ = AwaitingPlay{};
+        std::ranges::copy(resolveEffect(card.rank, random), std::back_inserter(events));
+    }
     return events;
 }
 
@@ -261,6 +281,87 @@ std::expected<std::vector<DomainEvent>, DomainError> Round::applyChooseColor(con
     phase_ = AwaitingPlay{};
     // No TurnChanged: the first player keeps the turn, they simply play normally next.
     return std::vector<DomainEvent>{ColorChosen{.player = actor, .color = action.color}};
+}
+
+std::expected<std::vector<DomainEvent>, DomainError>
+Round::applyRespondPenalty(const PlayerId& actor, const RespondPenalty& action, RandomSource& random)
+{
+    if (actor != turnOrder_.current()) {
+        return std::unexpected{DomainError::NotYourTurn};
+    }
+    const auto* awaiting = std::get_if<AwaitingPenaltyResponse>(&phase_);
+    if (awaiting == nullptr) {
+        return std::unexpected{DomainError::InvalidPhase};
+    }
+
+    const PlayerId& target = actor;
+    const PlayerId poser = awaiting->wildDrawFourPlayer;
+    const bool wasLegal = awaiting->wasLegal;
+
+    if (action.response == PenaltyResponse::Accept) {
+        auto drawn = drawCards(drawPile_, discardPile_, 4, random);
+        std::vector<DomainEvent> events;
+        if (drawn.reshuffled) {
+            events.emplace_back(DeckReshuffled{});
+        }
+        std::ranges::copy(drawn.cards, std::back_inserter(hands_.at(turnOrder_.currentSeat())));
+        events.emplace_back(PenaltyCardsDrawn{.player = target, .cards = idsOf(drawn.cards)});
+        turnOrder_.advance();
+        events.emplace_back(PlayerSkipped{.skippedPlayer = target});
+        phase_ = AwaitingPlay{};
+        events.emplace_back(TurnChanged{.player = turnOrder_.current()});
+        return events;
+    }
+
+    // Challenge: the poser's hand, as it was when they played the card, is revealed to the
+    // challenger either way (SPEC §3) — nothing has changed it since (nobody else could act).
+    const auto poserSeat = seatOfOrThrow(turnOrder_, poser);
+    const std::vector<Card> revealedHand{hands_.at(poserSeat).begin(), hands_.at(poserSeat).end()};
+
+    if (!wasLegal) {
+        // Bluff confirmed: the poser pays the penalty, the challenger keeps the turn they already
+        // have and plays it normally (SPEC §3) — no advance(), no PlayerSkipped.
+        const ChallengeResolved verdict{
+            .challenger = target,
+            .challenged = poser,
+            .wasBluff = true,
+            .penalizedPlayer = poser,
+            .penaltyAmount = 4,
+            .revealedHand = revealedHand,
+        };
+        std::vector<DomainEvent> events{verdict};
+        auto drawn = drawCards(drawPile_, discardPile_, 4, random);
+        if (drawn.reshuffled) {
+            events.emplace_back(DeckReshuffled{});
+        }
+        std::ranges::copy(drawn.cards, std::back_inserter(hands_.at(poserSeat)));
+        events.emplace_back(PenaltyCardsDrawn{.player = poser, .cards = idsOf(drawn.cards)});
+        phase_ = AwaitingPlay{};
+        return events;
+    }
+
+    // Challenge failed: the +4 was legal, the challenger pays a heavier penalty and loses their
+    // turn, exactly like accepting it would have — only the amount and the verdict event differ.
+    const ChallengeResolved verdict{
+        .challenger = target,
+        .challenged = poser,
+        .wasBluff = false,
+        .penalizedPlayer = target,
+        .penaltyAmount = 6,
+        .revealedHand = revealedHand,
+    };
+    std::vector<DomainEvent> events{verdict};
+    auto drawn = drawCards(drawPile_, discardPile_, 6, random);
+    if (drawn.reshuffled) {
+        events.emplace_back(DeckReshuffled{});
+    }
+    std::ranges::copy(drawn.cards, std::back_inserter(hands_.at(turnOrder_.currentSeat())));
+    events.emplace_back(PenaltyCardsDrawn{.player = target, .cards = idsOf(drawn.cards)});
+    turnOrder_.advance();
+    events.emplace_back(PlayerSkipped{.skippedPlayer = target});
+    phase_ = AwaitingPlay{};
+    events.emplace_back(TurnChanged{.player = turnOrder_.current()});
+    return events;
 }
 
 std::vector<DomainEvent> Round::resolveEffect(Rank rank, RandomSource& random)

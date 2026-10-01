@@ -2,6 +2,7 @@
 
 #include "uno/core/card.hpp"
 
+#include <cstdint>
 #include <optional>
 #include <variant>
 
@@ -34,6 +35,16 @@ struct ChooseColor {
     bool operator==(const ChooseColor&) const = default;
 };
 
-using PlayerAction = std::variant<PlayCard, DrawCard, Pass, ChooseColor>;
+enum class PenaltyResponse : std::uint8_t { Accept, Challenge };
+
+// Only legal while targeted by a pending draw penalty (phase AwaitingPenaltyResponse) — in step
+// 1.3b, always a Wild Draw Four's challenge window.
+struct RespondPenalty {
+    PenaltyResponse response{};
+
+    bool operator==(const RespondPenalty&) const = default;
+};
+
+using PlayerAction = std::variant<PlayCard, DrawCard, Pass, ChooseColor, RespondPenalty>;
 
 } // namespace uno::core
