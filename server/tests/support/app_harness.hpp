@@ -68,7 +68,7 @@ public:
     {
         const app::ConnectionId connection{++lastConnection_};
         application.onConnected(connection);
-        return TestPlayer(*this, connection);
+        return {*this, connection};
     }
 
     // A client that already said hello.

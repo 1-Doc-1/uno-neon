@@ -7,5 +7,6 @@ Checks: >
   -readability-function-cognitive-complexity,
   -bugprone-unchecked-optional-access,
   -misc-no-recursion,
-  -bugprone-easily-swappable-parameters
+  -bugprone-easily-swappable-parameters,
+  -cppcoreguidelines-non-private-member-variables-in-classes
 ...
