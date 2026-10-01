@@ -318,6 +318,16 @@ constexpr std::array kMessageTypes{
     MessageType{.name = "reaction.send", .decode = decodeSendReaction},
 };
 
+const MessageType* findMessageType(std::string_view name)
+{
+    for (const MessageType& type : kMessageTypes) {
+        if (type.name == name) {
+            return &type;
+        }
+    }
+    return nullptr;
+}
+
 // The message id, when the envelope has a valid one: even a rejected message is answered with it.
 std::optional<std::string> readableId(const Json& envelope)
 {
@@ -507,8 +517,8 @@ std::expected<request::Envelope, DecodeFailure> decodeClientMessage(std::string_
         return std::unexpected(failure(ErrorCode::MalformedMessage, replyTo, "type is required and must be a string"));
     }
     const auto typeName = type->get<std::string>();
-    const auto known = std::ranges::find(kMessageTypes, std::string_view(typeName), &MessageType::name);
-    if (known == kMessageTypes.end()) {
+    const MessageType* const known = findMessageType(typeName);
+    if (known == nullptr) {
         return std::unexpected(failure(ErrorCode::UnknownType, replyTo, "Unknown message type"));
     }
 

@@ -52,46 +52,46 @@ template <typename E>
 template <>
 struct WireNames<core::Color> {
     static constexpr std::array kTable{
-        WireName{core::Color::Red, "red"},
-        WireName{core::Color::Yellow, "yellow"},
-        WireName{core::Color::Green, "green"},
-        WireName{core::Color::Blue, "blue"},
+        WireName{.value = core::Color::Red, .name = "red"},
+        WireName{.value = core::Color::Yellow, .name = "yellow"},
+        WireName{.value = core::Color::Green, .name = "green"},
+        WireName{.value = core::Color::Blue, .name = "blue"},
     };
 };
 
 template <>
 struct WireNames<core::Rank> {
     static constexpr std::array kTable{
-        WireName{core::Rank::Zero, "0"},
-        WireName{core::Rank::One, "1"},
-        WireName{core::Rank::Two, "2"},
-        WireName{core::Rank::Three, "3"},
-        WireName{core::Rank::Four, "4"},
-        WireName{core::Rank::Five, "5"},
-        WireName{core::Rank::Six, "6"},
-        WireName{core::Rank::Seven, "7"},
-        WireName{core::Rank::Eight, "8"},
-        WireName{core::Rank::Nine, "9"},
-        WireName{core::Rank::Skip, "skip"},
-        WireName{core::Rank::Reverse, "reverse"},
-        WireName{core::Rank::DrawTwo, "drawTwo"},
-        WireName{core::Rank::Wild, "wild"},
-        WireName{core::Rank::WildDrawFour, "wildDrawFour"},
+        WireName{.value = core::Rank::Zero, .name = "0"},
+        WireName{.value = core::Rank::One, .name = "1"},
+        WireName{.value = core::Rank::Two, .name = "2"},
+        WireName{.value = core::Rank::Three, .name = "3"},
+        WireName{.value = core::Rank::Four, .name = "4"},
+        WireName{.value = core::Rank::Five, .name = "5"},
+        WireName{.value = core::Rank::Six, .name = "6"},
+        WireName{.value = core::Rank::Seven, .name = "7"},
+        WireName{.value = core::Rank::Eight, .name = "8"},
+        WireName{.value = core::Rank::Nine, .name = "9"},
+        WireName{.value = core::Rank::Skip, .name = "skip"},
+        WireName{.value = core::Rank::Reverse, .name = "reverse"},
+        WireName{.value = core::Rank::DrawTwo, .name = "drawTwo"},
+        WireName{.value = core::Rank::Wild, .name = "wild"},
+        WireName{.value = core::Rank::WildDrawFour, .name = "wildDrawFour"},
     };
 };
 
 template <>
 struct WireNames<core::Direction> {
     static constexpr std::array kTable{
-        WireName{core::Direction::Clockwise, "clockwise"},
-        WireName{core::Direction::CounterClockwise, "counterClockwise"},
+        WireName{.value = core::Direction::Clockwise, .name = "clockwise"},
+        WireName{.value = core::Direction::CounterClockwise, .name = "counterClockwise"},
     };
 };
 
 template <>
 struct WireNames<core::MatchLength> {
     static constexpr std::array kTable{
-        WireName{core::MatchLength::SingleRound, "singleRound"},
+        WireName{.value = core::MatchLength::SingleRound, .name = "singleRound"},
         WireName{core::MatchLength::To250, "to250"},
         WireName{core::MatchLength::To500, "to500"},
     };
@@ -100,88 +100,91 @@ struct WireNames<core::MatchLength> {
 template <>
 struct WireNames<core::PenaltyResponse> {
     static constexpr std::array kTable{
-        WireName{core::PenaltyResponse::Accept, "accept"},
-        WireName{core::PenaltyResponse::Challenge, "challenge"},
+        WireName{.value = core::PenaltyResponse::Accept, .name = "accept"},
+        WireName{.value = core::PenaltyResponse::Challenge, .name = "challenge"},
     };
 };
 
 template <>
 struct WireNames<app::StackingMode> {
     static constexpr std::array kTable{
-        WireName{app::StackingMode::Off, "off"},
-        WireName{app::StackingMode::SameType, "sameType"},
-        WireName{app::StackingMode::Mixed, "mixed"},
+        WireName{.value = app::StackingMode::Off, .name = "off"},
+        WireName{.value = app::StackingMode::SameType, .name = "sameType"},
+        WireName{.value = app::StackingMode::Mixed, .name = "mixed"},
     };
 };
 
 template <>
 struct WireNames<app::WildDrawFourMode> {
     static constexpr std::array kTable{
-        WireName{app::WildDrawFourMode::OfficialChallenge, "officialChallenge"},
-        WireName{app::WildDrawFourMode::Strict, "strict"},
+        WireName{.value = app::WildDrawFourMode::OfficialChallenge, .name = "officialChallenge"},
+        WireName{.value = app::WildDrawFourMode::Strict, .name = "strict"},
     };
 };
 
 template <>
 struct WireNames<app::request::BotStrategy> {
     static constexpr std::array kTable{
-        WireName{app::request::BotStrategy::Random, "random"},
-        WireName{app::request::BotStrategy::Greedy, "greedy"},
+        WireName{.value = app::request::BotStrategy::Random, .name = "random"},
+        WireName{.value = app::request::BotStrategy::Greedy, .name = "greedy"},
     };
 };
 
 template <>
 struct WireNames<app::request::Emote> {
     static constexpr std::array kTable{
-        WireName{app::request::Emote::Gg, "gg"},       WireName{app::request::Emote::Wow, "wow"},
-        WireName{app::request::Emote::Lol, "lol"},     WireName{app::request::Emote::Ouch, "ouch"},
-        WireName{app::request::Emote::Think, "think"}, WireName{app::request::Emote::Fire, "fire"},
+        WireName{.value = app::request::Emote::Gg, .name = "gg"},
+        WireName{.value = app::request::Emote::Wow, .name = "wow"},
+        WireName{.value = app::request::Emote::Lol, .name = "lol"},
+        WireName{.value = app::request::Emote::Ouch, .name = "ouch"},
+        WireName{.value = app::request::Emote::Think, .name = "think"},
+        WireName{.value = app::request::Emote::Fire, .name = "fire"},
     };
 };
 
 template <>
 struct WireNames<app::ErrorCode> {
     static constexpr std::array kTable{
-        WireName{app::ErrorCode::MalformedMessage, "MALFORMED_MESSAGE"},
-        WireName{app::ErrorCode::UnknownType, "UNKNOWN_TYPE"},
-        WireName{app::ErrorCode::UnsupportedVersion, "UNSUPPORTED_VERSION"},
-        WireName{app::ErrorCode::MessageTooLarge, "MESSAGE_TOO_LARGE"},
-        WireName{app::ErrorCode::RateLimited, "RATE_LIMITED"},
-        WireName{app::ErrorCode::SessionRequired, "SESSION_REQUIRED"},
-        WireName{app::ErrorCode::SessionExpired, "SESSION_EXPIRED"},
-        WireName{app::ErrorCode::NicknameInvalid, "NICKNAME_INVALID"},
-        WireName{app::ErrorCode::NicknameTaken, "NICKNAME_TAKEN"},
-        WireName{app::ErrorCode::AlreadyInRoom, "ALREADY_IN_ROOM"},
-        WireName{app::ErrorCode::NotInRoom, "NOT_IN_ROOM"},
-        WireName{app::ErrorCode::RoomNotFound, "ROOM_NOT_FOUND"},
-        WireName{app::ErrorCode::RoomFull, "ROOM_FULL"},
-        WireName{app::ErrorCode::MatchInProgress, "MATCH_IN_PROGRESS"},
-        WireName{app::ErrorCode::NotHost, "NOT_HOST"},
-        WireName{app::ErrorCode::CannotKickSelf, "CANNOT_KICK_SELF"},
-        WireName{app::ErrorCode::InvalidSettings, "INVALID_SETTINGS"},
-        WireName{app::ErrorCode::NotEnoughPlayers, "NOT_ENOUGH_PLAYERS"},
-        WireName{app::ErrorCode::PlayersNotReady, "PLAYERS_NOT_READY"},
-        WireName{app::ErrorCode::NotYourTurn, "NOT_YOUR_TURN"},
-        WireName{app::ErrorCode::InvalidPhase, "INVALID_PHASE"},
-        WireName{app::ErrorCode::CardNotInHand, "CARD_NOT_IN_HAND"},
-        WireName{app::ErrorCode::IllegalMove, "ILLEGAL_MOVE"},
-        WireName{app::ErrorCode::UnoWindowClosed, "UNO_WINDOW_CLOSED"},
+        WireName{.value = app::ErrorCode::MalformedMessage, .name = "MALFORMED_MESSAGE"},
+        WireName{.value = app::ErrorCode::UnknownType, .name = "UNKNOWN_TYPE"},
+        WireName{.value = app::ErrorCode::UnsupportedVersion, .name = "UNSUPPORTED_VERSION"},
+        WireName{.value = app::ErrorCode::MessageTooLarge, .name = "MESSAGE_TOO_LARGE"},
+        WireName{.value = app::ErrorCode::RateLimited, .name = "RATE_LIMITED"},
+        WireName{.value = app::ErrorCode::SessionRequired, .name = "SESSION_REQUIRED"},
+        WireName{.value = app::ErrorCode::SessionExpired, .name = "SESSION_EXPIRED"},
+        WireName{.value = app::ErrorCode::NicknameInvalid, .name = "NICKNAME_INVALID"},
+        WireName{.value = app::ErrorCode::NicknameTaken, .name = "NICKNAME_TAKEN"},
+        WireName{.value = app::ErrorCode::AlreadyInRoom, .name = "ALREADY_IN_ROOM"},
+        WireName{.value = app::ErrorCode::NotInRoom, .name = "NOT_IN_ROOM"},
+        WireName{.value = app::ErrorCode::RoomNotFound, .name = "ROOM_NOT_FOUND"},
+        WireName{.value = app::ErrorCode::RoomFull, .name = "ROOM_FULL"},
+        WireName{.value = app::ErrorCode::MatchInProgress, .name = "MATCH_IN_PROGRESS"},
+        WireName{.value = app::ErrorCode::NotHost, .name = "NOT_HOST"},
+        WireName{.value = app::ErrorCode::CannotKickSelf, .name = "CANNOT_KICK_SELF"},
+        WireName{.value = app::ErrorCode::InvalidSettings, .name = "INVALID_SETTINGS"},
+        WireName{.value = app::ErrorCode::NotEnoughPlayers, .name = "NOT_ENOUGH_PLAYERS"},
+        WireName{.value = app::ErrorCode::PlayersNotReady, .name = "PLAYERS_NOT_READY"},
+        WireName{.value = app::ErrorCode::NotYourTurn, .name = "NOT_YOUR_TURN"},
+        WireName{.value = app::ErrorCode::InvalidPhase, .name = "INVALID_PHASE"},
+        WireName{.value = app::ErrorCode::CardNotInHand, .name = "CARD_NOT_IN_HAND"},
+        WireName{.value = app::ErrorCode::IllegalMove, .name = "ILLEGAL_MOVE"},
+        WireName{.value = app::ErrorCode::UnoWindowClosed, .name = "UNO_WINDOW_CLOSED"},
     };
 };
 
 template <>
 struct WireNames<app::IllegalMoveReason> {
     static constexpr std::array kTable{
-        WireName{app::IllegalMoveReason::ColorMismatch, "COLOR_MISMATCH"},
-        WireName{app::IllegalMoveReason::WildDrawFourIllegal, "WILD_DRAW_FOUR_ILLEGAL"},
-        WireName{app::IllegalMoveReason::ColorRequired, "COLOR_REQUIRED"},
-        WireName{app::IllegalMoveReason::ColorNotAllowed, "COLOR_NOT_ALLOWED"},
-        WireName{app::IllegalMoveReason::SwapTargetRequired, "SWAP_TARGET_REQUIRED"},
-        WireName{app::IllegalMoveReason::SwapTargetInvalid, "SWAP_TARGET_INVALID"},
-        WireName{app::IllegalMoveReason::OnlyDrawnCardPlayable, "ONLY_DRAWN_CARD_PLAYABLE"},
-        WireName{app::IllegalMoveReason::JumpInTooLate, "JUMP_IN_TOO_LATE"},
-        WireName{app::IllegalMoveReason::CannotStack, "CANNOT_STACK"},
-        WireName{app::IllegalMoveReason::CannotChallenge, "CANNOT_CHALLENGE"},
+        WireName{.value = app::IllegalMoveReason::ColorMismatch, .name = "COLOR_MISMATCH"},
+        WireName{.value = app::IllegalMoveReason::WildDrawFourIllegal, .name = "WILD_DRAW_FOUR_ILLEGAL"},
+        WireName{.value = app::IllegalMoveReason::ColorRequired, .name = "COLOR_REQUIRED"},
+        WireName{.value = app::IllegalMoveReason::ColorNotAllowed, .name = "COLOR_NOT_ALLOWED"},
+        WireName{.value = app::IllegalMoveReason::SwapTargetRequired, .name = "SWAP_TARGET_REQUIRED"},
+        WireName{.value = app::IllegalMoveReason::SwapTargetInvalid, .name = "SWAP_TARGET_INVALID"},
+        WireName{.value = app::IllegalMoveReason::OnlyDrawnCardPlayable, .name = "ONLY_DRAWN_CARD_PLAYABLE"},
+        WireName{.value = app::IllegalMoveReason::JumpInTooLate, .name = "JUMP_IN_TOO_LATE"},
+        WireName{.value = app::IllegalMoveReason::CannotStack, .name = "CANNOT_STACK"},
+        WireName{.value = app::IllegalMoveReason::CannotChallenge, .name = "CANNOT_CHALLENGE"},
     };
 };
 
