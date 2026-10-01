@@ -69,7 +69,8 @@ std::expected<std::vector<DomainEvent>, DomainError> Match::apply(const PlayerId
     const auto seats = round_.seats();
     auto& winnerScore = scores_.at(static_cast<std::size_t>(std::ranges::find(seats, over->winner) - seats.begin()));
     winnerScore += over->points;
-    if (!settings_.targetScore.has_value() || winnerScore >= *settings_.targetScore) {
+    const auto target = targetPoints(settings_.matchLength);
+    if (!target.has_value() || winnerScore >= *target) {
         winner_ = over->winner;
         events->emplace_back(MatchEnded{.winner = over->winner});
     }

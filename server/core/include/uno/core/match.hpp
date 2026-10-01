@@ -14,11 +14,25 @@
 
 namespace uno::core {
 
-inline constexpr std::uint32_t kDefaultTargetScore = 500;
+// How long a match lasts (SPEC §4, ADR 0007 #3): one round, or until a player reaches 250 or 500 points.
+enum class MatchLength : std::uint8_t { SingleRound, To250, To500 };
+
+// The score a player must reach to win the match, or empty when a single round decides it.
+[[nodiscard]] constexpr std::optional<std::uint32_t> targetPoints(MatchLength length) noexcept
+{
+    switch (length) {
+    case MatchLength::SingleRound:
+        return std::nullopt;
+    case MatchLength::To250:
+        return 250U;
+    case MatchLength::To500:
+        return 500U;
+    }
+    return std::nullopt;
+}
 
 struct MatchSettings {
-    // Score a player must reach to win the match (SPEC §4); empty means a single round.
-    std::optional<std::uint32_t> targetScore{kDefaultTargetScore};
+    MatchLength matchLength{MatchLength::To500};
 
     [[nodiscard]] bool operator==(const MatchSettings&) const = default;
 };
