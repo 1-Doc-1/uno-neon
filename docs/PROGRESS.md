@@ -5,6 +5,8 @@
 
 ## Phase en cours : 1 — Cœur du jeu (phase 0 terminée : PR #2 fusionnée)
 
+> Cap : un **MVP jouable au plus tôt**. Ordre d'exécution ci-dessous (les numéros d'étape sont conservés pour la traçabilité). Les phases 3 et 4 sont d'abord faites en version minimale ; le polish (animations, galerie, responsive fin, accessibilité poussée, E2E) vient après le MVP.
+
 ### Phase 0 — Fondations et contrat
 - [x] 0.1 Arborescence du monorepo, `.gitignore`, `.editorconfig`, README
 - [x] 0.2 Serveur : CMake + presets Ninja + vcpkg manifest + projet vide qui compile + 1 test Catch2
@@ -14,18 +16,19 @@
 - [x] 0.6 CI GitHub Actions (build + tests serveur et client)
 - [x] 0.7 Compléter la table des commandes dans CLAUDE.md
 
-### Phase 1 — Cœur du jeu (C++, TDD)
+### Chemin vers le MVP
+
+#### Phase 1 — Cœur du jeu (C++, TDD)
 - [x] 1.1 Cartes, deck de 108 cartes, `RandomSource`
 - [x] 1.2 État de partie, tour, sens, pioche/défausse, remélange
 - [x] 1.3a Jouabilité, effets (Skip/Reverse/DrawTwo/Wild), choix de couleur, première carte retournée
 - [x] 1.3b Wild Draw Four : légalité stricte et contestation officielle
 - [ ] 1.4 UNO : annonce, contre-UNO, pénalités
 - [ ] 1.5 Fin de manche, score, fin de partie (500 pts ou manche unique)
-- [ ] 1.6 Options maison (politiques injectables)
 - [ ] 1.7 Projection `PlayerView` + test anti-fuite
 - [ ] 1.8 Simulation aléatoire massive (invariants)
 
-### Phase 2 — Serveur réseau
+#### Phase 2 — Serveur réseau
 - [ ] 2.1 Serveur uWebSockets, `/health`, vérification Origin, limites de taille
 - [ ] 2.2 Codec JSON + validation stricte + erreurs typées
 - [ ] 2.3 Sessions, salons, codes, hôte, paramètres
@@ -33,27 +36,35 @@
 - [ ] 2.5 Timers (tour, reconnexion, salons inactifs), rate limiting
 - [ ] 2.6 Tests d'intégration (clients WebSocket de test)
 
-### Phase 3 — Design system et UI sur données simulées (Angular)
-- [ ] 3.1 Tokens, typographies, fond, surfaces « verre », glow
+#### Phase 3 — UI minimale (Angular)
+- [ ] 3.1 Tokens, typographies, fond, surfaces « verre », glow (version minimale)
 - [ ] 3.2 Composant carte (toutes les cartes, états, daltonisme)
 - [ ] 3.3 Écrans Accueil et Salon
 - [ ] 3.4 Table de jeu (main, adversaires, piles, indicateurs, sélecteur de couleur)
+
+#### Phase 4 — Intégration client ↔ serveur (minimale)
+- [ ] 4.1 `GameSocket` (reconnexion, backoff, messages typés)
+- [ ] 4.2 `GameStore` branché sur le serveur, réconciliation par `stateVersion`
+- [ ] 4.3 Parcours complets : créer, rejoindre, jouer, gagner → **première partie jouable (MVP)**
+
+### Après le MVP
+
+#### Phase 1 (suite)
+- [ ] 1.6 Options maison (politiques injectables)
+
+#### Phase 3 (suite) et 4 (suite)
 - [ ] 3.5 Animations et `prefers-reduced-motion`
 - [ ] 3.6 Galerie `/dev/gallery` avec tous les états
 - [ ] 3.7 Responsive 360 → 1920 px, accessibilité clavier et lecteur d'écran
-
-### Phase 4 — Intégration client ↔ serveur
-- [ ] 4.1 `GameSocket` (reconnexion, backoff, messages typés)
-- [ ] 4.2 `GameStore` branché sur le serveur, réconciliation par `stateVersion`
-- [ ] 4.3 Parcours complets : créer, rejoindre, jouer, gagner, revanche
+- [ ] 4.3b Revanche
 - [ ] 4.4 E2E Playwright : partie complète à 2 puis 4 joueurs, reconnexion
 
-### Phase 5 — Bots, finitions, audits
+#### Phase 5 — Bots, finitions, audits
 - [ ] 5.1 Bots (stratégies Aléatoire et Glouton)
 - [ ] 5.2 Sons, réactions rapides, écran de fin
 - [ ] 5.3 Audit web-design-guidelines + axe + performance, corrections
 
-### Phase 6 — Déploiement
+#### Phase 6 — Déploiement
 - [ ] 6.1 Dockerfile serveur multi-étapes, build client
 - [ ] 6.2 Caddy (HTTPS, `/ws`, en-têtes de sécurité), docker-compose
 - [ ] 6.3 Documentation de déploiement
@@ -82,3 +93,4 @@
 - 2026-09-30 — 1.2 — `PlayerId`, `DomainError`, `TurnOrder` (sièges, joueur courant, sens), `DrawPile`/`DiscardPile` + `drawCards` (remélange de la défausse sauf la carte du dessus, pioche partielle sans erreur), `Round::start` (fabrique qui valide : distribution une carte à la fois à partir de la gauche du donneur, première carte retournée, +4 remis dans la pioche remélangée) ; `Round` valeur pure, `RandomSource&` en paramètre (ADR 0010, ligne §7.2 de la SPEC corrigée) ; fixtures de test partagées dans `uno_testing` ; 41 nouveaux cas de test (67 au total) verts en `dev` et `debug-asan`, clang-tidy propre — `feat/core-round-state`
 - 2026-09-30 — 1.3a — `isPlayable` (jouabilité de base, +4 volontairement non spécial-casé, reporté en 1.3b) ; premier usage de `std::variant`+`std::visit` du projet (ADR 0006) : `PlayerAction`, `TurnPhase`, `DomainEvent` (alignés sur SPEC §8.5 : `DeckReshuffled`/`TurnChanged` sont des événements, pas des booléens) et le visiteur `Overloaded` ; `Round::apply` (tour/main/couleur validés, cycle piocher→décider→passer avec fin de tour automatique si la carte piochée n'est pas jouable ou si plus rien n'est piochable, effets Skip/Reverse — y compris « Reverse agit comme Skip » à 2 joueurs —/DrawTwo/Wild) ; `Round::start` renvoie désormais un `RoundStart` (manche + événements, dont `RoundStarted`) et résout l'effet de la première carte retournée ; `requireRoundInvariants` dans `uno_testing` (désormais lié à Catch2), réutilisable par la simulation de l'étape 1.8 ; 36 nouveaux cas de test (103 au total) verts en `dev` et `debug-asan`, clang-tidy propre — `feat/core-rules-basic`
 - 2026-10-01 — 1.3b — Joker +4 et contestation officielle (`wildDrawFourMode: officialChallenge`, seul mode de cette étape — `strict` et le cumul restent en 1.6) : `isPlayable` traite désormais le +4 comme le Wild (toujours tentable, y compris en bluff) ; `isWildDrawFourLegal` (nouvelle fonction pure) juge sa légalité à la pose, à partir d'une `Color` définie plutôt qu'un `optional<Color>` (pour ne jamais confondre deux couleurs absentes) ; `PlayerAction::RespondPenalty`, `TurnPhase::AwaitingPenaltyResponse` et `DomainEvent::ChallengeResolved` ajoutés sous les noms déjà prévus par la SPEC §7.3 (aucune ADR nécessaire) ; poser un +4 déplace immédiatement le tour vers le joueur visé (contrairement au +2, sans fenêtre de réponse) et fige dans la phase l'identité du poseur et la légalité calculée, jamais recalculée ; `ChallengeResolved` porte son propre `penaltyAmount` (4 ou 6), distinct des cartes réellement piochées par le `PenaltyCardsDrawn` qui suit (piles proches de l'épuisement, SPEC §5) ; nouvel invariant (le poseur d'un +4 en attente de réponse n'est jamais le joueur courant) ; 9 nouveaux cas de test dédiés + 3 sur `isWildDrawFourLegal` (115 au total) verts en `dev` et `debug-asan`, clang-tidy propre — `feat/core-wild-draw-four`
+- 2026-10-01 — chore — passage en workflow rapide : mode autonome, un commit par étape et une PR par lot de 2-3 étapes, une seule revue par phase, `linux-check.sh` silencieux (log dans `~/uno-neon-linux/linux-check.log`), PROGRESS réordonné vers un MVP jouable (1.6 reportée après le MVP) — `chore/fast-workflow`

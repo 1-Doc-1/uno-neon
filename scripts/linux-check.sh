@@ -3,8 +3,9 @@
 # .github/workflows/ci.yml (job server-linux), à lancer dans WSL avant tout push qui touche server/.
 #
 # Copie l'arbre de travail vers un dossier natif WSL (compiler directement sur /mnt/c est très lent),
-# puis pour gcc et pour clang : configure, build et ctest (preset debug-asan), puis clang-format
-# et clang-tidy (une seule fois, avec le build clang).
+# puis pour gcc et pour clang : configure+build et ctest (preset debug-asan), puis clang-format
+# et clang-tidy (avec le build clang). Silencieux : une ligne OK/ÉCHEC par étape, détail dans
+# ~/uno-neon-linux/linux-check.log (chemin affiché en cas d'échec).
 #
 # Usage, depuis PowerShell, à la racine du repo :
 #   wsl -d Ubuntu-24.04 -- bash scripts/linux-check.sh
@@ -34,43 +35,67 @@ done
 
 export VCPKG_ROOT
 
-echo "==> Synchronisation de l'arbre de travail vers $DEST_DIR"
+LOG="$DEST_DIR/linux-check.log"
 mkdir -p "$DEST_DIR"
-rsync -a --delete \
-  --exclude 'build/' \
-  --exclude 'node_modules/' \
-  --exclude '.git/' \
-  --exclude '.vcpkg-cache/' \
-  "$SRC_DIR/" "$DEST_DIR/"
+: > "$LOG"
+
+# Chaque étape écrit son détail dans le log ; l'écran n'affiche qu'une ligne OK / ÉCHEC par étape.
+step() {
+  local label="$1"
+  shift
+  echo "=== $label ===" >> "$LOG"
+  if "$@" >> "$LOG" 2>&1; then
+    echo "OK     $label"
+  else
+    echo "ÉCHEC  $label"
+    echo "Log complet : $LOG"
+    exit 1
+  fi
+}
+
+sync_tree() {
+  rsync -a --delete \
+    --exclude 'build/' \
+    --exclude 'node_modules/' \
+    --exclude '.git/' \
+    --exclude '.vcpkg-cache/' \
+    --exclude 'linux-check.log' \
+    "$SRC_DIR/" "$DEST_DIR/"
+}
+
+step "synchronisation vers $DEST_DIR" sync_tree
 
 cd "$DEST_DIR/server"
 
-run_for_compiler() {
-  local name="$1" cc="$2" cxx="$3"
-  echo
-  echo "=== $name : configure + build + tests (debug-asan) ==="
+configure_and_build() {
   rm -rf build/debug-asan
-  CC="$cc" CXX="$cxx" cmake --preset debug-asan
-  CC="$cc" CXX="$cxx" cmake --build --preset debug-asan
-  ctest --preset debug-asan
+  CC="$1" CXX="$2" cmake --preset debug-asan
+  CC="$1" CXX="$2" cmake --build --preset debug-asan
 }
 
-run_for_compiler gcc gcc-14 g++-14
-run_for_compiler clang clang-20 clang++-20
+run_for_compiler() {
+  local name="$1" cc="$2" cxx="$3"
+  step "$name : configure + build (debug-asan)" configure_and_build "$cc" "$cxx"
+  step "$name : tests (debug-asan)" ctest --preset debug-asan
+}
 
 # $DEST_DIR has no .git (excluded from the rsync), so the file list comes from the original
 # repo; paths are the same relative to server/ in both trees. --others --exclude-standard adds
 # not-yet-`git add`ed files too, so a new .cpp isn't missed locally only for the CI to catch it.
-echo
-echo "=== clang-format (dry-run) ==="
-git -C "$SRC_DIR" ls-files --cached --others --exclude-standard \
-  'server/*.cpp' 'server/*.hpp' 'server/*.cpp.in' \
-  | sed 's|^server/||' | xargs clang-format-23 --dry-run --Werror
+check_format() {
+  git -C "$SRC_DIR" ls-files --cached --others --exclude-standard \
+    'server/*.cpp' 'server/*.hpp' 'server/*.cpp.in' \
+    | sed 's|^server/||' | xargs clang-format-23 --dry-run --Werror
+}
 
-echo
-echo "=== clang-tidy ==="
-git -C "$SRC_DIR" ls-files --cached --others --exclude-standard 'server/*.cpp' \
-  | sed 's|^server/||' | xargs clang-tidy-23 -p build/debug-asan --quiet
+check_tidy() {
+  git -C "$SRC_DIR" ls-files --cached --others --exclude-standard 'server/*.cpp' \
+    | sed 's|^server/||' | xargs clang-tidy-23 -p build/debug-asan --quiet
+}
 
-echo
-echo "OK : gcc-14 et clang-20 compilent et testent en debug-asan, clang-format et clang-tidy propres."
+run_for_compiler gcc gcc-14 g++-14
+run_for_compiler clang clang-20 clang++-20
+step "clang-format" check_format
+step "clang-tidy" check_tidy
+
+echo "Tout est OK (log : $LOG)"
