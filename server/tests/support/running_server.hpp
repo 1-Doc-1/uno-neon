@@ -32,8 +32,8 @@ public:
     {
         std::promise<std::uint16_t> started;
         auto port = started.get_future();
-        thread_ = std::thread(
-            [&started, this, config = std::move(config), &handler, onServer = std::move(onServer)]() mutable {
+        thread_ =
+            std::thread([&started, this, config = std::move(config), &handler, onServer = std::move(onServer)] mutable {
                 try {
                     net::WebSocketServer server(std::move(config), handler);
                     server_ = &server;

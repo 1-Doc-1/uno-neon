@@ -92,7 +92,7 @@ template <>
 struct WireNames<core::MatchLength> {
     static constexpr std::array kTable{
         WireName{.value = core::MatchLength::SingleRound, .name = "singleRound"},
-        WireName{core::MatchLength::To250, "to250"},
+        WireName{.value = core::MatchLength::To250, .name = "to250"},
         WireName{core::MatchLength::To500, "to500"},
     };
 };
