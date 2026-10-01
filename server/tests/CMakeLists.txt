@@ -1,13 +1,17 @@
 find_package(Catch2 3 CONFIG REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
 include(Catch)
 
 # Tests link against the libraries, never against the uno_server executable.
 add_executable(uno_tests
     card_test.cpp
+    codec_test.cpp
+    crypto_random_source_test.cpp
     deck_test.cpp
     piles_test.cpp
     playability_test.cpp
     player_view_test.cpp
+    protocol_contract_test.cpp
     random_test.cpp
     scoring_test.cpp
     simulation_test.cpp
@@ -21,7 +25,9 @@ add_executable(uno_tests
     turn_order_test.cpp
     smoke_test.cpp)
 target_link_libraries(uno_tests PRIVATE
-    uno_core uno_app uno_net uno_testing Catch2::Catch2WithMain)
+    uno_core uno_app uno_net uno_testing Catch2::Catch2WithMain nlohmann_json::nlohmann_json)
+# Shared with the Angular client: the examples of the protocol (SPEC §8.1).
+target_compile_definitions(uno_tests PRIVATE UNO_PROTOCOL_EXAMPLES_DIR="${PROJECT_SOURCE_DIR}/../protocol/examples")
 uno_set_warnings(uno_tests)
 
 # PRE_TEST: tests are listed when ctest runs, not at build time (the build stays fast and
