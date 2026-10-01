@@ -29,6 +29,7 @@ namespace {
 #ifdef _WIN32
 using NativeSocket = SOCKET;
 using SocketLength = int; // Winsock takes lengths as int
+constexpr int kSendFlags = 0;
 constexpr NativeSocket kInvalidSocket = INVALID_SOCKET;
 
 void closeSocket(NativeSocket socket)
@@ -52,6 +53,8 @@ bool receiveTimedOut()
 #else
 using NativeSocket = int;
 using SocketLength = std::size_t; // POSIX takes lengths as size_t
+// A write to a connection the server already cut must fail with an error, not kill the test with SIGPIPE.
+constexpr int kSendFlags = MSG_NOSIGNAL;
 constexpr NativeSocket kInvalidSocket = -1;
 
 void closeSocket(NativeSocket socket)
@@ -116,7 +119,7 @@ public:
         while (!data.empty()) {
             const auto sent =
                 ::send(socket_, data.data(),
-                       static_cast<SocketLength>(std::min<std::size_t>(data.size(), std::size_t{1} << 20)), 0);
+                       static_cast<SocketLength>(std::min<std::size_t>(data.size(), std::size_t{1} << 20)), kSendFlags);
             if (sent <= 0) {
                 return false;
             }
