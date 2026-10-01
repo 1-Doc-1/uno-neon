@@ -7,12 +7,16 @@
 #include "uno/app/room.hpp"
 #include "uno/app/room_repository.hpp"
 #include "uno/app/server_message.hpp"
+#include "uno/core/client_event.hpp"
+#include "uno/core/domain_event.hpp"
+#include "uno/core/player_action.hpp"
 #include "uno/core/player_id.hpp"
 #include "uno/core/random_source.hpp"
 
 #include <cstdint>
 #include <expected>
 #include <optional>
+#include <span>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -64,9 +68,23 @@ private:
     Outcome handle(ConnectionId connection, const request::Kick& request);
     Outcome handle(ConnectionId connection, const request::AddBot& request);
     Outcome handle(ConnectionId connection, const request::SendReaction& request);
-    // Requests of a match, available from step 2.4.
-    template <typename Request>
-    Outcome handle(ConnectionId connection, const Request& request);
+    Outcome handle(ConnectionId connection, const request::StartMatch& request);
+    Outcome handle(ConnectionId connection, const request::Rematch& request);
+    Outcome handle(ConnectionId connection, const request::ReadyForNextRound& request);
+    Outcome handle(ConnectionId connection, const request::PlayCard& request);
+    Outcome handle(ConnectionId connection, const request::DrawCard& request);
+    Outcome handle(ConnectionId connection, const request::Pass& request);
+    Outcome handle(ConnectionId connection, const request::ChooseColor& request);
+    Outcome handle(ConnectionId connection, const request::RespondPenalty& request);
+    Outcome handle(ConnectionId connection, const request::CallUno& request);
+    Outcome handle(ConnectionId connection, const request::CatchUno& request);
+
+    [[nodiscard]] static Outcome engineFailure(core::DomainError error);
+
+    // Applies a player action to the match of the sender's room and tells everyone what happened.
+    Outcome play(ConnectionId connection, const core::PlayerAction& action);
+    // Deals the first round of a new match to the members of the room, in seat order.
+    Outcome startMatch(Room& room);
 
     // The session behind a connection that said hello, or SESSION_REQUIRED.
     [[nodiscard]] std::expected<Session*, Failure> sessionOf(ConnectionId connection);
@@ -78,6 +96,12 @@ private:
     void queue(const core::PlayerId& player, response::Message message);
     // Tells every member the lobby changed.
     void broadcastRoom(Room& room);
+    // Sends every member the new state of the match: the engine events (projected for each of them) followed by
+    // `extraEvents` (connections, which the engine ignores), and their own view.
+    void broadcastGame(Room& room, std::span<const core::DomainEvent> events,
+                       const std::vector<core::ClientEvent>& extraEvents = {});
+    [[nodiscard]] static response::GameView viewOf(const Room& room, const core::Match& match,
+                                                   const core::PlayerId& viewer);
     void flush();
 
     MessageSink* sink_;

@@ -3,10 +3,13 @@
 #include "uno/app/id_generator.hpp"
 #include "uno/app/nickname.hpp"
 #include "uno/app/room_settings.hpp"
+#include "uno/core/client_event.hpp"
+#include "uno/core/match.hpp"
 
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
+#include <cstddef>
 #include <utility>
 #include <variant>
 
@@ -73,6 +76,9 @@ void Application::onDisconnected(ConnectionId connection)
             member->connected = false;
             spdlog::info("player {} disconnected from room {}", session.playerId.value, room->code.value);
             broadcastRoom(*room);
+            if (room->phase == response::RoomPhase::InGame) {
+                broadcastGame(*room, {}, {core::PlayerDisconnectedEvent{.playerId = session.playerId}});
+            }
         }
     }
     flush();
@@ -126,6 +132,10 @@ Application::Outcome Application::handle(ConnectionId connection, const request:
                 member->connected = true;
                 spdlog::info("player {} reconnected to room {}", session->playerId.value, room->code.value);
                 broadcastRoom(*room);
+                if (room->phase == response::RoomPhase::InGame) {
+                    // Everyone, the returning player included, gets the state: for them it is the resync.
+                    broadcastGame(*room, {}, {core::PlayerReconnectedEvent{.playerId = session->playerId}});
+                }
             }
         }
     }
@@ -353,12 +363,223 @@ Application::Outcome Application::handle(ConnectionId connection, const request:
     return Reply::Ack;
 }
 
-// Placeholder until step 2.4 gives each of these requests its handler.
-template <typename Request>
-// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-Application::Outcome Application::handle(ConnectionId /*connection*/, const Request& /*request*/)
+// ---- matches ----
+
+Application::Outcome Application::handle(ConnectionId connection, const request::StartMatch& /*request*/)
 {
-    return fail(ErrorCode::InvalidPhase, "Matches are not available yet");
+    const auto session = sessionOf(connection);
+    if (!session) {
+        return std::unexpected(session.error());
+    }
+    const auto room = hostedLobbyOf(**session);
+    if (!room) {
+        return std::unexpected(room.error());
+    }
+    if ((*room)->members.size() < core::kMinPlayers) {
+        return fail(ErrorCode::NotEnoughPlayers, "At least two players are needed");
+    }
+    // Starting is the host's own way of saying they are ready.
+    const bool everyoneReady = std::ranges::all_of(
+        (*room)->members, [&room](const Member& member) { return (*room)->isHost(member.id) || member.ready; });
+    if (!everyoneReady) {
+        return fail(ErrorCode::PlayersNotReady, "Every player must be ready");
+    }
+    return startMatch(**room);
+}
+
+Application::Outcome Application::startMatch(Room& room)
+{
+    std::vector<core::PlayerId> seats;
+    seats.reserve(room.members.size());
+    for (const Member& member : room.members) {
+        seats.push_back(member.id);
+    }
+    auto started =
+        core::Match::start(std::move(seats), core::MatchSettings{.matchLength = room.settings.matchLength}, *random_);
+    if (!started) {
+        spdlog::error("room {}: the engine refused to start a match", room.code.value);
+        return fail(ErrorCode::InvalidPhase, "The match could not be started");
+    }
+    room.match = std::move(started->match);
+    room.phase = response::RoomPhase::InGame;
+    room.readyForNextRound.clear();
+    spdlog::info("room {}: match started with {} players", room.code.value, room.members.size());
+    broadcastRoom(room);
+    broadcastGame(room, started->events);
+    return Reply::Ack;
+}
+
+Application::Outcome Application::handle(ConnectionId connection, const request::Rematch& /*request*/)
+{
+    const auto session = sessionOf(connection);
+    if (!session) {
+        return std::unexpected(session.error());
+    }
+    const auto room = roomOf(**session);
+    if (!room) {
+        return std::unexpected(room.error());
+    }
+    if (!(*room)->isHost((*session)->playerId)) {
+        return fail(ErrorCode::NotHost, "Only the host can do this");
+    }
+    if ((*room)->phase != response::RoomPhase::MatchOver) {
+        return fail(ErrorCode::InvalidPhase, "The match is not over");
+    }
+    // The same players, as long as they are still there (SPEC §5).
+    const auto connectedCount =
+        std::ranges::count_if((*room)->members, [](const Member& member) { return member.connected; });
+    if (std::cmp_less(connectedCount, core::kMinPlayers)) {
+        return fail(ErrorCode::NotEnoughPlayers, "At least two connected players are needed");
+    }
+    std::erase_if((*room)->members, [this](const Member& member) {
+        if (member.connected) {
+            return false;
+        }
+        if (const auto gone = sessions_.find(member.id.value); gone != sessions_.end()) {
+            gone->second.room.reset();
+        }
+        return true;
+    });
+    return startMatch(**room);
+}
+
+Application::Outcome Application::handle(ConnectionId connection, const request::ReadyForNextRound& /*request*/)
+{
+    const auto session = sessionOf(connection);
+    if (!session) {
+        return std::unexpected(session.error());
+    }
+    const auto room = roomOf(**session);
+    if (!room) {
+        return std::unexpected(room.error());
+    }
+    Room& current = **room;
+    const bool betweenRounds = current.phase == response::RoomPhase::InGame && current.match &&
+                               std::holds_alternative<core::RoundOver>(current.match->round().phase());
+    if (!betweenRounds) {
+        return fail(ErrorCode::InvalidPhase, "No round has just ended");
+    }
+
+    current.readyForNextRound.insert((*session)->playerId);
+    const bool everyoneReady = std::ranges::all_of(current.members, [&current](const Member& member) {
+        return !member.connected || current.readyForNextRound.contains(member.id);
+    });
+    std::vector<core::DomainEvent> events;
+    if (everyoneReady) {
+        auto next = current.match->startNextRound(*random_);
+        if (!next) {
+            spdlog::error("room {}: the engine refused to deal the next round", current.code.value);
+            return fail(ErrorCode::InvalidPhase, "The next round could not be dealt");
+        }
+        events = std::move(*next);
+        current.readyForNextRound.clear();
+    }
+    broadcastGame(current, events);
+    return Reply::Ack;
+}
+
+Application::Outcome Application::handle(ConnectionId connection, const request::PlayCard& request)
+{
+    if (request.swapTargetId) {
+        return fail(ErrorCode::IllegalMove, "Swapping hands is not available", IllegalMoveReason::SwapTargetInvalid);
+    }
+    return play(connection, core::PlayCard{.cardId = request.cardId, .chosenColor = request.chosenColor});
+}
+
+Application::Outcome Application::handle(ConnectionId connection, const request::DrawCard& /*request*/)
+{
+    return play(connection, core::DrawCard{});
+}
+
+Application::Outcome Application::handle(ConnectionId connection, const request::Pass& /*request*/)
+{
+    return play(connection, core::Pass{});
+}
+
+Application::Outcome Application::handle(ConnectionId connection, const request::ChooseColor& request)
+{
+    return play(connection, core::ChooseColor{.color = request.color});
+}
+
+Application::Outcome Application::handle(ConnectionId connection, const request::RespondPenalty& request)
+{
+    return play(connection, core::RespondPenalty{.response = request.response});
+}
+
+Application::Outcome Application::handle(ConnectionId connection, const request::CallUno& /*request*/)
+{
+    return play(connection, core::CallUno{});
+}
+
+Application::Outcome Application::handle(ConnectionId connection, const request::CatchUno& request)
+{
+    return play(connection, core::CatchUno{.target = request.targetId});
+}
+
+Application::Outcome Application::engineFailure(core::DomainError error)
+{
+    spdlog::error("unexpected engine error {}", static_cast<int>(error));
+    return fail(ErrorCode::InvalidPhase, "The engine refused the action");
+}
+
+Application::Outcome Application::play(ConnectionId connection, const core::PlayerAction& action)
+{
+    const auto session = sessionOf(connection);
+    if (!session) {
+        return std::unexpected(session.error());
+    }
+    const auto room = roomOf(**session);
+    if (!room) {
+        return std::unexpected(room.error());
+    }
+    Room& current = **room;
+    if (current.phase != response::RoomPhase::InGame || !current.match) {
+        return fail(ErrorCode::InvalidPhase, "No match is running");
+    }
+
+    const auto events = current.match->apply((*session)->playerId, action, *random_);
+    if (!events) {
+        switch (events.error()) {
+        case core::DomainError::NotYourTurn:
+            return fail(ErrorCode::NotYourTurn, "It is not your turn");
+        case core::DomainError::InvalidPhase:
+            return fail(ErrorCode::InvalidPhase, "This action is not allowed now");
+        case core::DomainError::CardNotInHand:
+            return fail(ErrorCode::CardNotInHand, "You do not hold this card");
+        case core::DomainError::ColorMismatch:
+            return fail(ErrorCode::IllegalMove, "This card cannot be played on the current one",
+                        IllegalMoveReason::ColorMismatch);
+        case core::DomainError::ColorRequired:
+            return fail(ErrorCode::IllegalMove, "A color must be chosen", IllegalMoveReason::ColorRequired);
+        case core::DomainError::ColorNotAllowed:
+            return fail(ErrorCode::IllegalMove, "A color is only chosen for a Wild",
+                        IllegalMoveReason::ColorNotAllowed);
+        case core::DomainError::OnlyDrawnCardPlayable:
+            return fail(ErrorCode::IllegalMove, "Only the card you just drew can be played",
+                        IllegalMoveReason::OnlyDrawnCardPlayable);
+        case core::DomainError::UnoWindowClosed:
+        case core::DomainError::CannotCatchSelf:
+        case core::DomainError::UnknownPlayer:
+            return fail(ErrorCode::UnoWindowClosed, "Nobody can be caught right now");
+        case core::DomainError::NotEnoughPlayers:
+        case core::DomainError::TooManyPlayers:
+        case core::DomainError::DuplicatePlayer:
+        case core::DomainError::DealerNotSeated:
+        case core::DomainError::DeckTooSmall:
+        case core::DomainError::DuplicateCard:
+        case core::DomainError::NoValidStartingCard:
+            return engineFailure(events.error());
+        }
+        return engineFailure(events.error());
+    }
+
+    broadcastGame(current, *events);
+    if (current.match->winner()) {
+        current.phase = response::RoomPhase::MatchOver;
+        spdlog::info("room {}: match over", current.code.value);
+        broadcastRoom(current);
+    }
+    return Reply::Ack;
 }
 
 // ---- output ----
@@ -380,6 +601,47 @@ void Application::broadcastRoom(Room& room)
     for (const Member& member : room.members) {
         queue(member.id, response::RoomUpdate{.roomVersion = room.version, .room = room.view()});
     }
+}
+
+void Application::broadcastGame(Room& room, std::span<const core::DomainEvent> events,
+                                const std::vector<core::ClientEvent>& extraEvents)
+{
+    if (!room.match.has_value()) {
+        return;
+    }
+    const core::Match& match = *room.match;
+    ++room.stateVersion;
+    const std::int64_t serverTime = clock_->nowMillis();
+    for (const Member& member : room.members) {
+        auto projected = core::project(events, member.id, match.round(), match.roundNumber());
+        projected.insert(projected.end(), extraEvents.begin(), extraEvents.end());
+        queue(member.id, response::GameUpdate{
+                             .serverTime = serverTime,
+                             .events = std::move(projected),
+                             .view = viewOf(room, match, member.id),
+                         });
+    }
+}
+
+response::GameView Application::viewOf(const Room& room, const core::Match& match, const core::PlayerId& viewer)
+{
+    response::GameView view;
+    view.stateVersion = room.stateVersion;
+    view.settings = room.settings;
+    // The viewer is a member of a room whose match is running: the engine knows them.
+    if (auto projected = core::project(match, viewer)) {
+        view.game = std::move(*projected);
+    }
+    for (const Member& member : room.members) {
+        view.seats.push_back(response::SeatInfo{
+            .nickname = member.nickname,
+            .isConnected = member.connected,
+            .isBot = false,
+            .isHost = room.isHost(member.id),
+            .isReadyForNextRound = room.readyForNextRound.contains(member.id),
+        });
+    }
+    return view;
 }
 
 void Application::flush()

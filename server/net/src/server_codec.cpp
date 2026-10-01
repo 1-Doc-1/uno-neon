@@ -2,6 +2,7 @@
 #include "uno/net/protocol_version.hpp"
 
 #include "field_parsers.hpp"
+#include "game_codec.hpp"
 #include "json_reader.hpp"
 #include "wire_names.hpp"
 #include <nlohmann/json.hpp>
@@ -23,41 +24,6 @@ using detail::Json;
 using detail::ObjectReader;
 using detail::Parsed;
 using namespace uno::app;
-
-// ---- shared shapes ----
-
-Json encodeSettings(const RoomSettings& settings)
-{
-    return Json{
-        {"stacking", detail::toWire(settings.stacking)},
-        {"jumpIn", settings.jumpIn},
-        {"sevenZero", settings.sevenZero},
-        {"drawUntilPlayable", settings.drawUntilPlayable},
-        {"wildDrawFourMode", detail::toWire(settings.wildDrawFourMode)},
-        {"turnTimerSeconds", static_cast<int>(settings.turnTimer)},
-        {"matchLength", detail::toWire(settings.matchLength)},
-        {"maxPlayers", settings.maxPlayers},
-    };
-}
-
-Parsed<RoomSettings> parseSettings(const Json& value)
-{
-    ObjectReader reader(value, "settings");
-    RoomSettings settings;
-    settings.stacking = reader.required<StackingMode>("stacking", detail::parseEnum<StackingMode>);
-    settings.jumpIn = reader.required<bool>("jumpIn", detail::parseBool);
-    settings.sevenZero = reader.required<bool>("sevenZero", detail::parseBool);
-    settings.drawUntilPlayable = reader.required<bool>("drawUntilPlayable", detail::parseBool);
-    settings.wildDrawFourMode =
-        reader.required<WildDrawFourMode>("wildDrawFourMode", detail::parseEnum<WildDrawFourMode>);
-    settings.turnTimer = reader.required<TurnTimerSeconds>("turnTimerSeconds", detail::parseTurnTimer);
-    settings.matchLength = reader.required<core::MatchLength>("matchLength", detail::parseEnum<core::MatchLength>);
-    settings.maxPlayers = reader.required<std::uint8_t>("maxPlayers", detail::parseMaxPlayers);
-    if (auto finished = reader.finish(); !finished) {
-        return std::unexpected(finished.error());
-    }
-    return settings;
-}
 
 // ---- encoding ----
 
@@ -105,7 +71,7 @@ Json encode(const response::RoomView& room)
     return Json{
         {"code", room.code.value},
         {"phase", detail::toWire(room.phase)},
-        {"settings", encodeSettings(room.settings)},
+        {"settings", detail::encodeSettings(room.settings)},
         {"players", std::move(players)},
     };
 }
@@ -117,6 +83,11 @@ Json encode(const response::RoomUpdate& update)
         {"type", "room.update"},
         {"payload", Json{{"roomVersion", update.roomVersion}, {"room", encode(update.room)}}},
     };
+}
+
+Json encode(const response::GameUpdate& update)
+{
+    return Json{{"v", kProtocolVersion}, {"type", "game.update"}, {"payload", detail::encodeGameUpdate(update)}};
 }
 
 Json encode(const response::Reaction& reaction)
@@ -260,7 +231,7 @@ Parsed<response::RoomView> parseRoomView(const Json& value)
     response::RoomView room;
     room.code = reader.required<RoomCode>("code", detail::parseRoomCode);
     room.phase = reader.required<response::RoomPhase>("phase", detail::parseEnum<response::RoomPhase>);
-    room.settings = reader.required<RoomSettings>("settings", parseSettings);
+    room.settings = reader.required<RoomSettings>("settings", detail::parseSettings);
     room.players = reader.required<std::vector<response::RoomMember>>("players", parseRoomMembers);
     if (auto finished = reader.finish(); !finished) {
         return std::unexpected(finished.error());
@@ -285,6 +256,23 @@ Parsed<response::Message> decodeRoomUpdate(const Json& envelope)
         if (auto finished = payloadReader.finish(); !finished) {
             return std::unexpected(finished.error());
         }
+    }
+    if (auto finished = reader.finish(); !finished) {
+        return std::unexpected(finished.error());
+    }
+    return update;
+}
+
+Parsed<response::Message> decodeGameUpdate(const Json& envelope)
+{
+    auto reader = envelopeReader(envelope);
+    response::GameUpdate update;
+    if (const Json* const payload = reader.requiredRaw("payload")) {
+        auto parsed = detail::parseGameUpdate(*payload);
+        if (!parsed) {
+            return std::unexpected(parsed.error());
+        }
+        update = std::move(*parsed);
     }
     if (auto finished = reader.finish(); !finished) {
         return std::unexpected(finished.error());
@@ -340,6 +328,7 @@ constexpr std::array kServerMessageTypes{
     ServerMessageType{.name = "error", .decode = decodeError},
     ServerMessageType{.name = "session.welcome", .decode = decodeWelcome},
     ServerMessageType{.name = "room.update", .decode = decodeRoomUpdate},
+    ServerMessageType{.name = "game.update", .decode = decodeGameUpdate},
     ServerMessageType{.name = "reaction", .decode = decodeReaction},
     ServerMessageType{.name = "room.closed", .decode = decodeRoomClosed},
 };

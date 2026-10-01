@@ -65,16 +65,9 @@ TEST_CASE("Every valid client example is accepted and re-encoded to the same JSO
 
 namespace {
 
-// The game.update examples join this test with their codec (step 2.4).
 std::vector<fs::path> serverExamples()
 {
-    std::vector<fs::path> files;
-    for (auto& file : filesIn(examplesDirectory() / "valid", "server.")) {
-        if (!file.filename().string().starts_with("server.game.update")) {
-            files.push_back(std::move(file));
-        }
-    }
-    return files;
+    return filesIn(examplesDirectory() / "valid", "server.");
 }
 
 } // namespace

@@ -85,4 +85,58 @@ void requireViewLeaksNothing(const core::Round& round, const core::PlayerView& v
     requireCountsMatchWithoutShowingCards(round, view);
 }
 
+namespace {
+
+// Every card an event shows, with who is entitled to it already checked by the caller.
+void collectCards(const core::ClientEvent& event, std::vector<core::CardId>& ids)
+{
+    if (const auto* played = std::get_if<core::CardPlayedEvent>(&event)) {
+        ids.push_back(played->card.id);
+    } else if (const auto* drawn = std::get_if<core::CardsDrawnEvent>(&event)) {
+        for (const auto& card : drawn->cards.value_or(std::vector<core::Card>{})) {
+            ids.push_back(card.id);
+        }
+    } else if (const auto* challenge = std::get_if<core::ChallengeResolvedEvent>(&event)) {
+        for (const auto& card : challenge->revealedHand.value_or(std::vector<core::Card>{})) {
+            ids.push_back(card.id);
+        }
+    }
+}
+
+void requireOptionalFieldsMatchTheViewer(const core::ClientEvent& event, const core::PlayerId& viewer)
+{
+    if (const auto* drawn = std::get_if<core::CardsDrawnEvent>(&event)) {
+        REQUIRE((drawn->playerId == viewer) == drawn->cards.has_value());
+        if (drawn->cards.has_value()) {
+            REQUIRE(drawn->cards->size() == drawn->count);
+        }
+    } else if (const auto* challenge = std::get_if<core::ChallengeResolvedEvent>(&event)) {
+        REQUIRE((challenge->challengerId == viewer) == challenge->revealedHand.has_value());
+    }
+}
+
+} // namespace
+
+void requireEventsLeakNothing(std::span<const core::ClientEvent> events, const core::Round& roundAfter,
+                              const core::PlayerId& viewer)
+{
+    std::vector<core::CardId> entitled = idsOf(roundAfter.hand(viewer).value_or(std::span<const core::Card>{}));
+    entitled.push_back(roundAfter.discardPile().top().id);
+
+    for (const auto& event : events) {
+        requireOptionalFieldsMatchTheViewer(event, viewer);
+        std::vector<core::CardId> shown;
+        collectCards(event, shown);
+        // A hand revealed by a challenge is the challenger's to see, though it left the hand of the poser.
+        if (const auto* challenge = std::get_if<core::ChallengeResolvedEvent>(&event)) {
+            for (const auto& card : challenge->revealedHand.value_or(std::vector<core::Card>{})) {
+                entitled.push_back(card.id);
+            }
+        }
+        const bool onlyEntitled = std::ranges::all_of(
+            shown, [&](const core::CardId& id) { return std::ranges::find(entitled, id) != entitled.end(); });
+        REQUIRE(onlyEntitled);
+    }
+}
+
 } // namespace uno::testing

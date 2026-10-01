@@ -8,6 +8,7 @@ add_library(uno_net STATIC
     src/client_codec.cpp
     src/crypto_random_source.cpp
     src/crypto_runtime.cpp
+    src/game_codec.cpp
     src/origin_policy.cpp
     src/server_codec.cpp
     src/server_message_sink.cpp

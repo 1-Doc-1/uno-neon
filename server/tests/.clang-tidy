@@ -1,0 +1,11 @@
+---
+# Tests read as scenarios. Catch2 assertions expand to branches (which inflate the cognitive complexity of a test
+# case) and are invisible to the dataflow checks (an optional checked with REQUIRE still looks unchecked), and a
+# helper that walks a JSON tree is recursive by nature.
+InheritParentConfig: true
+Checks: >
+  -readability-function-cognitive-complexity,
+  -bugprone-unchecked-optional-access,
+  -misc-no-recursion,
+  -bugprone-easily-swappable-parameters
+...

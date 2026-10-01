@@ -4,7 +4,9 @@
 #include "uno/app/error_code.hpp"
 #include "uno/app/identifiers.hpp"
 #include "uno/app/room_settings.hpp"
+#include "uno/core/client_event.hpp"
 #include "uno/core/player_id.hpp"
+#include "uno/core/player_view.hpp"
 
 #include <cstdint>
 #include <optional>
@@ -88,6 +90,39 @@ struct RoomClosed {
     bool operator==(const RoomClosed&) const = default;
 };
 
-using Message = std::variant<Ack, Error, Welcome, RoomUpdate, Reaction, RoomClosed>;
+// What the room knows about a player that the engine does not: the part of a seat the engine cannot fill.
+struct SeatInfo {
+    std::string nickname;
+    bool isConnected{};
+    bool isBot{};
+    bool isHost{};
+    bool isReadyForNextRound{};
+
+    bool operator==(const SeatInfo&) const = default;
+};
+
+// The protocol PlayerView: the engine projection for one player, completed with what only the application
+// knows. `seats` lists the same players as `game.players`, in the same order.
+struct GameView {
+    std::uint64_t stateVersion{};
+    core::PlayerView game;
+    std::vector<SeatInfo> seats;
+    std::optional<std::int64_t> turnDeadline;      // epoch ms, server clock
+    std::optional<std::int64_t> nextRoundDeadline; // epoch ms, server clock
+    RoomSettings settings;
+
+    bool operator==(const GameView&) const = default;
+};
+
+// Sent to every player after each accepted action: the events to animate, then the full view to apply.
+struct GameUpdate {
+    std::int64_t serverTime{}; // lets the client correct its clock offset for the deadlines
+    std::vector<core::ClientEvent> events;
+    GameView view;
+
+    bool operator==(const GameUpdate&) const = default;
+};
+
+using Message = std::variant<Ack, Error, Welcome, RoomUpdate, GameUpdate, Reaction, RoomClosed>;
 
 } // namespace uno::app::response
