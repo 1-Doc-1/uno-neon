@@ -61,7 +61,7 @@ constexpr std::size_t kActionLimit = 200'000; // a match that lasts longer is a 
 constexpr std::uint32_t kOutOfTurnPercent = 15;
 constexpr std::uint32_t kRemovalPerMille = 4; // a player leaves for good, now and then
 constexpr std::uint32_t kPercent = 100;
-constexpr std::uint32_t kDefaultGames = 50;
+constexpr std::uint32_t kDefaultGames = 20;     // keeps a local run under 2 s; the CI runs 100, the weekly job 10 000
 constexpr std::uint32_t kSomeCardIdBound = 120; // a little above the 108 ids in play, to miss on purpose
 constexpr std::uint32_t kColorCount = 4;
 

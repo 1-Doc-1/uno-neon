@@ -104,7 +104,7 @@ jobs:
         # Un peu plus de parties qu'en local, sous sanitizers ; les 10 000 parties sont dans simulation.yml.
         env:
           UNO_SIMULATION_GAMES: "100"
-        run: ctest --preset debug-asan
+        run: ctest --preset debug-asan --timeout 120
 
       - name: clang-format
         if: matrix.compiler == 'clang'
@@ -153,7 +153,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           cmake --build --preset dev
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          ctest --preset dev
+          ctest --preset dev --timeout 120
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
   client:

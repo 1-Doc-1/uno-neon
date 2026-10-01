@@ -39,10 +39,16 @@ using uno::testing::TestPlayer;
 using uno::testing::toRequest;
 using Messages = std::vector<response::Message>;
 
-void requireNoLeakInUpdates(TestPlayer& player)
+// Serializing and reading back every update of a long match is slow: this checks one in `stride`, and the last. The
+// simulation of the engine checks every step of thousands of matches; the sockets test checks every update of two.
+void requireNoLeakInUpdates(const TestPlayer& player, std::size_t stride = 9)
 {
-    for (const auto& update : player.all<response::GameUpdate>()) {
-        requireWireLeaksNothing(update, player.id());
+    const auto updates = player.all<response::GameUpdate>();
+    for (std::size_t index = 0; index < updates.size(); index += stride) {
+        requireWireLeaksNothing(updates.at(index), player.id());
+    }
+    if (!updates.empty()) {
+        requireWireLeaksNothing(updates.back(), player.id());
     }
 }
 

@@ -34,7 +34,7 @@ public:
     }
 
     // The next message of the server, in order, whatever it is.
-    std::optional<app::response::Message> next(std::chrono::milliseconds timeout = std::chrono::seconds(5))
+    std::optional<app::response::Message> next(std::chrono::milliseconds timeout = std::chrono::seconds(2))
     {
         if (!pending_.empty()) {
             auto message = std::move(pending_.front());
@@ -52,7 +52,7 @@ public:
 
     // Waits for the next message of type T; the messages before it are kept for later (see next()).
     template <typename T>
-    std::optional<T> await(std::chrono::milliseconds timeout = std::chrono::seconds(5))
+    std::optional<T> await(std::chrono::milliseconds timeout = std::chrono::seconds(2))
     {
         std::deque<app::response::Message> skipped;
         std::optional<T> found;
@@ -71,7 +71,7 @@ public:
 
     // The answer to a request: the ack, or the error, skipping what the server pushed in between.
     std::optional<app::response::Message> answerTo(const std::string& id,
-                                                   std::chrono::milliseconds timeout = std::chrono::seconds(5))
+                                                   std::chrono::milliseconds timeout = std::chrono::seconds(2))
     {
         std::deque<app::response::Message> skipped;
         std::optional<app::response::Message> answer;

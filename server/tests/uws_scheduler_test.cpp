@@ -28,7 +28,7 @@ public:
     bool waitFor(std::size_t count)
     {
         std::unique_lock lock(mutex_);
-        return changed_.wait_for(lock, 5s, [&] { return fired_.size() >= count; });
+        return changed_.wait_for(lock, 2s, [&] { return fired_.size() >= count; });
     }
 
     std::vector<std::string> fired()

@@ -9,8 +9,9 @@
 namespace uno::net {
 
 // The Scheduler port on the timers of the uWebSockets event loop: callbacks run on the loop thread, between
-// two network events, so the application stays single-threaded. Timers never keep the loop alive by
-// themselves: stopping the server ends it. Use it from the loop thread only, after the server exists.
+// two network events, so the application stays single-threaded. A pending timer keeps the event loop running:
+// cancelAll() must be called when the server stops (WebSocketServerConfig::onStop), or run() never returns.
+// Use it from the loop thread only.
 class UwsScheduler final : public app::Scheduler {
 public:
     UwsScheduler();

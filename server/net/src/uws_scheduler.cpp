@@ -58,7 +58,9 @@ app::TimerHandle UwsScheduler::schedule(std::chrono::milliseconds delay, std::fu
     // uSockets types the loop of uWebSockets as its own struct: its API asks for this cast.
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     auto* const loop = reinterpret_cast<us_loop_t*>(uWS::Loop::get());
-    us_timer_t* const timer = us_create_timer(loop, 1, sizeof(TimerPayload)); // 1: does not keep the loop alive
+    // fallthrough = 0: a timer counts as an active handle of the loop. With fallthrough = 1, closing the timer would
+    // make the epoll backend of uSockets count it out twice, and the loop would never end (the Linux hang of 2.5).
+    us_timer_t* const timer = us_create_timer(loop, 0, sizeof(TimerPayload));
     *static_cast<TimerPayload*>(us_timer_ext(timer)) = TimerPayload{.impl = impl_.get(), .id = id};
     impl_->entries.emplace(id, Impl::Entry{.timer = timer, .callback = std::move(callback)});
     us_timer_set(timer, &Impl::onTimer, static_cast<int>(std::max<std::chrono::milliseconds::rep>(delay.count(), 1)),

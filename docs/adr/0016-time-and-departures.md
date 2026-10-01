@@ -10,7 +10,7 @@ de débit. La SPEC dit *quoi* ; plusieurs points de *comment* n'y sont pas, et l
 
 ## Décision
 - **Port `Scheduler`** (`uno_app`) : `schedule(délai, callback) → TimerHandle`, `cancel`. `UwsScheduler` (`uno_net`)
-  en production, sur les timers de la boucle uWebSockets, avec `fallthrough` (un timer ne retient jamais la boucle) ;
+  en production, sur les timers de la boucle uWebSockets, (un timer en attente retient la boucle : avec `fallthrough`, la fermeture d'un timer est comptée deux fois par le backend epoll de uSockets et `run()` ne rend plus jamais la main sous Linux) ;
   `ManualScheduler` (`uno_testing`) en test : le temps avance à la main, chaque callback voit l'horloge à son
   échéance. À l'arrêt du serveur, `onStop` annule tous les timers sur le thread de la boucle : libuv refuse de
   fermer une boucle dont des handles sont ouverts.

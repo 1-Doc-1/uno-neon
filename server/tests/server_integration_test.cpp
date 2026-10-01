@@ -56,8 +56,11 @@ uno::net::WebSocketServerConfig configFor(const InMemoryRoomRepository& rooms, u
 
 // The production wiring, on a free port.
 struct Deployment {
-    Deployment()
-        : server(configFor(rooms, scheduler), application,
+    // `timeouts` lets a test shorten the delays of the game (grace period, inactivity...) to milliseconds: a test
+    // never waits for a real minute.
+    explicit Deployment(Timeouts timeouts = {})
+        : application(sink, rooms, random, clock, scheduler, timeouts),
+          server(configFor(rooms, scheduler), application,
                  [this](uno::net::WebSocketServer& running) { sink.attach(running); })
     {
     }
@@ -69,7 +72,7 @@ struct Deployment {
     uno::net::UwsScheduler scheduler;
     InMemoryRoomRepository rooms;
     uno::net::ServerMessageSink sink;
-    Application application{sink, rooms, random, clock, scheduler};
+    Application application;
     uno::testing::RunningServer server;
 };
 
@@ -303,4 +306,26 @@ TEST_CASE("Requests before hello are refused, and the health endpoint counts roo
     static_cast<void>(openRoom(host));
     const auto health = require(uno::testing::httpGet(deployment.server.port(), "/health"), "a health answer");
     REQUIRE(health.body.contains("\"rooms\":1"));
+}
+
+TEST_CASE("The grace period runs on the real timers of the server, set to milliseconds", "[server][integration]")
+{
+    REQUIRE(uno::net::initializeCryptoRuntime());
+    Timeouts fast;
+    fast.reconnectGrace = 150ms;
+    const Deployment deployment(fast);
+    Player host = enter(deployment, "Alice");
+    const auto code = openRoom(host);
+    {
+        Player guest = enter(deployment, "Bob");
+        joinReady(guest, code);
+    } // the guest's socket closes here, and never comes back
+
+    std::size_t playersLeft = 2;
+    while (playersLeft > 1) {
+        const auto update = require(host.client.await<response::RoomUpdate>(2s), "the removal of the guest");
+        playersLeft = update.room.players.size();
+    }
+
+    REQUIRE(playersLeft == 1);
 }
