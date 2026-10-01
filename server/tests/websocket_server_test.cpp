@@ -291,12 +291,12 @@ TEST_CASE("Room creation is limited per address, across connections", "[net][ser
     auto first = fixture.connect();
     auto second = fixture.connect();
 
+    // One at a time: two sockets give no guarantee about which request the server reads first.
     REQUIRE(first.send(createRoomRequest("c-1")));
-    REQUIRE(second.send(createRoomRequest("c-2")));
-    REQUIRE(first.send(createRoomRequest("c-3")));
-
     REQUIRE(std::holds_alternative<uno::app::response::Ack>(decodeReply(first)));
+    REQUIRE(second.send(createRoomRequest("c-2")));
     REQUIRE(std::holds_alternative<uno::app::response::Ack>(decodeReply(second)));
+    REQUIRE(first.send(createRoomRequest("c-3")));
     const auto refused = std::get<uno::app::response::Error>(decodeReply(first));
     REQUIRE(refused.code == uno::app::ErrorCode::RateLimited);
     REQUIRE(refused.replyTo == "c-3");
