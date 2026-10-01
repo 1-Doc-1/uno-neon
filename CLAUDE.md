@@ -9,13 +9,14 @@ Projet personnel : le code doit être exemplaire ET compréhensible.
 
 ## Méthode de travail (obligatoire)
 
-1. Au début d'une session : lis `docs/PROGRESS.md`, identifie la phase et l'étape en cours. Ne saute jamais de phase.
-2. Avant de coder une étape non triviale : propose un plan (fichiers touchés, tests prévus, risques). Attends la validation.
+1. Au début d'une session : lis `docs/PROGRESS.md`, identifie le lot et l'étape en cours. Suis l'ordre de PROGRESS.md (visé : un MVP jouable au plus tôt).
+2. Mode autonome par défaut : pour chaque lot d'étapes, un plan de 10 lignes maximum dans ta réponse (fichiers, tests, risques), puis exécution directe sans attendre de validation. Arrête-toi seulement si tu t'écartes de la SPEC ou d'une ADR, si une décision n'est pas couverte, ou après 2 échecs sur le même problème.
 3. Travaille par petits incréments vérifiables : test rouge → code → test vert → refactor → commit.
 4. Une étape n'est « terminée » que si : build OK, tests OK, lint OK, et `docs/PROGRESS.md` mis à jour. Pour toute étape qui touche `server/` : lancer `scripts/linux-check.sh` (WSL) avant de pousser (voir `docs/SETUP.md`, étape 10).
 5. Si la SPEC est ambiguë ou contradictoire : pose la question, ne devine pas. Si tu t'écartes de la SPEC, écris une ADR.
-6. Fin d'étape : résume en 5-10 lignes ce qui a été fait, **pourquoi** les choix d'architecture/patterns (2-3 phrases pédagogiques), et ce qui reste.
-7. Ne modifie jamais `docs/SPEC.md` sans demande explicite.
+6. Un commit par étape, une PR par lot de 2 ou 3 étapes. Une seule revue (`/code-review`) en fin de phase, pas à chaque PR.
+7. Fin de lot : résumé de 10 lignes maximum : ce qui est fait, le **pourquoi** des choix d'architecture en 2 phrases, ce qui reste.
+8. Ne modifie jamais `docs/SPEC.md` sans demande explicite.
 
 ## Commandes (garder à jour)
 
@@ -75,15 +76,15 @@ Pas de code mort, pas de TODO sans ticket/étape dans PROGRESS.md.
 ## Git (projet personnel)
 
 - `main` protégée : on n'y pousse jamais directement, jamais de `--force`.
-- Une branche et une pull request par étape : `feat/core-deck`, `feat/server-rooms`, `fix/…`, `chore/…`.
+- Une branche et une pull request par lot de 2 ou 3 étapes : `feat/core-deck`, `feat/server-rooms`, `fix/…`, `chore/…`.
 - Conventional Commits (`feat(core): add wild draw four legality check`).
-- Une pull request par étape, fusionnée seulement si le CI est vert et après un `/code-review` (plugin) ; pas de relecture humaine par un coéquipier — je travaille seul.
+- Une pull request fusionnée seulement si le CI est vert ; `/code-review` (plugin) une fois en fin de phase ; pas de relecture humaine — je travaille seul.
 - Ne jamais committer : `build/`, `node_modules/`, `.env`, `.claude/settings.local.json`.
 
 ## Outils Claude Code disponibles dans ce repo
 
 - **clangd-lsp** / **typescript-lsp** : lis les diagnostics après chaque édition et corrige-les avant de continuer.
 - **Skills** : `angular-developer` (code Angular moderne), `modern-cpp` (C++ moderne et sûr), `web-design-guidelines` (audit UI), `playwright-cli` (navigateur, captures, tests).
-- **Plugins** : `frontend-design` (qualité visuelle), `feature-dev` (grosses fonctionnalités), `code-review` (avant PR).
+- **Plugins** : `frontend-design` (qualité visuelle), `feature-dev` (grosses fonctionnalités), `code-review` (en fin de phase).
 - **MCP angular-cli** : `get_best_practices` et la documentation officielle avant d'écrire du code Angular non trivial.
 - Vérification visuelle : après toute modification d'UI, prends des captures avec playwright-cli en 375 px, 768 px et 1440 px et regarde-les avant de dire que c'est terminé.
