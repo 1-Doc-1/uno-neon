@@ -63,13 +63,18 @@ TEST_CASE("Every valid client example is accepted and re-encoded to the same JSO
     }
 }
 
-TEST_CASE("Every ack and error example is accepted and re-encoded to the same JSON", "[net][contract]")
+namespace {
+
+std::vector<fs::path> serverExamples()
 {
-    // The other server messages (room.update, game.update...) join this test with their codec (step 2.4).
-    std::vector<fs::path> files = filesIn(examplesDirectory() / "valid", "server.ack");
-    for (auto& file : filesIn(examplesDirectory() / "valid", "server.error")) {
-        files.push_back(std::move(file));
-    }
+    return filesIn(examplesDirectory() / "valid", "server.");
+}
+
+} // namespace
+
+TEST_CASE("Every server example is accepted and re-encoded to the same JSON", "[net][contract]")
+{
+    const auto files = serverExamples();
     REQUIRE_FALSE(files.empty());
 
     for (const auto& file : files) {

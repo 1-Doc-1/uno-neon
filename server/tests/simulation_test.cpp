@@ -1,4 +1,5 @@
 #include "uno/core/card.hpp"
+#include "uno/core/client_event.hpp"
 #include "uno/core/deck.hpp"
 #include "uno/core/domain_event.hpp"
 #include "uno/core/match.hpp"
@@ -50,6 +51,7 @@ using uno::testing::allCardIds;
 using uno::testing::legalActionsOfCurrentPlayer;
 using uno::testing::player;
 using uno::testing::players;
+using uno::testing::requireEventsLeakNothing;
 using uno::testing::requireRoundInvariants;
 using uno::testing::requireViewLeaksNothing;
 using uno::testing::SeededRandomSource;
@@ -165,6 +167,15 @@ private:
             }
         }
         checkState();
+        checkEvents(*result);
+    }
+
+    // Every event of an accepted action, projected for a random player, shows them nothing they may not see.
+    void checkEvents(const std::vector<uno::core::DomainEvent>& events)
+    {
+        const auto viewer = anyPlayer();
+        const auto projected = uno::core::project(events, viewer, match_.round(), match_.roundNumber());
+        requireEventsLeakNothing(projected, match_.round(), viewer);
     }
 
     void checkState()
@@ -183,8 +194,10 @@ private:
         if (match_.winner().has_value() || !std::holds_alternative<RoundOver>(match_.round().phase())) {
             return;
         }
-        REQUIRE(match_.startNextRound(random_).has_value());
+        const auto started = match_.startNextRound(random_);
+        REQUIRE(started.has_value());
         checkState();
+        checkEvents(*started);
     }
 
     // Only a round's winner scores: the points scored over the match are the scores of all players.

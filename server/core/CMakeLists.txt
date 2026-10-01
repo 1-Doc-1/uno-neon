@@ -2,6 +2,7 @@
 configure_file(src/build_info.cpp.in "${CMAKE_CURRENT_BINARY_DIR}/generated/build_info.cpp" @ONLY)
 
 add_library(uno_core STATIC
+    src/client_event.cpp
     src/deck.cpp
     src/match.cpp
     src/piles.cpp

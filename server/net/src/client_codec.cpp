@@ -1,6 +1,7 @@
 #include "uno/net/codec.hpp"
 #include "uno/net/protocol_version.hpp"
 
+#include "field_parsers.hpp"
 #include "json_reader.hpp"
 #include "wire_names.hpp"
 #include <nlohmann/json.hpp>
@@ -22,102 +23,17 @@ namespace {
 
 using detail::Json;
 using detail::ObjectReader;
+using detail::parseCardId;
+using detail::parseClientVersion;
 using detail::Parsed;
+using detail::parseMaxPlayers;
+using detail::parseMessageId;
+using detail::parseNickname;
+using detail::parsePlayerId;
+using detail::parseRoomCode;
+using detail::parseSessionToken;
+using detail::parseTurnTimer;
 using namespace uno::app;
-
-constexpr std::int64_t kMaxCardId = std::numeric_limits<std::int32_t>::max();
-constexpr std::size_t kMaxNicknameLength = 64; // code points; the real rules are checked by the application layer
-constexpr std::string_view kRoomCodeAlphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
-constexpr std::size_t kRoomCodeLength = 6;
-
-// ---- field parsers (one function per shared definition of common.schema.json) ----
-
-Parsed<std::string> parseMessageId(const Json& value)
-{
-    return detail::parseRestrictedString(value, 1, 32, detail::isUrlSafeCharacter);
-}
-
-Parsed<SessionToken> parseSessionToken(const Json& value)
-{
-    auto text = detail::parseRestrictedString(value, 22, 22, detail::isUrlSafeCharacter);
-    if (!text) {
-        return std::unexpected(text.error());
-    }
-    return SessionToken{std::move(*text)};
-}
-
-Parsed<core::PlayerId> parsePlayerId(const Json& value)
-{
-    auto text = detail::parseRestrictedString(value, 8, 32, detail::isUrlSafeCharacter);
-    if (!text) {
-        return std::unexpected(text.error());
-    }
-    return core::PlayerId{std::move(*text)};
-}
-
-Parsed<RoomCode> parseRoomCode(const Json& value)
-{
-    auto text = detail::parseRestrictedString(value, kRoomCodeLength, kRoomCodeLength,
-                                              [](char character) { return kRoomCodeAlphabet.contains(character); });
-    if (!text) {
-        return std::unexpected(text.error());
-    }
-    return RoomCode{std::move(*text)};
-}
-
-Parsed<std::string> parseNickname(const Json& value)
-{
-    auto text = detail::parseString(value);
-    if (text && detail::codePointCount(*text) > kMaxNicknameLength) {
-        return std::unexpected("is too long");
-    }
-    return text;
-}
-
-Parsed<std::string> parseClientVersion(const Json& value)
-{
-    return detail::parseRestrictedString(value, 1, 32, [](char character) {
-        return character == '.' || character == '+' || (character != '_' && detail::isUrlSafeCharacter(character));
-    });
-}
-
-Parsed<core::CardId> parseCardId(const Json& value)
-{
-    const auto number = detail::parseInteger(value, 0, kMaxCardId);
-    if (!number) {
-        return std::unexpected(number.error());
-    }
-    return core::CardId{static_cast<std::uint32_t>(*number)};
-}
-
-Parsed<TurnTimerSeconds> parseTurnTimer(const Json& value)
-{
-    const auto seconds = detail::parseInteger(value, 0, 60);
-    if (!seconds) {
-        return std::unexpected(seconds.error());
-    }
-    switch (*seconds) {
-    case 0:
-        return TurnTimerSeconds::Off;
-    case 15:
-        return TurnTimerSeconds::Fifteen;
-    case 30:
-        return TurnTimerSeconds::Thirty;
-    case 60:
-        return TurnTimerSeconds::Sixty;
-    default:
-        return std::unexpected("is not an allowed value");
-    }
-}
-
-Parsed<std::uint8_t> parseMaxPlayers(const Json& value)
-{
-    const auto count = detail::parseInteger(value, kMinRoomPlayers, kMaxRoomPlayers);
-    if (!count) {
-        return std::unexpected(count.error());
-    }
-    return static_cast<std::uint8_t>(*count);
-}
 
 Parsed<RoomSettingsPatch> parseSettingsPatch(const Json& value)
 {

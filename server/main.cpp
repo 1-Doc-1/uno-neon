@@ -1,9 +1,13 @@
 // Composition root: reads the configuration and wires the layers together.
+#include "uno/app/application.hpp"
+#include "uno/app/room_repository.hpp"
 #include "uno/app/server_config.hpp"
 #include "uno/core/build_info.hpp"
-#include "uno/net/codec.hpp"
+#include "uno/net/crypto_random_source.hpp"
 #include "uno/net/crypto_runtime.hpp"
 #include "uno/net/protocol_version.hpp"
+#include "uno/net/server_message_sink.hpp"
+#include "uno/net/system_clock.hpp"
 #include "uno/net/websocket_server.hpp"
 
 #include <spdlog/spdlog.h>
@@ -63,36 +67,6 @@ std::expected<uno::app::ServerConfig, std::string> loadConfig()
     return config;
 }
 
-// Until sessions and rooms exist (step 2.3), every well-formed request is answered with an error.
-class SessionlessHandler final : public uno::net::ConnectionHandler {
-public:
-    void attach(uno::net::WebSocketServer& server) noexcept { server_ = &server; }
-
-    void onConnected(uno::app::ConnectionId connection) override
-    {
-        spdlog::debug("connection {} opened", connection.value);
-    }
-
-    void onRequest(uno::app::ConnectionId connection, uno::app::request::Envelope request) override
-    {
-        const uno::app::response::Error error{
-            .replyTo = std::move(request.id),
-            .code = uno::app::ErrorCode::SessionRequired,
-            .message = "Sessions are not available yet",
-            .reason = std::nullopt,
-        };
-        server_->send(connection, uno::net::encodeServerMessage(error));
-    }
-
-    void onDisconnected(uno::app::ConnectionId connection) override
-    {
-        spdlog::debug("connection {} closed", connection.value);
-    }
-
-private:
-    uno::net::WebSocketServer* server_ = nullptr;
-};
-
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): written by a signal handler
 std::atomic<bool> gStopRequested{false};
 static_assert(std::atomic<bool>::is_always_lock_free, "needed to be set from a signal handler");
@@ -119,10 +93,18 @@ int run()
         return EXIT_FAILURE;
     }
 
-    SessionlessHandler handler;
-    uno::net::WebSocketServer server(
-        {.port = config->port, .originPolicy = uno::net::OriginPolicy(config->allowedOrigins)}, handler);
-    handler.attach(server);
+    uno::net::CryptoRandomSource random;
+    const uno::net::SystemClock clock;
+    uno::app::InMemoryRoomRepository rooms;
+    uno::net::ServerMessageSink sink;
+    uno::app::Application application(sink, rooms, random, clock);
+
+    uno::net::WebSocketServerConfig serverConfig;
+    serverConfig.port = config->port;
+    serverConfig.originPolicy = uno::net::OriginPolicy(config->allowedOrigins);
+    serverConfig.roomCount = [&rooms] { return rooms.size(); };
+    uno::net::WebSocketServer server(std::move(serverConfig), application);
+    sink.attach(server);
 
     static_cast<void>(std::signal(SIGINT, requestStop));
     static_cast<void>(std::signal(SIGTERM, requestStop));

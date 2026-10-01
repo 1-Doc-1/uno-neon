@@ -31,4 +31,17 @@ RoomSettings applyPatch(RoomSettings settings, const RoomSettingsPatch& patch) n
     return settings;
 }
 
+std::optional<std::string> settingsProblem(const RoomSettings& settings, std::size_t memberCount)
+{
+    if (settings.maxPlayers < memberCount) {
+        return "maxPlayers is below the number of players in the room";
+    }
+    const RoomSettings defaults;
+    if (settings.stacking != defaults.stacking || settings.jumpIn || settings.sevenZero || settings.drawUntilPlayable ||
+        settings.wildDrawFourMode != defaults.wildDrawFourMode) {
+        return "house rules are not available yet";
+    }
+    return std::nullopt;
+}
+
 } // namespace uno::app

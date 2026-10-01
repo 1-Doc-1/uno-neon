@@ -6,9 +6,11 @@
 #include "uno/app/client_message.hpp"
 #include "uno/app/error_code.hpp"
 #include "uno/app/room_settings.hpp"
+#include "uno/app/server_message.hpp"
 #include "uno/core/card.hpp"
 #include "uno/core/match.hpp"
 #include "uno/core/player_action.hpp"
+#include "uno/core/player_view.hpp"
 #include "uno/core/turn_order.hpp"
 
 #include <array>
@@ -185,6 +187,36 @@ struct WireNames<app::IllegalMoveReason> {
         WireName{.value = app::IllegalMoveReason::JumpInTooLate, .name = "JUMP_IN_TOO_LATE"},
         WireName{.value = app::IllegalMoveReason::CannotStack, .name = "CANNOT_STACK"},
         WireName{.value = app::IllegalMoveReason::CannotChallenge, .name = "CANNOT_CHALLENGE"},
+    };
+};
+
+template <>
+struct WireNames<app::response::RoomPhase> {
+    static constexpr std::array kTable{
+        WireName{.value = app::response::RoomPhase::Lobby, .name = "lobby"},
+        WireName{.value = app::response::RoomPhase::InGame, .name = "inGame"},
+        WireName{.value = app::response::RoomPhase::MatchOver, .name = "matchOver"},
+    };
+};
+
+template <>
+struct WireNames<app::response::RoomClosedReason> {
+    static constexpr std::array kTable{
+        WireName{.value = app::response::RoomClosedReason::Expired, .name = "expired"},
+        WireName{.value = app::response::RoomClosedReason::Kicked, .name = "kicked"},
+        WireName{.value = app::response::RoomClosedReason::HostClosed, .name = "hostClosed"},
+    };
+};
+
+template <>
+struct WireNames<core::ViewPhase> {
+    static constexpr std::array kTable{
+        WireName{.value = core::ViewPhase::AwaitingPlay, .name = "awaitingPlay"},
+        WireName{.value = core::ViewPhase::AwaitingDrawnCardDecision, .name = "awaitingDrawnCardDecision"},
+        WireName{.value = core::ViewPhase::AwaitingPenaltyResponse, .name = "awaitingPenaltyResponse"},
+        WireName{.value = core::ViewPhase::AwaitingColorChoice, .name = "awaitingColorChoice"},
+        WireName{.value = core::ViewPhase::RoundOver, .name = "roundOver"},
+        WireName{.value = core::ViewPhase::MatchOver, .name = "matchOver"},
     };
 };
 

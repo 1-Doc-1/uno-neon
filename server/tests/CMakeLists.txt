@@ -1,18 +1,24 @@
 find_package(Catch2 3 CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
+find_package(spdlog CONFIG REQUIRED)
 include(Catch)
 
 # Tests link against the libraries, never against the uno_server executable.
 add_executable(uno_tests
     card_test.cpp
+    application_match_test.cpp
+    application_rooms_test.cpp
+    client_event_test.cpp
     codec_test.cpp
     crypto_random_source_test.cpp
     deck_test.cpp
+    nickname_test.cpp
     origin_policy_test.cpp
     piles_test.cpp
     playability_test.cpp
     player_view_test.cpp
     protocol_contract_test.cpp
+    quiet_logs.cpp
     random_test.cpp
     scoring_test.cpp
     simulation_test.cpp
@@ -28,7 +34,7 @@ add_executable(uno_tests
     websocket_server_test.cpp
     support/test_client.cpp)
 target_link_libraries(uno_tests PRIVATE
-    uno_core uno_app uno_net uno_testing Catch2::Catch2WithMain nlohmann_json::nlohmann_json)
+    uno_core uno_app uno_net uno_testing Catch2::Catch2WithMain nlohmann_json::nlohmann_json spdlog::spdlog)
 target_include_directories(uno_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 # Windows sockets, for the raw test client of the real server.
 if(WIN32)
