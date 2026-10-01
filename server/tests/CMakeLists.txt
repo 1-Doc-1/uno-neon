@@ -10,6 +10,7 @@ add_executable(uno_tests
     player_view_test.cpp
     random_test.cpp
     scoring_test.cpp
+    simulation_test.cpp
     match_test.cpp
     round_apply_test.cpp
     round_effects_test.cpp

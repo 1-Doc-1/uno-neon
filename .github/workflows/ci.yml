@@ -97,6 +97,9 @@ jobs:
 
       - name: Test
         working-directory: server
+        # More simulated matches than the default of a local run: the sanitizers watch all of them.
+        env:
+          UNO_SIMULATION_GAMES: "500"
         run: ctest --preset debug-asan
 
       - name: clang-format

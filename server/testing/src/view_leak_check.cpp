@@ -60,9 +60,10 @@ void requireOnlyEntitledCardsAreExposed(const core::Round& round, const core::Pl
                                         const core::PlayerId& viewer)
 {
     const auto entitled = visibleIds(round, viewer);
-    for (const auto& id : exposedIds(view)) {
-        REQUIRE(std::ranges::find(entitled, id) != entitled.end());
-    }
+    const auto exposed = exposedIds(view);
+    const auto onlyEntitled = std::ranges::all_of(
+        exposed, [&](const core::CardId& id) { return std::ranges::find(entitled, id) != entitled.end(); });
+    REQUIRE(onlyEntitled);
     REQUIRE((view.roundResult.has_value() == std::holds_alternative<core::RoundOver>(round.phase())));
 }
 
@@ -70,9 +71,10 @@ void requireCountsMatchWithoutShowingCards(const core::Round& round, const core:
 {
     REQUIRE(view.drawPileCount == round.drawPile().size());
     REQUIRE(view.players.size() == round.seats().size());
-    for (const auto& seat : view.players) {
-        REQUIRE(seat.cardCount == round.hand(seat.playerId).value_or(std::span<const core::Card>{}).size());
-    }
+    const auto countsMatch = std::ranges::all_of(view.players, [&](const core::SeatView& seat) {
+        return seat.cardCount == round.hand(seat.playerId).value_or(std::span<const core::Card>{}).size();
+    });
+    REQUIRE(countsMatch);
 }
 
 } // namespace
