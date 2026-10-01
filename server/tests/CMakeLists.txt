@@ -8,6 +8,7 @@ add_executable(uno_tests
     codec_test.cpp
     crypto_random_source_test.cpp
     deck_test.cpp
+    origin_policy_test.cpp
     piles_test.cpp
     playability_test.cpp
     player_view_test.cpp
@@ -23,9 +24,16 @@ add_executable(uno_tests
     round_uno_test.cpp
     round_wild_draw_four_test.cpp
     turn_order_test.cpp
-    smoke_test.cpp)
+    smoke_test.cpp
+    websocket_server_test.cpp
+    support/test_client.cpp)
 target_link_libraries(uno_tests PRIVATE
     uno_core uno_app uno_net uno_testing Catch2::Catch2WithMain nlohmann_json::nlohmann_json)
+target_include_directories(uno_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+# Windows sockets, for the raw test client of the real server.
+if(WIN32)
+    target_link_libraries(uno_tests PRIVATE ws2_32)
+endif()
 # Shared with the Angular client: the examples of the protocol (SPEC §8.1).
 target_compile_definitions(uno_tests PRIVATE UNO_PROTOCOL_EXAMPLES_DIR="${PROJECT_SOURCE_DIR}/../protocol/examples")
 uno_set_warnings(uno_tests)

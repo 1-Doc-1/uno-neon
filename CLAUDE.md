@@ -28,7 +28,7 @@ Serveur : depuis `server/`, dans un terminal où `dev64` a été lancé. Client 
 | Compiler le serveur | `cmake --build --preset dev` |
 | Tests C++ | `ctest --preset dev` (sortie détaillée en cas d'échec déjà activée) |
 | Simulation massive (parties aléatoires, invariants) | `UNO_SIMULATION_GAMES=10000 build/release/tests/uno_tests "[simulation]"` depuis `server/` après `cmake --preset release` et `cmake --build --preset release` (défaut : 50 parties avec `ctest`, 100 dans le CI des PR et `linux-check.sh` ; 10 000 chaque semaine via `simulation.yml`) |
-| Lancer le serveur | `build/dev/uno_server` (port : variable `UNO_PORT`, défaut 9001) |
+| Lancer le serveur | `build/dev/uno_server` (variables : `UNO_PORT`, défaut 9001 ; `UNO_ALLOWED_ORIGINS`, défaut les origines du serveur de dev Angular ; `UNO_LOG_LEVEL`) |
 | Formater le C++ | `git ls-files '*.cpp' '*.hpp' '*.cpp.in' | xargs clang-format -i` (depuis `server/`) |
 | Vérifier le C++ (clang-tidy) | `git ls-files '*.cpp' | xargs clang-tidy -p build/dev --quiet` (depuis `server/`, comme le CI) |
 | Client : dev (proxy `/ws` → `localhost:9001`) | `npm start` |

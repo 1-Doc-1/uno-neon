@@ -8,7 +8,9 @@ add_library(uno_net STATIC
     src/client_codec.cpp
     src/crypto_random_source.cpp
     src/crypto_runtime.cpp
-    src/server_codec.cpp)
+    src/origin_policy.cpp
+    src/server_codec.cpp
+    src/websocket_server.cpp)
 target_include_directories(uno_net PUBLIC include)
 target_link_libraries(uno_net
     PUBLIC uno_app
