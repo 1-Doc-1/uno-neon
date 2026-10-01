@@ -34,6 +34,8 @@ done
 [ -x "$VCPKG_ROOT/vcpkg" ] || fail "vcpkg absent ou non bootstrappé dans $VCPKG_ROOT"
 
 export VCPKG_ROOT
+# Même nombre de parties simulées que le CI des PR.
+export UNO_SIMULATION_GAMES=100
 
 LOG="$DEST_DIR/linux-check.log"
 mkdir -p "$DEST_DIR"

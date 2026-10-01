@@ -97,9 +97,9 @@ jobs:
 
       - name: Test
         working-directory: server
-        # More simulated matches than the default of a local run: the sanitizers watch all of them.
+        # Un peu plus de parties qu'en local, sous sanitizers ; les 10 000 parties sont dans simulation.yml.
         env:
-          UNO_SIMULATION_GAMES: "500"
+          UNO_SIMULATION_GAMES: "100"
         run: ctest --preset debug-asan
 
       - name: clang-format
