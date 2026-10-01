@@ -18,8 +18,8 @@ de débit. La SPEC dit *quoi* ; plusieurs points de *comment* n'y sont pas, et l
   timer de tour ou de manche suivante porte le `stateVersion` pour lequel il a été armé. Une action jouée à temps
   annule le timer ; si l'annulation échappait, la version ne correspondrait plus.
 - **Durées** (`Timeouts`, injectables) : grâce 60 s ; salon en lobby inactif 15 min ; partie finie 5 min ; session sans
-  connexion 10 min ; manche suivante lancée d'office 30 s après la fin d'une manche (la SPEC cite
-  `nextRoundDeadline` sans durée : choix à confirmer).
+  connexion 10 min ; manche suivante lancée d'office 30 s après la fin d'une manche (l'ADR 0007 disait 15 s : portée à
+  30 s, le bouton « Prêt » permet de démarrer plus tôt).
 - **Action automatique à l'expiration du tour** : pénalité en attente → l'accepter ; couleur à choisir → couleur
   tirée au hasard ; carte piochée à décider → passer ; sinon piocher une carte puis passer, même si elle est jouable.
   Elle passe par `Match::apply`, comme l'action d'un joueur : mêmes règles, mêmes événements, et la fenêtre UNO se
