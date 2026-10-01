@@ -375,6 +375,19 @@ Round::applyRespondPenalty(const PlayerId& actor, const RespondPenalty& action, 
     return events;
 }
 
+bool Round::canCallUno(const PlayerId& player) const
+{
+    const auto seat = turnOrder_.seatOf(player);
+    if (!seat || unoCalled_.at(*seat)) {
+        return false;
+    }
+    const bool inWindow = unoWindow_ == player;
+    const bool aboutToPlayWithTwoCards =
+        player == turnOrder_.current() && hands_.at(*seat).size() == 2 &&
+        (std::holds_alternative<AwaitingPlay>(phase_) || std::holds_alternative<AwaitingDrawnCardDecision>(phase_));
+    return inWindow || aboutToPlayWithTwoCards;
+}
+
 std::expected<std::vector<DomainEvent>, DomainError> Round::applyCallUno(const PlayerId& actor)
 {
     const auto seat = turnOrder_.seatOf(actor);
@@ -382,14 +395,10 @@ std::expected<std::vector<DomainEvent>, DomainError> Round::applyCallUno(const P
         return std::unexpected{DomainError::UnknownPlayer};
     }
     // A call that is not due changes nothing (SPEC §3): the client never offers the button then.
-    const bool inWindow = unoWindow_ == actor;
-    const bool aboutToPlayWithTwoCards =
-        actor == turnOrder_.current() && hands_.at(*seat).size() == 2 &&
-        (std::holds_alternative<AwaitingPlay>(phase_) || std::holds_alternative<AwaitingDrawnCardDecision>(phase_));
-    if (unoCalled_.at(*seat) || !(inWindow || aboutToPlayWithTwoCards)) {
+    if (!canCallUno(actor)) {
         return std::vector<DomainEvent>{};
     }
-    if (inWindow) {
+    if (unoWindow_ == actor) {
         unoWindow_.reset();
     }
     unoCalled_.at(*seat) = true;

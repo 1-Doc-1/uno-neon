@@ -25,6 +25,7 @@ using uno::core::DomainEvent;
 using uno::core::DrawCard;
 using uno::core::Match;
 using uno::core::MatchEnded;
+using uno::core::MatchLength;
 using uno::core::MatchSettings;
 using uno::core::RoundOver;
 using uno::core::RoundStarted;
@@ -38,7 +39,8 @@ namespace {
 
 constexpr std::uint64_t kSeed = 42;
 constexpr std::size_t kStepLimit = 20'000;
-constexpr std::uint32_t kUnreachableTarget = 1'000'000;
+constexpr std::uint32_t kRoundLimit = 200;
+constexpr std::uint32_t kTo250Points = 250;
 
 // Plays the first legal action of the current player (a card whenever one is playable, otherwise a draw)
 // until the round is over, and returns the events of the final action. A real round ends long before
@@ -56,6 +58,22 @@ constexpr std::uint32_t kUnreachableTarget = 1'000'000;
     }
     REQUIRE(std::holds_alternative<RoundOver>(match.round().phase()));
     return lastEvents;
+}
+
+// Plays one whole round and checks that the match is over exactly when the round winner reached
+// `target`. Returns whether the match is over.
+[[nodiscard]] bool playRoundAndCheckScore(Match& match, SeededRandomSource& random, std::uint32_t target)
+{
+    const auto lastEvents = playRoundToTheEnd(match, random);
+    const auto* over = std::get_if<RoundOver>(&match.round().phase());
+    REQUIRE(over != nullptr);
+    const bool targetReached = match.score(over->winner).value_or(0) >= target;
+    REQUIRE(match.winner().has_value() == targetReached);
+    REQUIRE(std::holds_alternative<MatchEnded>(lastEvents.back()) == targetReached);
+    if (targetReached) {
+        REQUIRE(match.winner() == over->winner);
+    }
+    return targetReached;
 }
 
 [[nodiscard]] Match startMatch(std::size_t playerCount, SeededRandomSource& random,
@@ -87,7 +105,7 @@ TEST_CASE("A new match starts at round 1 with every score at zero", "[core][matc
 
     REQUIRE(match.roundNumber() == 1);
     REQUIRE(match.winner() == std::nullopt);
-    REQUIRE(match.settings().targetScore == 500);
+    REQUIRE(match.settings().matchLength == MatchLength::To500);
     for (std::size_t seat = 0; seat < 4; ++seat) {
         REQUIRE(match.score(player(seat)) == 0);
     }
@@ -97,7 +115,7 @@ TEST_CASE("A new match starts at round 1 with every score at zero", "[core][matc
 TEST_CASE("In a single-round match, the round winner wins the match", "[core][match]")
 {
     SeededRandomSource random{kSeed};
-    auto match = startMatch(3, random, {.targetScore = std::nullopt});
+    auto match = startMatch(3, random, {.matchLength = MatchLength::SingleRound});
 
     const auto lastEvents = playRoundToTheEnd(match, random);
 
@@ -112,7 +130,7 @@ TEST_CASE("In a single-round match, the round winner wins the match", "[core][ma
 TEST_CASE("Only the round winner scores, and the match goes on below the target", "[core][match]")
 {
     SeededRandomSource random{kSeed};
-    auto match = startMatch(3, random, {.targetScore = kUnreachableTarget});
+    auto match = startMatch(3, random);
 
     const auto lastEvents = playRoundToTheEnd(match, random);
 
@@ -126,22 +144,25 @@ TEST_CASE("Only the round winner scores, and the match goes on below the target"
     }
 }
 
-TEST_CASE("A match ends as soon as the round winner reaches the target", "[core][match]")
+TEST_CASE("A match lasts until the round winner reaches the target", "[core][match]")
 {
     SeededRandomSource random{kSeed};
-    // The winner of the round scores the cards left in the other hands: far more than 1 point.
-    auto match = startMatch(2, random, {.targetScore = 1});
+    auto match = startMatch(3, random, {.matchLength = MatchLength::To250});
 
-    const auto lastEvents = playRoundToTheEnd(match, random);
-
-    REQUIRE(match.winner().has_value());
-    REQUIRE(std::holds_alternative<MatchEnded>(lastEvents.back()));
+    for (std::uint32_t round = 1; round <= kRoundLimit; ++round) {
+        REQUIRE(match.roundNumber() == round);
+        if (playRoundAndCheckScore(match, random, kTo250Points)) {
+            return;
+        }
+        REQUIRE(match.startNextRound(random).has_value());
+    }
+    FAIL("no player reached 250 points in " << kRoundLimit << " rounds");
 }
 
 TEST_CASE("The next round rotates the dealer, keeps the scores and bumps the round number", "[core][match]")
 {
     SeededRandomSource random{kSeed};
-    auto match = startMatch(4, random, {.targetScore = kUnreachableTarget});
+    auto match = startMatch(4, random);
     const auto firstDealer = match.round().dealer();
     (void)playRoundToTheEnd(match, random);
     const auto* over = std::get_if<RoundOver>(&match.round().phase());
@@ -173,7 +194,7 @@ TEST_CASE("The next round cannot start while the current one is in progress", "[
 TEST_CASE("Nothing can be played, or dealt, once the match is over", "[core][match]")
 {
     SeededRandomSource random{kSeed};
-    auto match = startMatch(2, random, {.targetScore = std::nullopt});
+    auto match = startMatch(2, random, {.matchLength = MatchLength::SingleRound});
     (void)playRoundToTheEnd(match, random);
 
     REQUIRE(match.startNextRound(random).error() == DomainError::InvalidPhase);
@@ -183,11 +204,13 @@ TEST_CASE("Nothing can be played, or dealt, once the match is over", "[core][mat
 TEST_CASE("Several rounds in a row keep every invariant", "[core][match]")
 {
     SeededRandomSource random{kSeed};
-    auto match = startMatch(3, random, {.targetScore = kUnreachableTarget});
+    auto match = startMatch(3, random, {.matchLength = MatchLength::To250});
 
-    for (std::uint32_t expectedRound = 1; expectedRound <= 5; ++expectedRound) {
+    for (std::uint32_t expectedRound = 1; expectedRound <= 3 && !match.winner().has_value(); ++expectedRound) {
         REQUIRE(match.roundNumber() == expectedRound);
         (void)playRoundToTheEnd(match, random);
-        REQUIRE(match.startNextRound(random).has_value());
+        if (!match.winner().has_value()) {
+            REQUIRE(match.startNextRound(random).has_value());
+        }
     }
 }

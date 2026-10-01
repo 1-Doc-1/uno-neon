@@ -18,8 +18,8 @@ pas tranchés par la SPEC : que devient un +4 posé en dernière carte, qui gard
 - **`Match`** : valeur pure comme `Round` (ADR 0010), sans dépendance stockée ; le `RandomSource&` est passé aux
   opérations qui distribuent. Elle tient les scores par siège, le numéro de manche et le gagnant. Seul le
   gagnant d'une manche marque, donc un seul joueur peut franchir l'objectif : le gagnant de la partie est le
-  gagnant de la manche qui atteint `targetScore`, ou celui de l'unique manche si `targetScore` est vide
-  (`singleRound`). `MatchEnded` suit alors `RoundEnded`.
+  gagnant de la manche qui atteint `targetPoints(matchLength)` (250 ou 500, ADR 0007 n°3), ou celui de l'unique
+  manche si `matchLength` vaut `SingleRound`. `MatchEnded` suit alors `RoundEnded`.
 - **Donneur** : tiré au hasard à la première manche, puis il avance d'un siège dans le sens horaire à chaque
   `startNextRound` (SPEC §3). `startNextRound` n'est accepté qu'entre deux manches d'une partie non terminée.
 - Le deck est créé par `createStandardDeck` puis mélangé par `Match` : `Round::start` le reçoit déjà mélangé

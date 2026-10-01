@@ -98,31 +98,27 @@ void requireUnoWindowIsCoherent(const core::Round& round)
 // An announcement is only kept while the hand it was made for (one or two cards) is unchanged.
 void requireAnnouncementsAreCoherent(const core::Round& round)
 {
-    for (const auto& seated : round.seats()) {
-        const auto hand = round.hand(seated);
-        REQUIRE(hand.has_value());
-        REQUIRE((!round.hasCalledUno(seated) || hand->size() <= 2));
-    }
+    // One assertion for the whole table: this runs after every action of the massive simulation.
+    const auto coherent = std::ranges::all_of(round.seats(), [&](const core::PlayerId& seated) {
+        return !round.hasCalledUno(seated) || round.hand(seated).value_or(std::span<const core::Card>{}).size() <= 2;
+    });
+    REQUIRE(coherent);
 }
 
 // A hand is only ever empty once its owner has won: while the round is in progress everybody holds
 // cards. Once over, the winner holds none, the others do, and the points are the value of their cards.
-void requireHandMatchesRoundState(const core::Round& round, const core::PlayerId& seated)
-{
-    const auto* over = std::get_if<core::RoundOver>(&round.phase());
-    const auto hand = round.hand(seated);
-    REQUIRE(hand.has_value());
-    REQUIRE(hand->empty() == (over != nullptr && seated == over->winner));
-}
-
 void requireRoundOverIsCoherent(const core::Round& round)
 {
+    const auto* over = std::get_if<core::RoundOver>(&round.phase());
     std::uint32_t othersPoints = 0;
+    bool handsMatchPhase = true;
     for (const auto& seated : round.seats()) {
-        requireHandMatchesRoundState(round, seated);
-        othersPoints += core::handPoints(round.hand(seated).value_or(std::span<const core::Card>{}));
+        const auto hand = round.hand(seated).value_or(std::span<const core::Card>{});
+        handsMatchPhase = handsMatchPhase && hand.empty() == (over != nullptr && seated == over->winner);
+        othersPoints += core::handPoints(hand);
     }
-    if (const auto* over = std::get_if<core::RoundOver>(&round.phase())) {
+    REQUIRE(handsMatchPhase);
+    if (over != nullptr) {
         REQUIRE(over->points == othersPoints);
         REQUIRE(round.unoWindow() == std::nullopt);
     }

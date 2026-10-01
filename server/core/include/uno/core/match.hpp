@@ -14,13 +14,36 @@
 
 namespace uno::core {
 
-inline constexpr std::uint32_t kDefaultTargetScore = 500;
+// How long a match lasts (SPEC §4, ADR 0007 #3): one round, or until a player reaches 250 or 500 points.
+enum class MatchLength : std::uint8_t { SingleRound, To250, To500 };
+
+// The score a player must reach to win the match, or empty when a single round decides it.
+[[nodiscard]] constexpr std::optional<std::uint32_t> targetPoints(MatchLength length) noexcept
+{
+    switch (length) {
+    case MatchLength::SingleRound:
+        return std::nullopt;
+    case MatchLength::To250:
+        return 250U;
+    case MatchLength::To500:
+        return 500U;
+    }
+    return std::nullopt;
+}
 
 struct MatchSettings {
-    // Score a player must reach to win the match (SPEC §4); empty means a single round.
-    std::optional<std::uint32_t> targetScore{kDefaultTargetScore};
+    MatchLength matchLength{MatchLength::To500};
 
     [[nodiscard]] bool operator==(const MatchSettings&) const = default;
+};
+
+// What a match has accumulated beyond its current round: the numbers a player sees next to the table.
+struct MatchProgress {
+    std::uint32_t roundNumber{1};
+    std::vector<std::uint32_t> scores; // indexed by seat
+    std::optional<PlayerId> winner;    // empty until the match is over
+
+    [[nodiscard]] bool operator==(const MatchProgress&) const = default;
 };
 
 struct MatchStart;
@@ -45,11 +68,12 @@ public:
     [[nodiscard]] std::expected<std::vector<DomainEvent>, DomainError> startNextRound(RandomSource& random);
 
     [[nodiscard]] const Round& round() const noexcept { return round_; }
-    [[nodiscard]] std::uint32_t roundNumber() const noexcept { return roundNumber_; }
+    [[nodiscard]] std::uint32_t roundNumber() const noexcept { return progress_.roundNumber; }
     [[nodiscard]] const MatchSettings& settings() const noexcept { return settings_; }
+    [[nodiscard]] const MatchProgress& progress() const noexcept { return progress_; }
     [[nodiscard]] std::expected<std::uint32_t, DomainError> score(const PlayerId& player) const;
     // Empty until the match is over.
-    [[nodiscard]] const std::optional<PlayerId>& winner() const noexcept { return winner_; }
+    [[nodiscard]] const std::optional<PlayerId>& winner() const noexcept { return progress_.winner; }
 
     [[nodiscard]] bool operator==(const Match&) const = default;
 
@@ -58,9 +82,7 @@ private:
 
     Round round_;
     MatchSettings settings_;
-    std::vector<std::uint32_t> scores_; // indexed by seat
-    std::uint32_t roundNumber_{1};
-    std::optional<PlayerId> winner_;
+    MatchProgress progress_;
 };
 
 struct MatchStart {

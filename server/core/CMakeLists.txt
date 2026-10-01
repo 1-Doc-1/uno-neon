@@ -5,6 +5,7 @@ add_library(uno_core STATIC
     src/deck.cpp
     src/match.cpp
     src/piles.cpp
+    src/player_view.cpp
     src/round.cpp
     src/turn_order.cpp
     "${CMAKE_CURRENT_BINARY_DIR}/generated/build_info.cpp")

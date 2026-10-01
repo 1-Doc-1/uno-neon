@@ -27,6 +27,7 @@ Serveur : depuis `server/`, dans un terminal où `dev64` a été lancé. Client 
 | Configurer le serveur | `cmake --preset dev` (autres presets : `debug-asan`, `release`) |
 | Compiler le serveur | `cmake --build --preset dev` |
 | Tests C++ | `ctest --preset dev` (sortie détaillée en cas d'échec déjà activée) |
+| Simulation massive (parties aléatoires, invariants) | `UNO_SIMULATION_GAMES=10000 build/release/tests/uno_tests "[simulation]"` depuis `server/` après `cmake --preset release` et `cmake --build --preset release` (défaut : 50 parties avec `ctest`, 500 dans le CI Linux) |
 | Lancer le serveur | `build/dev/uno_server` (port : variable `UNO_PORT`, défaut 9001) |
 | Formater le C++ | `git ls-files '*.cpp' '*.hpp' '*.cpp.in' | xargs clang-format -i` (depuis `server/`) |
 | Vérifier le C++ (clang-tidy) | `git ls-files '*.cpp' | xargs clang-tidy -p build/dev --quiet` (depuis `server/`, comme le CI) |
