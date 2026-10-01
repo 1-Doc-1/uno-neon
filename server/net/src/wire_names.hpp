@@ -93,7 +93,7 @@ struct WireNames<core::MatchLength> {
     static constexpr std::array kTable{
         WireName{.value = core::MatchLength::SingleRound, .name = "singleRound"},
         WireName{.value = core::MatchLength::To250, .name = "to250"},
-        WireName{core::MatchLength::To500, "to500"},
+        WireName{.value = core::MatchLength::To500, .name = "to500"},
     };
 };
 
