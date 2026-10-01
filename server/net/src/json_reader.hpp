@@ -21,7 +21,7 @@ namespace uno::net::detail {
 using Json = nlohmann::json;
 
 // Largest integer every JSON implementation (JavaScript included) reads back exactly.
-inline constexpr std::int64_t kMaxJsonInteger = (std::int64_t{1} << 53) - 1;
+inline constexpr std::int64_t kMaxJsonInteger = 9'007'199'254'740'991; // 2^53 - 1
 
 template <typename T>
 using Parsed = std::expected<T, std::string>;
