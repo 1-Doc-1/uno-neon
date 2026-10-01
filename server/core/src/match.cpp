@@ -35,7 +35,11 @@ namespace {
 } // namespace
 
 Match::Match(Round round, MatchSettings settings)
-    : round_{std::move(round)}, settings_{settings}, scores_(round_.seats().size(), 0)
+    : round_{std::move(round)}, settings_{settings}, progress_{
+                                                         .roundNumber = 1,
+                                                         .scores = std::vector<std::uint32_t>(round_.seats().size(), 0),
+                                                         .winner = std::nullopt,
+                                                     }
 {
 }
 
@@ -56,7 +60,7 @@ std::expected<MatchStart, DomainError> Match::start(std::vector<PlayerId> seats,
 std::expected<std::vector<DomainEvent>, DomainError> Match::apply(const PlayerId& actor, const PlayerAction& action,
                                                                   RandomSource& random)
 {
-    if (winner_.has_value()) {
+    if (progress_.winner.has_value()) {
         return std::unexpected{DomainError::InvalidPhase};
     }
     auto events = round_.apply(actor, action, random);
@@ -67,11 +71,12 @@ std::expected<std::vector<DomainEvent>, DomainError> Match::apply(const PlayerId
     }
 
     const auto seats = round_.seats();
-    auto& winnerScore = scores_.at(static_cast<std::size_t>(std::ranges::find(seats, over->winner) - seats.begin()));
+    auto& winnerScore =
+        progress_.scores.at(static_cast<std::size_t>(std::ranges::find(seats, over->winner) - seats.begin()));
     winnerScore += over->points;
     const auto target = targetPoints(settings_.matchLength);
     if (!target.has_value() || winnerScore >= *target) {
-        winner_ = over->winner;
+        progress_.winner = over->winner;
         events->emplace_back(MatchEnded{.winner = over->winner});
     }
     return events;
@@ -79,7 +84,7 @@ std::expected<std::vector<DomainEvent>, DomainError> Match::apply(const PlayerId
 
 std::expected<std::vector<DomainEvent>, DomainError> Match::startNextRound(RandomSource& random)
 {
-    if (winner_.has_value() || !std::holds_alternative<RoundOver>(round_.phase())) {
+    if (progress_.winner.has_value() || !std::holds_alternative<RoundOver>(round_.phase())) {
         return std::unexpected{DomainError::InvalidPhase};
     }
     std::vector<PlayerId> seats{round_.seats().begin(), round_.seats().end()};
@@ -90,7 +95,7 @@ std::expected<std::vector<DomainEvent>, DomainError> Match::startNextRound(Rando
         return std::unexpected{started.error()};
     }
     round_ = std::move(started->round);
-    ++roundNumber_;
+    ++progress_.roundNumber;
     return std::move(started->events);
 }
 
@@ -101,7 +106,7 @@ std::expected<std::uint32_t, DomainError> Match::score(const PlayerId& player) c
     if (found == seats.end()) {
         return std::unexpected{DomainError::UnknownPlayer};
     }
-    return scores_.at(static_cast<std::size_t>(std::distance(seats.begin(), found)));
+    return progress_.scores.at(static_cast<std::size_t>(std::distance(seats.begin(), found)));
 }
 
 } // namespace uno::core

@@ -37,6 +37,15 @@ struct MatchSettings {
     [[nodiscard]] bool operator==(const MatchSettings&) const = default;
 };
 
+// What a match has accumulated beyond its current round: the numbers a player sees next to the table.
+struct MatchProgress {
+    std::uint32_t roundNumber{1};
+    std::vector<std::uint32_t> scores; // indexed by seat
+    std::optional<PlayerId> winner;    // empty until the match is over
+
+    [[nodiscard]] bool operator==(const MatchProgress&) const = default;
+};
+
 struct MatchStart;
 
 // Chains rounds, rotates the dealer and keeps the scores (SPEC §7.1). Like Round, a plain value that
@@ -59,11 +68,12 @@ public:
     [[nodiscard]] std::expected<std::vector<DomainEvent>, DomainError> startNextRound(RandomSource& random);
 
     [[nodiscard]] const Round& round() const noexcept { return round_; }
-    [[nodiscard]] std::uint32_t roundNumber() const noexcept { return roundNumber_; }
+    [[nodiscard]] std::uint32_t roundNumber() const noexcept { return progress_.roundNumber; }
     [[nodiscard]] const MatchSettings& settings() const noexcept { return settings_; }
+    [[nodiscard]] const MatchProgress& progress() const noexcept { return progress_; }
     [[nodiscard]] std::expected<std::uint32_t, DomainError> score(const PlayerId& player) const;
     // Empty until the match is over.
-    [[nodiscard]] const std::optional<PlayerId>& winner() const noexcept { return winner_; }
+    [[nodiscard]] const std::optional<PlayerId>& winner() const noexcept { return progress_.winner; }
 
     [[nodiscard]] bool operator==(const Match&) const = default;
 
@@ -72,9 +82,7 @@ private:
 
     Round round_;
     MatchSettings settings_;
-    std::vector<std::uint32_t> scores_; // indexed by seat
-    std::uint32_t roundNumber_{1};
-    std::optional<PlayerId> winner_;
+    MatchProgress progress_;
 };
 
 struct MatchStart {

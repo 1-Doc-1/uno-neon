@@ -7,6 +7,7 @@ add_executable(uno_tests
     deck_test.cpp
     piles_test.cpp
     playability_test.cpp
+    player_view_test.cpp
     random_test.cpp
     scoring_test.cpp
     match_test.cpp

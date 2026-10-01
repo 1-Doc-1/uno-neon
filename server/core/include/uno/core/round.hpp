@@ -64,6 +64,9 @@ public:
     [[nodiscard]] const TurnPhase& phase() const noexcept { return phase_; }
     // Whether the player announced UNO and still holds the hand they announced it for.
     [[nodiscard]] bool hasCalledUno(const PlayerId& player) const;
+    // Whether CallUno would have an effect for `player` right now: about to play with two cards, or
+    // in the UNO window (ADR 0011).
+    [[nodiscard]] bool canCallUno(const PlayerId& player) const;
     // The UNO window (SPEC §3, ADR 0011): open on a player who just left themselves with one card
     // without announcing it, until the next play or draw. While open, CatchUno{player} is accepted.
     [[nodiscard]] const std::optional<PlayerId>& unoWindow() const noexcept { return unoWindow_; }
