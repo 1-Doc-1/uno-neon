@@ -52,10 +52,10 @@ public:
 
     // Next text frame, answering pings on the way. Empty on timeout, or once the server closed
     // (see closure()).
-    [[nodiscard]] std::optional<std::string> receiveText(std::chrono::milliseconds timeout = std::chrono::seconds(5));
+    [[nodiscard]] std::optional<std::string> receiveText(std::chrono::milliseconds timeout = std::chrono::seconds(2));
 
     // Waits until the server closes the connection (or the timeout), skipping any frame before it.
-    [[nodiscard]] std::optional<Closure> waitForClosure(std::chrono::milliseconds timeout = std::chrono::seconds(5));
+    [[nodiscard]] std::optional<Closure> waitForClosure(std::chrono::milliseconds timeout = std::chrono::seconds(2));
 
 private:
     struct Impl;

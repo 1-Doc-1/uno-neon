@@ -3,6 +3,7 @@ find_package(spdlog CONFIG REQUIRED)
 
 add_library(uno_app STATIC
     src/application.cpp
+    src/application_lifecycle.cpp
     src/id_generator.cpp
     src/nickname.cpp
     src/room.cpp

@@ -89,7 +89,7 @@ configure_and_build() {
 run_for_compiler() {
   local name="$1" cc="$2" cxx="$3"
   step "$name : configure + build (debug-asan)" configure_and_build "$cc" "$cxx"
-  step "$name : tests (debug-asan)" ctest --preset debug-asan
+  step "$name : tests (debug-asan)" ctest --preset debug-asan --timeout 120
 }
 
 # $DEST_DIR has no .git (excluded from the rsync), so the file list comes from the original

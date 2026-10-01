@@ -60,4 +60,24 @@ std::size_t TurnOrder::nextSeat() const noexcept
     return (currentSeat_ + step) % playerCount;
 }
 
+bool TurnOrder::remove(const PlayerId& player)
+{
+    const auto removedSeat = seatOf(player);
+    if (!removedSeat.has_value() || seats_.size() <= kMinPlayers) {
+        return false;
+    }
+    const auto removed = *removedSeat;
+    const bool wasCurrent = removed == currentSeat_;
+    seats_.erase(seats_.begin() + static_cast<std::ptrdiff_t>(removed));
+    if (removed < currentSeat_) {
+        --currentSeat_;
+    } else if (wasCurrent && direction_ == Direction::CounterClockwise) {
+        // The seats after the removed one slid down: counter-clockwise, the next player sits one seat before.
+        currentSeat_ = (removed + seats_.size() - 1) % seats_.size();
+    } else if (currentSeat_ >= seats_.size()) {
+        currentSeat_ = 0;
+    }
+    return true;
+}
+
 } // namespace uno::core

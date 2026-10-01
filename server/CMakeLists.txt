@@ -8,6 +8,7 @@ project(uno_neon
 option(UNO_BUILD_TESTS "Build the Catch2 test suite" ON)
 option(UNO_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" ON)
 option(UNO_SANITIZERS "Instrument every target with sanitizers" OFF)
+option(UNO_ENABLE_TEST_HOOKS "Let UNO_TEST_SEED seed the server (end-to-end tests only, never in production)" OFF)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -28,11 +29,18 @@ find_package(spdlog CONFIG REQUIRED)
 
 add_executable(uno_server main.cpp)
 target_link_libraries(uno_server PRIVATE uno_core uno_app uno_net spdlog::spdlog)
+if(UNO_ENABLE_TEST_HOOKS)
+    target_compile_definitions(uno_server PRIVATE UNO_ENABLE_TEST_HOOKS)
+    target_link_libraries(uno_server PRIVATE uno_testing)
+endif()
 uno_set_warnings(uno_server)
+
+# Test doubles (SeededRandomSource): linked into the server only with UNO_ENABLE_TEST_HOOKS (SPEC §7.4).
+if(UNO_BUILD_TESTS OR UNO_ENABLE_TEST_HOOKS)
+    add_subdirectory(testing)
+endif()
 
 if(UNO_BUILD_TESTS)
     enable_testing()
-    # Test doubles (SeededRandomSource): never linked into the production binary (SPEC §7.4).
-    add_subdirectory(testing)
     add_subdirectory(tests)
 endif()

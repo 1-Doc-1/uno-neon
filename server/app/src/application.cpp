@@ -21,8 +21,9 @@ constexpr std::int64_t kReactionIntervalMillis = 2000;
 
 } // namespace
 
-Application::Application(MessageSink& sink, RoomRepository& rooms, core::RandomSource& random, const Clock& clock)
-    : sink_(&sink), rooms_(&rooms), random_(&random), clock_(&clock)
+Application::Application(MessageSink& sink, RoomRepository& rooms, core::RandomSource& random, const Clock& clock,
+                         Scheduler& scheduler, Timeouts timeouts)
+    : sink_(&sink), rooms_(&rooms), random_(&random), clock_(&clock), scheduler_(&scheduler), timeouts_(timeouts)
 {
 }
 
@@ -68,6 +69,7 @@ void Application::onDisconnected(ConnectionId connection)
     Session& session = sessions_.at(player->second);
     playerOfConnection_.erase(player);
     session.connection.reset();
+    scheduleSessionIdle(session);
     if (!session.room) {
         return;
     }
@@ -75,6 +77,7 @@ void Application::onDisconnected(ConnectionId connection)
         if (Member* const member = room->find(session.playerId)) {
             member->connected = false;
             spdlog::info("player {} disconnected from room {}", session.playerId.value, room->code.value);
+            startGraceTimer(*room, session.playerId);
             broadcastRoom(*room);
             if (room->phase == response::RoomPhase::InGame) {
                 broadcastGame(*room, {}, {core::PlayerDisconnectedEvent{.playerId = session.playerId}});
@@ -107,18 +110,16 @@ Application::Outcome Application::handle(ConnectionId connection, const request:
             sink_->close(previous, kCloseSessionTakenOver, "Session resumed on another connection");
         }
     } else {
-        Session created{
-            .token = generateSessionToken(*random_),
-            .playerId = generatePlayerId(*random_),
-            .connection = std::nullopt,
-            .room = std::nullopt,
-        };
+        Session created;
+        created.token = generateSessionToken(*random_);
+        created.playerId = generatePlayerId(*random_);
         playerOfToken_.emplace(created.token.value, created.playerId.value);
         const std::string playerKey = created.playerId.value;
         session = &sessions_.emplace(playerKey, std::move(created)).first->second;
     }
 
     session->connection = connection;
+    scheduler_->cancel(std::exchange(session->idleTimer, TimerHandle{}));
     playerOfConnection_.emplace(connection, session->playerId.value);
     queue(session->playerId, response::Welcome{
                                  .sessionToken = session->token,
@@ -130,6 +131,7 @@ Application::Outcome Application::handle(ConnectionId connection, const request:
         if (Room* const room = rooms_->find(*session->room)) {
             if (Member* const member = room->find(session->playerId)) {
                 member->connected = true;
+                scheduler_->cancel(std::exchange(room->graceTimers[session->playerId.value], TimerHandle{}));
                 spdlog::info("player {} reconnected to room {}", session->playerId.value, room->code.value);
                 broadcastRoom(*room);
                 if (room->phase == response::RoomPhase::InGame) {
@@ -252,20 +254,8 @@ Application::Outcome Application::handle(ConnectionId connection, const request:
     if (!room) {
         return std::unexpected(room.error());
     }
-    // Leaving a running match needs the engine to take a player out of a round: not before step 2.5.
-    if ((*room)->phase == response::RoomPhase::InGame) {
-        return fail(ErrorCode::MatchInProgress, "You cannot leave while a match is running");
-    }
-
-    (*room)->remove((*session)->playerId);
-    (*session)->room.reset();
     spdlog::info("player {} left room {}", (*session)->playerId.value, (*room)->code.value);
-    if ((*room)->members.empty()) {
-        spdlog::info("room {} closed: empty", (*room)->code.value);
-        rooms_->remove((*room)->code);
-    } else {
-        broadcastRoom(**room);
-    }
+    removeFromRoom(**room, (*session)->playerId);
     return Reply::Ack;
 }
 
@@ -326,12 +316,8 @@ Application::Outcome Application::handle(ConnectionId connection, const request:
     }
 
     queue(request.playerId, response::RoomClosed{response::RoomClosedReason::Kicked});
-    (*room)->remove(request.playerId);
-    if (const auto kicked = sessions_.find(request.playerId.value); kicked != sessions_.end()) {
-        kicked->second.room.reset();
-    }
     spdlog::info("player {} kicked from room {}", request.playerId.value, (*room)->code.value);
-    broadcastRoom(**room);
+    removeFromRoom(**room, request.playerId);
     return Reply::Ack;
 }
 
@@ -403,6 +389,7 @@ Application::Outcome Application::startMatch(Room& room)
     room.match = std::move(started->match);
     room.phase = response::RoomPhase::InGame;
     room.readyForNextRound.clear();
+    room.formerNicknames.clear();
     spdlog::info("room {}: match started with {} players", room.code.value, room.members.size());
     broadcastRoom(room);
     broadcastGame(room, started->events);
@@ -431,15 +418,15 @@ Application::Outcome Application::handle(ConnectionId connection, const request:
     if (std::cmp_less(connectedCount, core::kMinPlayers)) {
         return fail(ErrorCode::NotEnoughPlayers, "At least two connected players are needed");
     }
-    std::erase_if((*room)->members, [this](const Member& member) {
-        if (member.connected) {
-            return false;
+    std::vector<core::PlayerId> absent;
+    for (const Member& member : (*room)->members) {
+        if (!member.connected) {
+            absent.push_back(member.id);
         }
-        if (const auto gone = sessions_.find(member.id.value); gone != sessions_.end()) {
-            gone->second.room.reset();
-        }
-        return true;
-    });
+    }
+    for (const core::PlayerId& player : absent) {
+        removeFromRoom(**room, player);
+    }
     return startMatch(**room);
 }
 
@@ -461,20 +448,7 @@ Application::Outcome Application::handle(ConnectionId connection, const request:
     }
 
     current.readyForNextRound.insert((*session)->playerId);
-    const bool everyoneReady = std::ranges::all_of(current.members, [&current](const Member& member) {
-        return !member.connected || current.readyForNextRound.contains(member.id);
-    });
-    std::vector<core::DomainEvent> events;
-    if (everyoneReady) {
-        auto next = current.match->startNextRound(*random_);
-        if (!next) {
-            spdlog::error("room {}: the engine refused to deal the next round", current.code.value);
-            return fail(ErrorCode::InvalidPhase, "The next round could not be dealt");
-        }
-        events = std::move(*next);
-        current.readyForNextRound.clear();
-    }
-    broadcastGame(current, events);
+    startNextRoundIfDue(current, false);
     return Reply::Ack;
 }
 
@@ -573,12 +547,7 @@ Application::Outcome Application::play(ConnectionId connection, const core::Play
         return engineFailure(events.error());
     }
 
-    broadcastGame(current, *events);
-    if (current.match->winner()) {
-        current.phase = response::RoomPhase::MatchOver;
-        spdlog::info("room {}: match over", current.code.value);
-        broadcastRoom(current);
-    }
+    afterMatchChange(current, *events);
     return Reply::Ack;
 }
 
@@ -597,6 +566,7 @@ void Application::queue(const core::PlayerId& player, response::Message message)
 
 void Application::broadcastRoom(Room& room)
 {
+    scheduleRoomExpiry(room);
     ++room.version;
     for (const Member& member : room.members) {
         queue(member.id, response::RoomUpdate{.roomVersion = room.version, .room = room.view()});
@@ -611,6 +581,7 @@ void Application::broadcastGame(Room& room, std::span<const core::DomainEvent> e
     }
     const core::Match& match = *room.match;
     ++room.stateVersion;
+    armGameTimers(room);
     const std::int64_t serverTime = clock_->nowMillis();
     for (const Member& member : room.members) {
         auto projected = core::project(events, member.id, match.round(), match.roundNumber());
@@ -628,17 +599,29 @@ response::GameView Application::viewOf(const Room& room, const core::Match& matc
     response::GameView view;
     view.stateVersion = room.stateVersion;
     view.settings = room.settings;
+    view.turnDeadline = room.turnDeadline;
+    view.nextRoundDeadline = room.nextRoundDeadline;
     // The viewer is a member of a room whose match is running: the engine knows them.
     if (auto projected = core::project(match, viewer)) {
         view.game = std::move(*projected);
     }
-    for (const Member& member : room.members) {
+    // One entry per seat of the engine, in seat order. A player who left a match of two leaves a seat behind (the
+    // match ended by forfeit): the view still names it.
+    for (const core::SeatView& seat : view.game.players) {
+        const Member* const member = room.find(seat.playerId);
+        const auto former = room.formerNicknames.find(seat.playerId.value);
+        std::string nickname;
+        if (member != nullptr) {
+            nickname = member->nickname;
+        } else if (former != room.formerNicknames.end()) {
+            nickname = former->second;
+        }
         view.seats.push_back(response::SeatInfo{
-            .nickname = member.nickname,
-            .isConnected = member.connected,
+            .nickname = std::move(nickname),
+            .isConnected = member != nullptr && member->connected,
             .isBot = false,
-            .isHost = room.isHost(member.id),
-            .isReadyForNextRound = room.readyForNextRound.contains(member.id),
+            .isHost = room.isHost(seat.playerId),
+            .isReadyForNextRound = room.readyForNextRound.contains(seat.playerId),
         });
     }
     return view;

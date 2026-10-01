@@ -9,7 +9,9 @@
 #include "uno/testing/legal_actions.hpp"
 
 #include "support/app_harness.hpp"
+#include "support/app_table.hpp"
 #include "support/require.hpp"
+#include "support/wire_leak.hpp"
 #include <catch2/catch_test_macros.hpp>
 #include <nlohmann/json.hpp>
 
@@ -29,166 +31,24 @@ namespace {
 namespace core = uno::core;
 using namespace uno::app;
 using uno::testing::AppHarness;
-using uno::testing::require;
+using uno::testing::ofType;
+using uno::testing::refusal;
+using uno::testing::requireWireLeaksNothing;
+using uno::testing::Table;
 using uno::testing::TestPlayer;
-
+using uno::testing::toRequest;
 using Messages = std::vector<response::Message>;
 
-template <typename T>
-std::vector<T> ofType(const Messages& messages)
+// Serializing and reading back every update of a long match is slow: this checks one in `stride`, and the last. The
+// simulation of the engine checks every step of thousands of matches; the sockets test checks every update of two.
+void requireNoLeakInUpdates(const TestPlayer& player, std::size_t stride = 9)
 {
-    std::vector<T> found;
-    for (const auto& message : messages) {
-        if (const auto* typed = std::get_if<T>(&message)) {
-            found.push_back(*typed);
-        }
+    const auto updates = player.all<response::GameUpdate>();
+    for (std::size_t index = 0; index < updates.size(); index += stride) {
+        requireWireLeaksNothing(updates.at(index), player.id());
     }
-    return found;
-}
-
-std::optional<ErrorCode> refusal(const Messages& messages)
-{
-    const auto errors = ofType<response::Error>(messages);
-    return errors.empty() ? std::nullopt : std::optional<ErrorCode>(errors.front().code);
-}
-
-// A room of `count` players, everyone ready, in the lobby.
-struct Table {
-    explicit Table(std::size_t count, std::uint64_t seed = 7, core::MatchLength length = core::MatchLength::SingleRound)
-        : harness(seed)
-    {
-        players.push_back(harness.helloPlayer());
-        players.front().send(request::CreateRoom{.nickname = "Player0", .settings = patch(length)});
-        code = players.front().room().code;
-        for (std::size_t index = 1; index < count; ++index) {
-            players.push_back(harness.helloPlayer());
-            players.back().send(request::JoinRoom{.code = code, .nickname = "Player" + std::to_string(index)});
-            players.back().send(request::SetReady{.ready = true});
-        }
-        clearInboxes();
-    }
-
-    static RoomSettingsPatch patch(core::MatchLength length)
-    {
-        RoomSettingsPatch settings;
-        settings.matchLength = length;
-        return settings;
-    }
-
-    void clearInboxes()
-    {
-        for (auto& player : players) {
-            static_cast<void>(player.received());
-        }
-    }
-
-    void start() { players.front().send(request::StartMatch{}); }
-
-    Room& room() { return *require(std::optional<Room*>(harness.rooms.find(code))); }
-
-    TestPlayer& playerWithId(const core::PlayerId& id)
-    {
-        return *std::ranges::find_if(players, [&id](const TestPlayer& player) { return player.id() == id; });
-    }
-
-    TestPlayer& currentPlayer() { return playerWithId(room().match->round().currentPlayer()); }
-
-    AppHarness harness;
-    std::vector<TestPlayer> players;
-    RoomCode code;
-};
-
-request::Body toRequest(const core::PlayerAction& action)
-{
-    return std::visit(
-        [](const auto& typed) -> request::Body {
-            using Action = std::decay_t<decltype(typed)>;
-            if constexpr (std::is_same_v<Action, core::PlayCard>) {
-                return request::PlayCard{
-                    .cardId = typed.cardId,
-                    .chosenColor = typed.chosenColor,
-                    .swapTargetId = std::nullopt,
-                };
-            } else if constexpr (std::is_same_v<Action, core::DrawCard>) {
-                return request::DrawCard{};
-            } else if constexpr (std::is_same_v<Action, core::Pass>) {
-                return request::Pass{};
-            } else if constexpr (std::is_same_v<Action, core::ChooseColor>) {
-                return request::ChooseColor{.color = typed.color};
-            } else if constexpr (std::is_same_v<Action, core::RespondPenalty>) {
-                return request::RespondPenalty{.response = typed.response};
-            } else if constexpr (std::is_same_v<Action, core::CallUno>) {
-                return request::CallUno{};
-            } else {
-                return request::CatchUno{.targetId = typed.target};
-            }
-        },
-        action);
-}
-
-// Every card id the JSON of a message shows: every object that has the three fields of a card, plus the
-// ids listed in playableCardIds.
-void collectCardIds(const nlohmann::json& json, std::set<std::int64_t>& ids)
-{
-    if (json.is_object()) {
-        if (json.contains("id") && json.contains("color") && json.contains("rank")) {
-            ids.insert(json.at("id").get<std::int64_t>());
-        }
-        if (json.contains("playableCardIds")) {
-            for (const auto& id : json.at("playableCardIds")) {
-                ids.insert(id.get<std::int64_t>());
-            }
-        }
-        for (const auto& [key, value] : json.items()) {
-            collectCardIds(value, ids);
-        }
-    } else if (json.is_array()) {
-        for (const auto& element : json) {
-            collectCardIds(element, ids);
-        }
-    }
-}
-
-// Security invariant 2 on the wire: whatever the server sent `viewer`, serialized, shows no card they are
-// not entitled to see: their hand, the top of the pile, the hands of a finished round, a hand revealed to
-// them by their own challenge.
-void requireWireLeaksNothing(const response::GameUpdate& update, const core::PlayerId& viewer)
-{
-    const auto json = nlohmann::json::parse(uno::net::encodeServerMessage(update));
-    std::set<std::int64_t> shown;
-    collectCardIds(json, shown);
-
-    std::set<std::int64_t> entitled;
-    for (const auto& card : update.view.game.me.hand) {
-        entitled.insert(card.id.value);
-    }
-    entitled.insert(update.view.game.discardTop.id.value);
-    if (update.view.game.roundResult) {
-        for (const auto& revealed : update.view.game.roundResult->revealedHands) {
-            for (const auto& card : revealed.cards) {
-                entitled.insert(card.id.value);
-            }
-        }
-    }
-    for (const auto& event : update.events) {
-        if (const auto* challenge = std::get_if<core::ChallengeResolvedEvent>(&event)) {
-            REQUIRE((challenge->challengerId == viewer) == challenge->revealedHand.has_value());
-            for (const auto& card : challenge->revealedHand.value_or(std::vector<core::Card>{})) {
-                entitled.insert(card.id.value);
-            }
-        }
-        if (const auto* drawn = std::get_if<core::CardsDrawnEvent>(&event)) {
-            REQUIRE((drawn->playerId == viewer) == drawn->cards.has_value());
-        }
-    }
-    const bool onlyEntitled = std::ranges::all_of(shown, [&](std::int64_t id) { return entitled.contains(id); });
-    REQUIRE(onlyEntitled);
-}
-
-void requireNoLeakInUpdates(TestPlayer& player)
-{
-    for (const auto& update : player.all<response::GameUpdate>()) {
-        requireWireLeaksNothing(update, player.id());
+    if (!updates.empty()) {
+        requireWireLeaksNothing(updates.back(), player.id());
     }
 }
 
@@ -459,15 +319,4 @@ TEST_CASE("A disconnection during a match is announced, and the return resynchro
     const auto announced = table.players.at(0).last<response::GameUpdate>().value();
     REQUIRE(std::holds_alternative<core::PlayerReconnectedEvent>(announced.events.back()));
     requireWireLeaksNothing(resync, leaver.id());
-}
-
-TEST_CASE("Leaving a running match is not possible yet", "[app][match]")
-{
-    Table table(2);
-    table.start();
-    table.clearInboxes();
-
-    table.players.back().send(request::LeaveRoom{});
-
-    REQUIRE(refusal(table.players.back().received()) == ErrorCode::MatchInProgress);
 }

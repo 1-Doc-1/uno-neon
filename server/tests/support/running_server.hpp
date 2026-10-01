@@ -107,7 +107,7 @@ public:
     }
 
     [[nodiscard]] bool waitForDisconnections(unsigned count,
-                                             std::chrono::milliseconds timeout = std::chrono::seconds(5)) const
+                                             std::chrono::milliseconds timeout = std::chrono::seconds(2)) const
     {
         std::unique_lock lock(mutex_);
         return changed_.wait_for(lock, timeout, [&] { return disconnected_ >= count; });

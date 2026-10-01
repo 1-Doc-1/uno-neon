@@ -49,7 +49,6 @@ using uno::core::RoundEnded;
 using uno::core::RoundOver;
 using uno::testing::allCardIds;
 using uno::testing::legalActionsOfCurrentPlayer;
-using uno::testing::player;
 using uno::testing::players;
 using uno::testing::requireEventsLeakNothing;
 using uno::testing::requireRoundInvariants;
@@ -60,8 +59,9 @@ namespace {
 
 constexpr std::size_t kActionLimit = 200'000; // a match that lasts longer is a livelock
 constexpr std::uint32_t kOutOfTurnPercent = 15;
+constexpr std::uint32_t kRemovalPerMille = 4; // a player leaves for good, now and then
 constexpr std::uint32_t kPercent = 100;
-constexpr std::uint32_t kDefaultGames = 50;
+constexpr std::uint32_t kDefaultGames = 20;     // keeps a local run under 2 s; the CI runs 100, the weekly job 10 000
 constexpr std::uint32_t kSomeCardIdBound = 120; // a little above the 108 ids in play, to miss on purpose
 constexpr std::uint32_t kColorCount = 4;
 
@@ -94,7 +94,7 @@ constexpr std::uint32_t kColorCount = 4;
 
 class Simulation {
 public:
-    explicit Simulation(std::uint64_t seed) : seed_{seed}, random_{seed}, match_{startMatch(seed, random_)} {}
+    explicit Simulation(std::uint64_t seed) : random_{seed}, match_{startMatch(seed, random_)} {}
 
     void run()
     {
@@ -102,6 +102,7 @@ public:
         while (!match_.winner().has_value()) {
             REQUIRE(++actions < kActionLimit);
             playOneAction();
+            removeSomeoneSometimes();
             startNextRoundIfOver();
         }
         requireScoresAddUp();
@@ -112,7 +113,30 @@ public:
 private:
     [[nodiscard]] std::uint32_t pick(std::size_t bound) { return random_.uniform(static_cast<std::uint32_t>(bound)); }
 
-    [[nodiscard]] PlayerId anyPlayer() { return player(pick(playerCountFor(seed_))); }
+    [[nodiscard]] PlayerId anyPlayer()
+    {
+        const auto seats = match_.round().seats();
+        return seats[pick(seats.size())]; // NOLINT(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
+    }
+
+    // Someone leaves the match for good: the engine must stay consistent, and with two players left it ends by forfeit.
+    void removeSomeoneSometimes()
+    {
+        if (match_.winner().has_value() || pick(1000) >= kRemovalPerMille) {
+            return;
+        }
+        const auto leaver = anyPlayer();
+        const bool forfeit = match_.round().seats().size() == 2;
+        const auto leaverScore = match_.score(leaver);
+        REQUIRE(leaverScore.has_value());
+        const auto result = match_.removePlayer(leaver, random_);
+        REQUIRE(result.has_value());
+        if (!forfeit) {
+            removedPoints_ += *leaverScore;
+        }
+        checkState();
+        checkEvents(*result);
+    }
 
     void playOneAction()
     {
@@ -207,13 +231,13 @@ private:
         for (const auto& score : match_.progress().scores) {
             total += score;
         }
-        REQUIRE(total == pointsScored_);
+        REQUIRE(total + removedPoints_ == pointsScored_);
     }
 
-    std::uint64_t seed_;
     SeededRandomSource random_;
     Match match_;
     std::uint64_t pointsScored_{0};
+    std::uint64_t removedPoints_{0}; // scores that left the match with the players who left
 };
 
 } // namespace

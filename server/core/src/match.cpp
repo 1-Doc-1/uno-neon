@@ -99,6 +99,30 @@ std::expected<std::vector<DomainEvent>, DomainError> Match::startNextRound(Rando
     return std::move(started->events);
 }
 
+std::expected<std::vector<DomainEvent>, DomainError> Match::removePlayer(const PlayerId& player, RandomSource& random)
+{
+    if (progress_.winner.has_value()) {
+        return std::unexpected{DomainError::InvalidPhase};
+    }
+    const auto seats = round_.seats();
+    const auto leaving = std::ranges::find(seats, player);
+    if (leaving == seats.end()) {
+        return std::unexpected{DomainError::UnknownPlayer};
+    }
+    const auto seat = static_cast<std::size_t>(std::distance(seats.begin(), leaving));
+
+    if (seats.size() <= kMinPlayers) {
+        const PlayerId stays = *std::next(seats.begin(), static_cast<std::ptrdiff_t>(1 - seat));
+        progress_.winner = stays;
+        return std::vector<DomainEvent>{MatchEnded{.winner = stays}};
+    }
+    auto events = round_.removePlayer(player, random);
+    if (events) {
+        progress_.scores.erase(progress_.scores.begin() + static_cast<std::ptrdiff_t>(seat));
+    }
+    return events;
+}
+
 std::expected<std::uint32_t, DomainError> Match::score(const PlayerId& player) const
 {
     const auto seats = round_.seats();

@@ -13,7 +13,7 @@ foi pour ces points.
 | # | Sujet | SPEC | Protocole v1 | Pourquoi |
 |---|---|---|---|---|
 | 1 | Joker retourné en première carte | « le premier joueur choisit la couleur » (§3), mais aucun moyen de le faire sans jouer (§7.3) ; §4 évoque un « choix de couleur en attente » | phase `awaitingColorChoice`, message `game.chooseColor { color }` réservé à ce cas, `currentColor: Color \| null`, `me.canChooseColor` | Règle officielle respectée, contradiction levée, état explicite dans le contrat |
-| 2 | Passage à la manche suivante | non spécifié (§12.3 prévoit un bouton « Manche suivante ») | message `match.readyForNextRound` ; la manche démarre quand tous les joueurs **connectés** l'ont envoyé, ou à `nextRoundDeadline` (15 s) ; `players[].isReadyForNextRound` | Le bouton de l'UI a un effet, et un joueur absent ne bloque jamais la table |
+| 2 | Passage à la manche suivante | non spécifié (§12.3 prévoit un bouton « Manche suivante ») | message `match.readyForNextRound` ; la manche démarre quand tous les joueurs **connectés** l'ont envoyé, ou à `nextRoundDeadline` (30 s, porté de 15 à 30 s à l'étape 2.5 ; le bouton « Prêt » permet de démarrer plus tôt) ; `players[].isReadyForNextRound` | Le bouton de l'UI a un effet, et un joueur absent ne bloque jamais la table |
 | 3 | Durée de partie | `scoreTarget: 250 \| 500 \| "singleRound"` | `matchLength: "singleRound" \| "to250" \| "to500"` (C++ : `enum class MatchLength` + `targetPoints()`) | Pas d'union nombre/chaîne : un seul type énuméré des deux côtés |
 | 4 | `RoomView`, `RoomSettings` | utilisés mais non décrits | définis dans `room-view.schema.json` et `common.schema.json` | Manque de la SPEC |
 | 5 | Main révélée lors d'une contestation du +4 | « seul le contestataire voit la main » | champ `revealedHand` de l'événement `challengeResolved`, présent seulement dans la projection du contestataire | Même principe que `cardsDrawn.cards` : la projection filtre |
@@ -26,6 +26,6 @@ foi pour ces points.
 | 12 | Payload vide | `{}` | objet sans aucune propriété autorisée (`Record<string, never>` en TS) | Un champ inattendu est une erreur, comme ailleurs |
 
 ## Conséquences
-- Le moteur (phase 1) doit gérer `AwaitingColorChoice`, le délai de 15 s entre deux manches et `MatchLength`.
+- Le moteur (phase 1) doit gérer `AwaitingColorChoice`, le délai de 30 s entre deux manches (15 s à l'origine, voir la ligne 2) et `MatchLength`.
 - Les écrans (phase 3) disposent de `canChooseColor`, `isReadyForNextRound` et `nextRoundDeadline`.
 - Toute autre évolution du protocole passe par une nouvelle ADR et une nouvelle version d'exemple.

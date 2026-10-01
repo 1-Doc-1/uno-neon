@@ -261,7 +261,7 @@ std::optional<HttpResponse> httpGet(std::uint16_t port, std::string_view path)
     if (!connection->sendAll(request)) {
         return std::nullopt;
     }
-    const auto deadline = Clock::now() + std::chrono::seconds(5);
+    const auto deadline = Clock::now() + std::chrono::seconds(2);
     // `Connection: close`: the response ends when the server closes.
     while (connection->fill(deadline) == ReadResult::Data) {
     }
@@ -300,7 +300,7 @@ std::optional<TestWebSocket> TestWebSocket::connect(std::uint16_t port, std::str
     if (!connection->sendAll(request)) {
         return std::nullopt;
     }
-    const auto answer = readStatus(*connection, Clock::now() + std::chrono::seconds(5));
+    const auto answer = readStatus(*connection, Clock::now() + std::chrono::seconds(2));
     if (!answer) {
         return std::nullopt;
     }

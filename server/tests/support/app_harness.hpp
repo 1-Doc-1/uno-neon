@@ -15,6 +15,8 @@
 #include <cstdint>
 #include <deque>
 #include <optional>
+#include <ranges>
+#include <span>
 #include <string>
 #include <utility>
 #include <variant>
@@ -62,7 +64,10 @@ private:
 
 class AppHarness {
 public:
-    explicit AppHarness(std::uint64_t seed = 7) : random(seed), application(sink, rooms, random, clock) {}
+    explicit AppHarness(std::uint64_t seed = 7)
+        : random(seed), scheduler(clock), application(sink, rooms, random, clock, scheduler)
+    {
+    }
 
     TestPlayer connect()
     {
@@ -81,6 +86,7 @@ public:
 
     SeededRandomSource random;
     ManualClock clock;
+    ManualScheduler scheduler;
     app::InMemoryRoomRepository rooms;
     RecordingSink sink;
     app::Application application;
@@ -107,18 +113,31 @@ inline std::string TestPlayer::send(app::request::Body body)
 
 inline std::vector<app::response::Message> TestPlayer::received()
 {
-    auto messages = harness_->sink.to(connection_);
-    std::vector<app::response::Message> fresh(messages.begin() + static_cast<std::ptrdiff_t>(consumed_),
-                                              messages.end());
-    consumed_ = messages.size();
+    // Only what was sent since the last call: a long match sends thousands of messages, and copying them all at each
+    // step would make the tests quadratic.
+    const auto& sent = harness_->sink.sent;
+    std::vector<app::response::Message> fresh;
+    for (const auto& entry : std::span(sent).subspan(consumed_)) {
+        if (entry.connection == connection_) {
+            fresh.push_back(entry.message);
+        }
+    }
+    consumed_ = sent.size();
     return fresh;
 }
 
 template <typename T>
 std::optional<T> TestPlayer::last() const
 {
-    const auto found = harness_->sink.of<T>(connection_);
-    return found.empty() ? std::nullopt : std::optional<T>(found.back());
+    const auto& sent = harness_->sink.sent;
+    for (const auto& entry : std::views::reverse(sent)) {
+        if (entry.connection == connection_) {
+            if (const auto* typed = std::get_if<T>(&entry.message)) {
+                return *typed;
+            }
+        }
+    }
+    return std::nullopt;
 }
 
 template <typename T>

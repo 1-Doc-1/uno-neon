@@ -3,7 +3,7 @@
 > Tenu à jour par Claude Code à la fin de chaque étape. Les cases cochées = build + tests + lint verts.
 > Format d'une entrée de journal : `AAAA-MM-JJ — phase.étape — résumé — branche/PR`.
 
-## Phase en cours : 1 — Cœur du jeu (phase 0 terminée : PR #2 fusionnée)
+## Phase en cours : 3 — UI minimale (phases 0, 1 et 2 terminées)
 
 > Cap : un **MVP jouable au plus tôt**. Ordre d'exécution ci-dessous (les numéros d'étape sont conservés pour la traçabilité). Les phases 3 et 4 sont d'abord faites en version minimale ; le polish (animations, galerie, responsive fin, accessibilité poussée, E2E) vient après le MVP.
 
@@ -33,8 +33,8 @@
 - [x] 2.2 Codec JSON + validation stricte + erreurs typées
 - [x] 2.3 Sessions, salons, codes, hôte, paramètres
 - [x] 2.4 Démarrage de partie, diffusion des vues et des événements (inclut la projection `DomainEvent` → `ClientEvent` et son test anti-fuite, reportés de 1.7 : ADR 0013)
-- [ ] 2.5 Timers (tour, reconnexion, salons inactifs), rate limiting
-- [ ] 2.6 Tests d'intégration (clients WebSocket de test)
+- [x] 2.5 Timers (tour, reconnexion, salons inactifs), rate limiting
+- [x] 2.6 Tests d'intégration (clients WebSocket de test)
 
 #### Phase 3 — UI minimale (Angular)
 - [ ] 3.1 Tokens, typographies, fond, surfaces « verre », glow (version minimale)
@@ -85,6 +85,7 @@
 - [0013 — Projection `PlayerView` : périmètre du cœur et test anti-fuite](adr/0013-player-view-projection.md)
 - [0014 — Couche réseau : modèle de messages dans `app`, limites du transport, client de test sans dépendance](adr/0014-network-layer.md)
 - [0015 — Projection des événements : `ClientEvent`, projetés par lot contre l'état d'après](adr/0015-event-projection.md)
+- [0016 — Le temps et les départs : timers, retrait d'un joueur, limitation de débit, options de test](adr/0016-time-and-departures.md)
 
 ## Journal
 - 2026-09-30 — 0.1 — arborescence du monorepo, `.editorconfig`, README, modèle d'ADR, BOM retiré de `.gitattributes` — `chore/phase-0-foundations`
@@ -110,3 +111,6 @@
 - 2026-10-01 — 2.1 — `WebSocketServer` uWebSockets mono-thread (`/ws`, `GET /health`, 404 ailleurs), `OriginPolicy` (liste exacte, `Origin` absent refusé), messages > 4 Kio : 1009, > 8 Kio coupés par le transport, binaire : 1003, 10 messages mal formés : 1008, `UNO_ALLOWED_ORIGINS`/`UNO_LOG_LEVEL`, arrêt propre sur SIGINT/SIGTERM, port exclusif ; client HTTP/WebSocket de test sur sockets bruts (aucune dépendance vcpkg, ADR 0014) et 12 tests d'intégration sur un vrai serveur ; un test a révélé qu'un entier non signé sous le minimum passait la validation (corrigé) — `feat/net-server-and-codec`
 - 2026-10-01 — 2.3 — ports de `uno_app` (`ConnectionHandler` déplacé depuis `uno_net`, `MessageSink`, `Clock`) et `Application` : sessions (jeton de 132 bits, reprise, la connexion la plus récente gagne, ancienne fermée en 4000), salons (code non ambigu, hôte, prêt, exclusion, paramètres, départ avec passage de l'hôte au joueur connecté suivant, `RoomRepository` en mémoire), pseudos (UTF-8 strict, 2 à 16 caractères, collision insensible à la casse), réactions limitées à 1 par 2 s ; l'`ack` part toujours avant les messages qu'il provoque, une requête refusée ne notifie personne ; codec de `session.welcome`, `room.update`, `reaction`, `room.closed` (les 4 exemples serveur rejoués), `SystemClock`, `ServerMessageSink`, câblage de `main.cpp`. Décisions : l'hôte compte comme prêt (lancer la partie est sa façon de l'être) ; les options maison sont refusées en `INVALID_SETTINGS` tant que 1.6 n'existe pas ; quitter un salon pendant une partie est refusé (`MATCH_IN_PROGRESS`) jusqu'à 2.5, qui saura retirer un joueur d'une manche — `feat/rooms-and-game-broadcast`
 - 2026-10-01 — 2.4 — démarrage de partie (hôte, ≥ 2 joueurs, tous prêts), actions → `Match::apply` avec traduction des `DomainError` en codes du protocole, diffusion à chaque joueur d'un `game.update` (événements projetés pour lui + sa vue, `stateVersion` consécutif), manche suivante quand tous les connectés sont prêts, fin de partie → salon `matchOver`, revanche (mêmes joueurs connectés, scores à zéro, `stateVersion` poursuivi), déconnexion/reconnexion annoncées et reprise par une vue complète ; cœur : `ClientEvent` (19 sortes) et `project(span<DomainEvent>, viewer, roundAfter, round)` — `ChallengeResolved.revealedHand` pour le seul contestataire, cartes de `CardsDrawn`/`PenaltyCardsDrawn` pour le seul joueur qui pioche (ADR 0015) ; test anti-fuite des événements dans la simulation massive, tests ciblés, et test de manches entières par requêtes qui vérifie le JSON sérialisé de chaque `game.update` ; codec complet des vues et événements (les 10 exemples `server.game.update.*` rejoués : tous les exemples du protocole sont désormais couverts) — `feat/rooms-and-game-broadcast`
+- 2026-10-01 — chore — `linux-check.sh` borne son parallélisme (`CMAKE_BUILD_PARALLEL_LEVEL`, `VCPKG_MAX_CONCURRENCY` = min(cœurs, mémoire disponible / 2 Go), au moins 1) : Ninja lançait un job par cœur, la compilation ASan saturait la mémoire — `feat/rooms-and-game-broadcast`
+- 2026-10-01 — 2.5 — retrait d'un joueur dans le moteur (`TurnOrder::remove`, `Round::removePlayer`, `Match::removePlayer` : cartes sous la pioche, tour/pénalité/couleur gérés, forfait à deux joueurs ; la simulation retire des joueurs au hasard) ; port `Scheduler` (`UwsScheduler`, `ManualScheduler`) et `Timeouts` ; délai de grâce de 60 s (lobby et partie), expiration des salons (15 min en lobby, 5 min après la partie) et des sessions (10 min), minuteur de tour avec action automatique par `Match::apply` (pénalité acceptée, couleur au hasard, piocher puis passer ; la fenêtre UNO se ferme), manche suivante d'office après 30 s, `turnDeadline`/`nextRoundDeadline` dans les vues, quitter/exclure/expirer par un seul `removeFromRoom` (hôte transmis, `hostChanged`) ; limites de débit dans `uno_net` (seau par connexion, fenêtres par adresse pour création et jonction de salon, `UNO_TRUSTED_PROXY`) ; `UNO_ENABLE_TEST_HOOKS`/`UNO_TEST_SEED` à la compilation seulement, avec vérification en CI ; ADR 0016 — `feat/timers-and-integration`
+- 2026-10-01 — 2.6 — tests d'intégration sur un vrai serveur (câblage de production : aléatoire cryptographique, horloge système, timers uWebSockets) : parties complètes à 2 et à 3 joueurs jouées par sockets, chaque `game.update` reçu vérifié contre les fuites de cartes ; reprise de session avec fermeture de l'ancienne connexion (4000) ; déconnexion montrée au salon ; `SESSION_REQUIRED` ; `/health` ; limites de débit (par connexion, création, jonction) ; **la phase 2 est terminée** — `feat/timers-and-integration`

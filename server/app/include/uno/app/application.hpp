@@ -13,6 +13,7 @@
 #include "uno/core/player_id.hpp"
 #include "uno/core/random_source.hpp"
 
+#include <chrono>
 #include <cstdint>
 #include <expected>
 #include <optional>
@@ -24,6 +25,15 @@
 
 namespace uno::app {
 
+// How long the application waits before it acts on silence (SPEC §5, §9.3).
+struct Timeouts {
+    std::chrono::milliseconds reconnectGrace{std::chrono::seconds(60)};     // a disconnected player is removed
+    std::chrono::milliseconds lobbyInactivity{std::chrono::minutes(15)};    // an idle lobby closes
+    std::chrono::milliseconds matchOverInactivity{std::chrono::minutes(5)}; // a finished match closes
+    std::chrono::milliseconds sessionIdle{std::chrono::minutes(10)};        // a session nobody uses is forgotten
+    std::chrono::milliseconds nextRound{std::chrono::seconds(30)};          // the next round starts anyway
+};
+
 // The use cases of the server: sessions, rooms and (from step 2.4) matches. It reacts to what the
 // transport reports and answers through the MessageSink; it knows neither sockets nor JSON.
 //
@@ -33,7 +43,8 @@ namespace uno::app {
 class Application final : public ConnectionHandler {
 public:
     // All dependencies are injected and must outlive the application.
-    Application(MessageSink& sink, RoomRepository& rooms, core::RandomSource& random, const Clock& clock);
+    Application(MessageSink& sink, RoomRepository& rooms, core::RandomSource& random, const Clock& clock,
+                Scheduler& scheduler, Timeouts timeouts = {});
 
     void onConnected(ConnectionId connection) override;
     void onRequest(ConnectionId connection, request::Envelope request) override;
@@ -54,6 +65,7 @@ private:
         core::PlayerId playerId;
         std::optional<ConnectionId> connection;
         std::optional<RoomCode> room;
+        TimerHandle idleTimer; // forgets the session when nobody comes back
     };
 
     [[nodiscard]] static std::unexpected<Failure> fail(ErrorCode code, std::string message,
@@ -104,10 +116,35 @@ private:
                                                    const core::PlayerId& viewer);
     void flush();
 
+    // ---- membership ----
+    // Takes a player out of their room for good, and out of the match if one is running (leave, kick, or a grace
+    // period that ran out): hands the host role over, tells the others, closes the room when nobody is left.
+    void removeFromRoom(Room& room, const core::PlayerId& player);
+    // Applies the consequences of a change of the match: the room phase, the broadcast, the timers.
+    void afterMatchChange(Room& room, std::span<const core::DomainEvent> events,
+                          const std::vector<core::ClientEvent>& extraEvents = {});
+    // Starts the next round when every connected player is ready (or the deadline passed, with `force`).
+    void startNextRoundIfDue(Room& room, bool force);
+
+    // ---- timers (application_lifecycle.cpp) ----
+    void scheduleRoomExpiry(Room& room);
+    void armGameTimers(Room& room);
+    void startGraceTimer(Room& room, const core::PlayerId& player);
+    void scheduleSessionIdle(Session& session);
+    // Cancels the timers of a room, forgets it and frees its members; `reason` tells them why, if given.
+    void destroyRoom(Room& room, std::optional<response::RoomClosedReason> reason);
+    void onRoomExpired(const RoomCode& code);
+    void onTurnExpired(const RoomCode& code, std::uint64_t stateVersion);
+    void onNextRoundDue(const RoomCode& code, std::uint64_t stateVersion);
+    void onGraceExpired(const RoomCode& code, const core::PlayerId& player);
+    void onSessionIdle(const core::PlayerId& player);
+
     MessageSink* sink_;
     RoomRepository* rooms_;
     core::RandomSource* random_;
     const Clock* clock_;
+    Scheduler* scheduler_;
+    Timeouts timeouts_;
 
     std::unordered_map<std::string, Session> sessions_; // by player id
     std::unordered_map<std::string, std::string> playerOfToken_;
