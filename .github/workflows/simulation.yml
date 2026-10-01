@@ -1,0 +1,59 @@
+# Simulation massive : 10 000 parties aléatoires en release (invariants + test anti-fuite).
+# Hors du CI des PR (qui n'en lance que 100) : déclenchement manuel ou chaque lundi.
+name: Simulation
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * 1"
+
+permissions:
+  contents: read
+
+env:
+  # Même commit que la builtin-baseline de server/vcpkg.json.
+  VCPKG_COMMIT: 4cb050be2cfa7a947cdd2dd1a70e24b17774c979
+
+jobs:
+  simulation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      CC: gcc-14
+      CXX: g++-14
+      VCPKG_ROOT: ${{ github.workspace }}/../vcpkg
+      VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}/.vcpkg-cache,readwrite
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            ninja-build g++-14 autoconf autoconf-archive automake libtool pkg-config
+
+      - name: Restore vcpkg binary cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ github.workspace }}/.vcpkg-cache
+          key: vcpkg-linux-simulation-${{ env.VCPKG_COMMIT }}-${{ hashFiles('server/vcpkg.json') }}
+          restore-keys: vcpkg-linux-simulation-${{ env.VCPKG_COMMIT }}-
+
+      - name: Install vcpkg
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/.vcpkg-cache"
+          git clone --filter=blob:none https://github.com/microsoft/vcpkg "$VCPKG_ROOT"
+          git -C "$VCPKG_ROOT" checkout "$VCPKG_COMMIT"
+          "$VCPKG_ROOT/bootstrap-vcpkg.sh" -disableMetrics
+
+      - name: Configure and build (release)
+        working-directory: server
+        run: |
+          cmake --preset release
+          cmake --build --preset release
+
+      - name: Simulate 10 000 games
+        working-directory: server
+        env:
+          UNO_SIMULATION_GAMES: "10000"
+        run: build/release/tests/uno_tests "[simulation]"
