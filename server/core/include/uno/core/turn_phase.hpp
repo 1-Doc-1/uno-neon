@@ -29,9 +29,11 @@ struct AwaitingColorChoice {
 };
 
 // A Wild Draw Four was just played: the turn has already moved to the targeted player (SPEC §3),
-// who must accept the penalty or challenge the card's legality (RespondPenalty). `wildDrawFourPlayer`
-// and `wasLegal` are recorded once, when the card is played, and never recomputed: the player who
-// posed it can no longer act while this phase lasts, so their hand cannot have changed in between.
+// who must accept the penalty or challenge the card's legality (RespondPenalty). `wasLegal` is
+// computed once, when the card is played, because legality is judged against the color that was
+// current *before* the poser chose a new one: at challenge time `currentColor_` is already the
+// chosen color, so recomputing then would give a wrong verdict (no red in hand but a blue card,
+// red current and blue chosen: legal, yet it would look illegal against blue).
 struct AwaitingPenaltyResponse {
     PlayerId wildDrawFourPlayer;
     bool wasLegal{};

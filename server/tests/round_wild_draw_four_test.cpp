@@ -313,3 +313,34 @@ TEST_CASE("A failed challenge still draws only as many cards as the piles can pr
     REQUIRE(round.currentPlayer() == player(0)); // only 2 players: skipping the target returns here
     requireRoundInvariants(round);
 }
+
+TEST_CASE("A Wild Draw Four is judged against the color current when it was played, not the chosen one",
+          "[core][round][wildDrawFour]")
+{
+    SeededRandomSource random{kSeed};
+    // Current color is Red and player(0) holds no Red: the +4 is legal, even though they keep Blue
+    // cards and choose Blue (judging against the newly chosen color would wrongly call it a bluff).
+    std::vector<Card> hand{wildCard(0, Rank::WildDrawFour)};
+    for (std::uint32_t id = 1; id < kHandSize; ++id) {
+        hand.push_back(coloredCard(id, Color::Blue, Rank::Six));
+    }
+    const auto top = coloredCard(40, Color::Red, Rank::Two);
+    const std::vector<Card> afterTop{
+        coloredCard(41, Color::Green, Rank::One),   coloredCard(42, Color::Green, Rank::Two),
+        coloredCard(43, Color::Green, Rank::Three), coloredCard(44, Color::Green, Rank::Four),
+        coloredCard(45, Color::Green, Rank::Five),  coloredCard(46, Color::Green, Rank::Six),
+    };
+    auto round =
+        startedRound({.seats = players(3), .dealer = player(2), .deck = deckFor(3, hand, top, afterTop)}, random);
+    const auto played = round.apply(player(0), PlayCard{.cardId = CardId{0}, .chosenColor = Color::Blue}, random);
+    REQUIRE(played.has_value());
+
+    const auto events = round.apply(player(1), RespondPenalty{.response = PenaltyResponse::Challenge}, random);
+
+    REQUIRE(events.has_value());
+    const auto* verdict = std::get_if<ChallengeResolved>(&events->front());
+    REQUIRE(verdict != nullptr);
+    REQUIRE_FALSE(verdict->wasBluff);
+    REQUIRE(verdict->penalizedPlayer == player(1));
+    REQUIRE(handOf(round, player(1)).size() == kHandSize + 6);
+}
