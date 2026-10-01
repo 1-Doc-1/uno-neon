@@ -23,6 +23,7 @@ add_executable(uno_tests
     random_test.cpp
     rate_limiter_test.cpp
     scoring_test.cpp
+    server_integration_test.cpp
     simulation_test.cpp
     match_test.cpp
     round_apply_test.cpp
