@@ -3,6 +3,7 @@
 #include "uno/core/card.hpp"
 #include "uno/core/player_id.hpp"
 
+#include <cstdint>
 #include <variant>
 
 namespace uno::core {
@@ -41,6 +42,17 @@ struct AwaitingPenaltyResponse {
     bool operator==(const AwaitingPenaltyResponse&) const = default;
 };
 
-using TurnPhase = std::variant<AwaitingPlay, AwaitingDrawnCardDecision, AwaitingColorChoice, AwaitingPenaltyResponse>;
+// A player played their last card (SPEC §3). `points` is what the winner scores: the value of every
+// card left in the other hands, counted after the penalty draw of a last Draw Two or Wild Draw Four.
+// Final for this round: every action is rejected with DomainError::InvalidPhase.
+struct RoundOver {
+    PlayerId winner;
+    std::uint32_t points{};
+
+    bool operator==(const RoundOver&) const = default;
+};
+
+using TurnPhase =
+    std::variant<AwaitingPlay, AwaitingDrawnCardDecision, AwaitingColorChoice, AwaitingPenaltyResponse, RoundOver>;
 
 } // namespace uno::core

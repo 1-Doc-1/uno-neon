@@ -4,6 +4,7 @@
 #include "uno/core/player_id.hpp"
 
 #include <cstddef>
+#include <cstdint>
 #include <variant>
 #include <vector>
 
@@ -113,8 +114,24 @@ struct UnoCaught {
     bool operator==(const UnoCaught&) const = default;
 };
 
-using DomainEvent =
-    std::variant<RoundStarted, CardPlayed, CardsDrawn, PenaltyCardsDrawn, DeckReshuffled, TurnPassed, PlayerSkipped,
-                 DirectionReversed, ColorChosen, TurnChanged, ChallengeResolved, UnoCalled, UnoCaught>;
+// A player played their last card: the round is over and `winner` scores `points` (see RoundOver).
+// Any penalty draw caused by that last card (Draw Two, Wild Draw Four) comes before this event.
+struct RoundEnded {
+    PlayerId winner;
+    std::uint32_t points{};
+
+    bool operator==(const RoundEnded&) const = default;
+};
+
+// The match is over: `winner` reached the target score (or won the single round).
+struct MatchEnded {
+    PlayerId winner;
+
+    bool operator==(const MatchEnded&) const = default;
+};
+
+using DomainEvent = std::variant<RoundStarted, CardPlayed, CardsDrawn, PenaltyCardsDrawn, DeckReshuffled, TurnPassed,
+                                 PlayerSkipped, DirectionReversed, ColorChosen, TurnChanged, ChallengeResolved,
+                                 UnoCalled, UnoCaught, RoundEnded, MatchEnded>;
 
 } // namespace uno::core

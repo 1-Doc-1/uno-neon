@@ -24,7 +24,7 @@
 - [x] 1.3a Jouabilité, effets (Skip/Reverse/DrawTwo/Wild), choix de couleur, première carte retournée
 - [x] 1.3b Wild Draw Four : légalité stricte et contestation officielle
 - [x] 1.4 UNO : annonce, contre-UNO, pénalités
-- [ ] 1.5 Fin de manche, score, fin de partie (500 pts ou manche unique)
+- [x] 1.5 Fin de manche, score, fin de partie (500 pts ou manche unique)
 - [ ] 1.7 Projection `PlayerView` + test anti-fuite
 - [ ] 1.8 Simulation aléatoire massive (invariants)
 
@@ -81,6 +81,7 @@
 - [0009 — Modélisation des cartes : `std::optional<Color>` et `createStandardDeck`](adr/0009-card-model.md)
 - [0010 — État de la manche : `Round` valeur pure, `RandomSource&` passé en paramètre](adr/0010-round-state.md)
 - [0011 — Fenêtre UNO : définition précise](adr/0011-uno-window.md)
+- [0012 — Fin de manche et `Match` : score, donneur, fin de partie](adr/0012-round-end-and-match.md)
 
 ## Journal
 - 2026-09-30 — 0.1 — arborescence du monorepo, `.editorconfig`, README, modèle d'ADR, BOM retiré de `.gitattributes` — `chore/phase-0-foundations`
@@ -97,3 +98,4 @@
 - 2026-10-01 — chore — passage en workflow rapide : mode autonome, un commit par étape et une PR par lot de 2-3 étapes, une seule revue par phase, `linux-check.sh` silencieux (log dans `~/uno-neon-linux/linux-check.log`), PROGRESS réordonné vers un MVP jouable (1.6 reportée après le MVP) — `chore/fast-workflow`
 - 2026-10-01 — 1.3b (correctif) — commentaire de `AwaitingPenaltyResponse` : la légalité du +4 est figée à la pose parce qu'elle se juge contre la couleur courante d'*avant* le choix de couleur, pas par économie ; test « aucune carte rouge, une bleue, choisit bleu : légal » — `feat/core-uno-and-round-end`
 - 2026-10-01 — 1.4 — `CallUno`/`CatchUno`, `UnoCalled`/`UnoCaught`, fenêtre UNO (`Round::unoWindow`, `hasCalledUno`) définie dans l'ADR 0011 (ouverture à 1 carte non annoncée, fermeture au prochain `PlayCard`/`DrawCard` accepté, contre-UNO ou annonce ; une annonce non due est sans effet), `giveCards` centralise les ajouts en main, 17 nouveaux cas de test (cas limites : contre-UNO simultané, action refusée, Skip à 2 joueurs, +4 en attente, annonce perdue en piochant ou en passant) et deux invariants — `feat/core-uno-and-round-end`
+- 2026-10-01 — 1.5 — `RoundOver` et `RoundEnded` (dernière carte : un +2 ou +4 final fait quand même piocher le suivant, sans contestation, et ces cartes comptent), `scoring.hpp` (`cardPoints`, `handPoints`), classe `Match` (scores par siège, donneur tournant, `targetScore` ou manche unique, `MatchEnded`, `startNextRound`) — ADR 0012 ; `drawPenalty` remplace six copies de la pioche de pénalité ; `legalActionsOfCurrentPlayer` dans `uno_testing` (réutilisée par la simulation 1.8) ; invariants « main vide seulement chez le gagnant » et « points = valeur des mains adverses » ; 18 nouveaux cas de test (151 au total) verts en `dev`, clang-tidy et clang-format propres — `feat/core-uno-and-round-end`

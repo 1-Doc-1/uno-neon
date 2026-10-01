@@ -19,6 +19,9 @@
 namespace uno::core {
 
 inline constexpr std::size_t kHandSize = 7;
+inline constexpr std::size_t kDrawTwoPenaltyCards = 2;
+inline constexpr std::size_t kWildDrawFourPenaltyCards = 4;
+inline constexpr std::size_t kFailedChallengePenaltyCards = 6; // a challenge lost against a legal +4
 inline constexpr std::size_t kUnoPenaltyCards = 2;
 
 using Hand = std::vector<Card>;
@@ -82,6 +85,13 @@ private:
     [[nodiscard]] std::expected<std::vector<DomainEvent>, DomainError> applyCallUno(const PlayerId& actor);
     [[nodiscard]] std::expected<std::vector<DomainEvent>, DomainError>
     applyCatchUno(const PlayerId& actor, const CatchUno& action, RandomSource& random);
+
+    // Makes `player` draw `count` cards as a penalty (fewer if the piles run short, SPEC §3), appending
+    // DeckReshuffled if needed, then PenaltyCardsDrawn, to `events`.
+    void drawPenalty(const PlayerId& player, std::size_t count, RandomSource& random, std::vector<DomainEvent>& events);
+    // `winner` just played their last card, `rank`: resolves the penalty of a last Draw Two or Wild
+    // Draw Four, scores the hands and moves to RoundOver, appending the events to `events`.
+    void endRound(const PlayerId& winner, Rank rank, RandomSource& random, std::vector<DomainEvent>& events);
 
     // Adds drawn or penalty cards to a hand. A player who receives cards is no longer in the UNO
     // situation they announced, or could be caught in.
