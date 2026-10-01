@@ -2,8 +2,10 @@
 
 #include "uno/core/match.hpp"
 
+#include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <string>
 
 namespace uno::app {
 
@@ -41,6 +43,10 @@ struct RoomSettingsPatch {
 
     [[nodiscard]] bool operator==(const RoomSettingsPatch&) const = default;
 };
+
+// Why these settings cannot be used by a room of `memberCount` members, or nothing when they can: a
+// maxPlayers below the number of members, or a house rule the engine does not implement yet (step 1.6).
+[[nodiscard]] std::optional<std::string> settingsProblem(const RoomSettings& settings, std::size_t memberCount);
 
 [[nodiscard]] RoomSettings applyPatch(RoomSettings settings, const RoomSettingsPatch& patch) noexcept;
 

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "uno/app/client_message.hpp"
 #include "uno/app/identifiers.hpp"
+#include "uno/app/ports.hpp"
 #include "uno/net/origin_policy.hpp"
 
 #include <cstddef>
@@ -18,24 +18,6 @@ inline constexpr std::size_t kMaxMessageBytes = 4096;
 // Malformed messages tolerated on one connection before it is closed (WebSocket close code 1008).
 inline constexpr unsigned kMaxMalformedMessages = 10;
 
-// What the server tells the application layer about a connection.
-class ConnectionHandler {
-public:
-    virtual ~ConnectionHandler() = default;
-
-    virtual void onConnected(app::ConnectionId connection) = 0;
-    // Only well-formed requests get here: framing, size and syntax were already checked.
-    virtual void onRequest(app::ConnectionId connection, app::request::Envelope request) = 0;
-    virtual void onDisconnected(app::ConnectionId connection) = 0;
-
-protected:
-    ConnectionHandler() = default;
-    ConnectionHandler(const ConnectionHandler&) = default;
-    ConnectionHandler(ConnectionHandler&&) = default;
-    ConnectionHandler& operator=(const ConnectionHandler&) = default;
-    ConnectionHandler& operator=(ConnectionHandler&&) = default;
-};
-
 struct WebSocketServerConfig {
     std::uint16_t port{}; // 0 lets the system pick a free port (tests)
     OriginPolicy originPolicy{{}};
@@ -49,7 +31,7 @@ struct WebSocketServerConfig {
 class WebSocketServer {
 public:
     // Binds the port, throws std::runtime_error when it cannot. `handler` must outlive the server.
-    WebSocketServer(WebSocketServerConfig config, ConnectionHandler& handler);
+    WebSocketServer(WebSocketServerConfig config, app::ConnectionHandler& handler);
     ~WebSocketServer();
 
     WebSocketServer(const WebSocketServer&) = delete;

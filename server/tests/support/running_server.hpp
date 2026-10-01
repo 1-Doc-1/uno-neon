@@ -27,7 +27,7 @@ class RunningServer {
 public:
     // `onServer` runs on the server thread, once the server exists and before any client can connect:
     // the place to give a handler the means to answer.
-    RunningServer(net::WebSocketServerConfig config, net::ConnectionHandler& handler,
+    RunningServer(net::WebSocketServerConfig config, app::ConnectionHandler& handler,
                   std::function<void(net::WebSocketServer&)> onServer = {})
     {
         std::promise<std::uint16_t> started;
@@ -74,7 +74,7 @@ private:
 
 // Records what the server reports and answers every request with an `ack`, so a test can both observe
 // the application side and read replies on the wire. Thread-safe: callbacks run on the server thread.
-class RecordingHandler final : public net::ConnectionHandler {
+class RecordingHandler final : public app::ConnectionHandler {
 public:
     void attach(net::WebSocketServer& server) { server_ = &server; }
 

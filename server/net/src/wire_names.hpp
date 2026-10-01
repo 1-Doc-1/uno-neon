@@ -6,6 +6,7 @@
 #include "uno/app/client_message.hpp"
 #include "uno/app/error_code.hpp"
 #include "uno/app/room_settings.hpp"
+#include "uno/app/server_message.hpp"
 #include "uno/core/card.hpp"
 #include "uno/core/match.hpp"
 #include "uno/core/player_action.hpp"
@@ -185,6 +186,24 @@ struct WireNames<app::IllegalMoveReason> {
         WireName{.value = app::IllegalMoveReason::JumpInTooLate, .name = "JUMP_IN_TOO_LATE"},
         WireName{.value = app::IllegalMoveReason::CannotStack, .name = "CANNOT_STACK"},
         WireName{.value = app::IllegalMoveReason::CannotChallenge, .name = "CANNOT_CHALLENGE"},
+    };
+};
+
+template <>
+struct WireNames<app::response::RoomPhase> {
+    static constexpr std::array kTable{
+        WireName{.value = app::response::RoomPhase::Lobby, .name = "lobby"},
+        WireName{.value = app::response::RoomPhase::InGame, .name = "inGame"},
+        WireName{.value = app::response::RoomPhase::MatchOver, .name = "matchOver"},
+    };
+};
+
+template <>
+struct WireNames<app::response::RoomClosedReason> {
+    static constexpr std::array kTable{
+        WireName{.value = app::response::RoomClosedReason::Expired, .name = "expired"},
+        WireName{.value = app::response::RoomClosedReason::Kicked, .name = "kicked"},
+        WireName{.value = app::response::RoomClosedReason::HostClosed, .name = "hostClosed"},
     };
 };
 

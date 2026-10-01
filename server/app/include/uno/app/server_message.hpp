@@ -1,10 +1,16 @@
 #pragma once
 
+#include "uno/app/client_message.hpp"
 #include "uno/app/error_code.hpp"
+#include "uno/app/identifiers.hpp"
+#include "uno/app/room_settings.hpp"
+#include "uno/core/player_id.hpp"
 
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <variant>
+#include <vector>
 
 // What the server may send (SPEC §8.4): replies to a request, then messages it pushes.
 namespace uno::app::response {
@@ -26,6 +32,62 @@ struct Error {
     bool operator==(const Error&) const = default;
 };
 
-using Message = std::variant<Ack, Error>;
+// Answer to session.hello.
+struct Welcome {
+    SessionToken sessionToken;
+    core::PlayerId playerId;
+    std::optional<RoomCode> resumedRoomCode;
+
+    bool operator==(const Welcome&) const = default;
+};
+
+// lobby: waiting for players; inGame: a match is running; matchOver: waiting for a rematch.
+enum class RoomPhase : std::uint8_t { Lobby, InGame, MatchOver };
+
+struct RoomMember {
+    core::PlayerId playerId;
+    std::string nickname;
+    std::uint8_t seat{};
+    bool isHost{};
+    bool isReady{};
+    bool isConnected{};
+    bool isBot{};
+
+    bool operator==(const RoomMember&) const = default;
+};
+
+// State of a room as shown in the lobby: identical for every member.
+struct RoomView {
+    RoomCode code;
+    RoomPhase phase{};
+    RoomSettings settings;
+    std::vector<RoomMember> players;
+
+    bool operator==(const RoomView&) const = default;
+};
+
+struct RoomUpdate {
+    std::uint64_t roomVersion{};
+    RoomView room;
+
+    bool operator==(const RoomUpdate&) const = default;
+};
+
+struct Reaction {
+    core::PlayerId playerId;
+    request::Emote emote{};
+
+    bool operator==(const Reaction&) const = default;
+};
+
+enum class RoomClosedReason : std::uint8_t { Expired, Kicked, HostClosed };
+
+struct RoomClosed {
+    RoomClosedReason reason{};
+
+    bool operator==(const RoomClosed&) const = default;
+};
+
+using Message = std::variant<Ack, Error, Welcome, RoomUpdate, Reaction, RoomClosed>;
 
 } // namespace uno::app::response

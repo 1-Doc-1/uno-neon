@@ -35,7 +35,7 @@ using Socket = uWS::WebSocket<false, true, ConnectionData>;
 } // namespace
 
 struct WebSocketServer::Impl {
-    Impl(WebSocketServerConfig serverConfig, ConnectionHandler& connectionHandler)
+    Impl(WebSocketServerConfig serverConfig, app::ConnectionHandler& connectionHandler)
         : config(std::move(serverConfig)), handler(&connectionHandler), loop(uWS::Loop::get()),
           startedAt(std::chrono::steady_clock::now())
     {
@@ -99,7 +99,7 @@ struct WebSocketServer::Impl {
     }
 
     WebSocketServerConfig config;
-    ConnectionHandler* handler;
+    app::ConnectionHandler* handler;
     uWS::Loop* loop;
     std::chrono::steady_clock::time_point startedAt;
     std::unique_ptr<uWS::App> app;
@@ -109,7 +109,7 @@ struct WebSocketServer::Impl {
     std::unordered_map<app::ConnectionId, Socket*> connections;
 };
 
-WebSocketServer::WebSocketServer(WebSocketServerConfig config, ConnectionHandler& handler)
+WebSocketServer::WebSocketServer(WebSocketServerConfig config, app::ConnectionHandler& handler)
     : impl_(std::make_unique<Impl>(std::move(config), handler))
 {
     Impl& impl = *impl_;
