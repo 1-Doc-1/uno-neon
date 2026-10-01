@@ -1,6 +1,7 @@
 #pragma once
 
 #include "uno/app/identifiers.hpp"
+#include "uno/app/ports.hpp"
 #include "uno/app/room_settings.hpp"
 #include "uno/app/server_message.hpp"
 #include "uno/core/match.hpp"
@@ -11,6 +12,7 @@
 #include <optional>
 #include <set>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace uno::app {
@@ -51,6 +53,18 @@ public:
     std::optional<core::Match> match;
     std::uint64_t stateVersion{0}; // bumped by every game.update
     std::set<core::PlayerId> readyForNextRound;
+
+    // Nicknames of players who left a running match: the engine still seats them when two players are left and one
+    // of them leaves (forfeit), and the views still have to name that seat.
+    std::unordered_map<std::string, std::string> formerNicknames;
+
+    // Pending timers (see application_lifecycle.cpp). Cancelled when the room goes away.
+    TimerHandle expiryTimer;
+    TimerHandle turnTimer;
+    TimerHandle nextRoundTimer;
+    std::unordered_map<std::string, TimerHandle> graceTimers; // by player id: disconnected, waiting to come back
+    std::optional<std::int64_t> turnDeadline;                 // epoch ms, shown in the views
+    std::optional<std::int64_t> nextRoundDeadline;
 };
 
 } // namespace uno::app

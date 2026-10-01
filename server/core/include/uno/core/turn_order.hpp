@@ -35,6 +35,10 @@ public:
     [[nodiscard]] std::optional<std::size_t> seatOf(const PlayerId& player) const;
 
     void advance() noexcept { currentSeat_ = nextSeat(); }
+    // Takes `player` out of the order (at least three players must be seated). When it was their turn, the
+    // turn passes to whoever comes next in the current direction. Returns false, changing nothing, if the
+    // player is not seated or only two players are.
+    bool remove(const PlayerId& player);
     void reverse() noexcept;
 
     [[nodiscard]] bool operator==(const TurnOrder&) const = default;

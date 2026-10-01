@@ -4,7 +4,9 @@
 #include "uno/app/identifiers.hpp"
 #include "uno/app/server_message.hpp"
 
+#include <chrono>
 #include <cstdint>
+#include <functional>
 #include <string_view>
 
 // The edges of the application layer (hexagonal architecture): the network adapter of uno_net
@@ -61,6 +63,33 @@ protected:
     Clock(Clock&&) = default;
     Clock& operator=(const Clock&) = default;
     Clock& operator=(Clock&&) = default;
+};
+
+// Identifies a scheduled timer, to cancel it. A default-constructed handle refers to no timer.
+struct TimerHandle {
+    std::uint64_t id{};
+
+    [[nodiscard]] bool valid() const noexcept { return id != 0; }
+    auto operator<=>(const TimerHandle&) const = default;
+};
+
+// Outbound port for time (SPEC §9.2): UwsScheduler in production, ManualScheduler (time moves by hand) in tests.
+// Callbacks run on the event-loop thread, like everything else.
+class Scheduler {
+public:
+    virtual ~Scheduler() = default;
+
+    // Runs `callback` once, after `delay`.
+    [[nodiscard]] virtual TimerHandle schedule(std::chrono::milliseconds delay, std::function<void()> callback) = 0;
+    // Forgets a timer that has not fired yet; harmless for a timer that has, or for an invalid handle.
+    virtual void cancel(TimerHandle timer) = 0;
+
+protected:
+    Scheduler() = default;
+    Scheduler(const Scheduler&) = default;
+    Scheduler(Scheduler&&) = default;
+    Scheduler& operator=(const Scheduler&) = default;
+    Scheduler& operator=(Scheduler&&) = default;
 };
 
 } // namespace uno::app

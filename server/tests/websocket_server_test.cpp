@@ -30,9 +30,10 @@ constexpr const char* kAllowedOrigin = "http://localhost:4200";
 constexpr int kSwitchingProtocols = 101;
 constexpr std::size_t kOneMebibyte = std::size_t{1024} * 1024;
 
-uno::net::WebSocketServerConfig serverConfig(std::size_t rooms)
+uno::net::WebSocketServerConfig serverConfig(std::size_t rooms, const uno::net::RateLimits& limits)
 {
     uno::net::WebSocketServerConfig config;
+    config.rateLimits = limits;
     config.originPolicy = uno::net::OriginPolicy({kAllowedOrigin});
     config.roomCount = [rooms] { return rooms; };
     return config;
@@ -42,8 +43,9 @@ struct Fixture {
     RecordingHandler handler;
     RunningServer server;
 
-    explicit Fixture(std::size_t rooms = 0)
-        : server(serverConfig(rooms), handler, [this](uno::net::WebSocketServer& running) { handler.attach(running); })
+    explicit Fixture(std::size_t rooms = 0, const uno::net::RateLimits& limits = {})
+        : server(serverConfig(rooms, limits), handler,
+                 [this](uno::net::WebSocketServer& running) { handler.attach(running); })
     {
     }
 
@@ -220,4 +222,101 @@ TEST_CASE("Each closed connection is reported to the handler", "[net][server]")
     }
 
     REQUIRE(fixture.handler.waitForDisconnections(1));
+}
+
+namespace {
+
+std::string createRoomRequest(const std::string& id)
+{
+    return R"({"v":1,"id":")" + id + R"(","type":"room.create","payload":{"nickname":"Léa"}})";
+}
+
+std::string joinRoomRequest(const std::string& id)
+{
+    return R"({"v":1,"id":")" + id + R"(","type":"room.join","payload":{"code":"ABCDEF","nickname":"Max"}})";
+}
+
+uno::net::RateLimits limits(double burst, double perSecond, std::size_t creates = 100, std::size_t joins = 100)
+{
+    return uno::net::RateLimits{
+        .burst = burst,
+        .perSecond = perSecond,
+        .createsPerMinute = creates,
+        .joinsPerMinute = joins,
+    };
+}
+
+} // namespace
+
+TEST_CASE("A connection that sends faster than its bucket allows is told RATE_LIMITED", "[net][server][rate]")
+{
+    const Fixture fixture(0, limits(5, 0.001));
+    auto socket = fixture.connect();
+
+    for (int index = 0; index < 8; ++index) {
+        REQUIRE(socket.send(drawCardRequest("c-" + std::to_string(index))));
+    }
+
+    int acknowledged = 0;
+    int limited = 0;
+    for (int index = 0; index < 8; ++index) {
+        const auto reply = decodeReply(socket);
+        if (std::holds_alternative<uno::app::response::Ack>(reply)) {
+            ++acknowledged;
+        } else if (std::get<uno::app::response::Error>(reply).code == uno::app::ErrorCode::RateLimited) {
+            ++limited;
+        }
+    }
+    REQUIRE(acknowledged == 5);
+    REQUIRE(limited == 3);
+    REQUIRE(fixture.handler.requests().size() == 5);
+}
+
+TEST_CASE("A connection that keeps flooding is closed with 1008", "[net][server][rate]")
+{
+    const Fixture fixture(0, limits(3, 0.001));
+    auto socket = fixture.connect();
+
+    for (int index = 0; index < 20; ++index) {
+        static_cast<void>(socket.send("garbage"));
+    }
+    const auto closure = require(socket.waitForClosure());
+
+    REQUIRE(closure.code == 1008);
+}
+
+TEST_CASE("Room creation is limited per address, across connections", "[net][server][rate]")
+{
+    const Fixture fixture(0, limits(100, 100, 2));
+    auto first = fixture.connect();
+    auto second = fixture.connect();
+
+    REQUIRE(first.send(createRoomRequest("c-1")));
+    REQUIRE(second.send(createRoomRequest("c-2")));
+    REQUIRE(first.send(createRoomRequest("c-3")));
+
+    REQUIRE(std::holds_alternative<uno::app::response::Ack>(decodeReply(first)));
+    REQUIRE(std::holds_alternative<uno::app::response::Ack>(decodeReply(second)));
+    const auto refused = std::get<uno::app::response::Error>(decodeReply(first));
+    REQUIRE(refused.code == uno::app::ErrorCode::RateLimited);
+    REQUIRE(refused.replyTo == "c-3");
+    REQUIRE(fixture.handler.requests().size() == 2);
+}
+
+TEST_CASE("Join attempts are limited per address, so room codes cannot be guessed", "[net][server][rate]")
+{
+    const Fixture fixture(0, limits(100, 100, 100, 3));
+    auto socket = fixture.connect();
+
+    for (int index = 0; index < 5; ++index) {
+        REQUIRE(socket.send(joinRoomRequest("c-" + std::to_string(index))));
+    }
+
+    int limited = 0;
+    for (int index = 0; index < 5; ++index) {
+        const auto reply = decodeReply(socket);
+        limited += std::holds_alternative<uno::app::response::Error>(reply) ? 1 : 0;
+    }
+    REQUIRE(limited == 2);
+    REQUIRE(fixture.handler.requests().size() == 3);
 }

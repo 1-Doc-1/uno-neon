@@ -63,6 +63,12 @@ public:
     [[nodiscard]] std::expected<std::vector<DomainEvent>, DomainError>
     apply(const PlayerId& actor, const PlayerAction& action, RandomSource& random);
 
+    // Takes a player out of the match for good (SPEC §5). The scores of the others are kept. With only two players
+    // seated the match ends by forfeit: the player who stays wins and MatchEnded is the only event. UnknownPlayer if
+    // the player is not seated, InvalidPhase once the match is over.
+    [[nodiscard]] std::expected<std::vector<DomainEvent>, DomainError> removePlayer(const PlayerId& player,
+                                                                                    RandomSource& random);
+
     // Deals the next round, the dealer moving one seat clockwise. Only legal between two rounds of a
     // match that is not over (InvalidPhase otherwise). Returns the new round's starting events.
     [[nodiscard]] std::expected<std::vector<DomainEvent>, DomainError> startNextRound(RandomSource& random);

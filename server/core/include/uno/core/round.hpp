@@ -51,6 +51,13 @@ public:
     [[nodiscard]] std::expected<std::vector<DomainEvent>, DomainError>
     apply(const PlayerId& actor, const PlayerAction& action, RandomSource& random);
 
+    // Takes a player out of the round (they left for good, SPEC §5): their cards go under the draw pile and, if it
+    // was their turn or they were the target of a pending penalty, play carries on without them (an unanswered
+    // Wild Draw Four is void; a first Wild without a color gets a random one). Returns the events this causes.
+    // At least three players must be seated: with two, the match is decided by forfeit (Match::removePlayer).
+    [[nodiscard]] std::expected<std::vector<DomainEvent>, DomainError> removePlayer(const PlayerId& player,
+                                                                                    RandomSource& random);
+
     [[nodiscard]] std::span<const PlayerId> seats() const noexcept { return turnOrder_.seats(); }
     [[nodiscard]] const PlayerId& dealer() const noexcept { return dealer_; }
     [[nodiscard]] const PlayerId& currentPlayer() const { return turnOrder_.current(); }

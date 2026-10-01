@@ -8,5 +8,7 @@ Checks: >
   -bugprone-unchecked-optional-access,
   -misc-no-recursion,
   -bugprone-easily-swappable-parameters,
-  -cppcoreguidelines-non-private-member-variables-in-classes
+  -cppcoreguidelines-non-private-member-variables-in-classes,
+  -bugprone-exception-escape,
+  -misc-const-correctness
 ...

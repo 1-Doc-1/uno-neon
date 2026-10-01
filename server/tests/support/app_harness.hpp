@@ -62,7 +62,10 @@ private:
 
 class AppHarness {
 public:
-    explicit AppHarness(std::uint64_t seed = 7) : random(seed), application(sink, rooms, random, clock) {}
+    explicit AppHarness(std::uint64_t seed = 7)
+        : random(seed), scheduler(clock), application(sink, rooms, random, clock, scheduler)
+    {
+    }
 
     TestPlayer connect()
     {
@@ -81,6 +84,7 @@ public:
 
     SeededRandomSource random;
     ManualClock clock;
+    ManualScheduler scheduler;
     app::InMemoryRoomRepository rooms;
     RecordingSink sink;
     app::Application application;

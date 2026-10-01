@@ -25,6 +25,8 @@ public:
     [[nodiscard]] std::optional<Card> drawTop();
     // Adds `cards` to the pile, then shuffles the whole pile.
     void shuffleIn(std::vector<Card> cards, RandomSource& random);
+    // Slides `cards` under the pile: they will be drawn after every card already there.
+    void placeUnderneath(std::vector<Card> cards);
 
     [[nodiscard]] bool operator==(const DrawPile&) const = default;
 

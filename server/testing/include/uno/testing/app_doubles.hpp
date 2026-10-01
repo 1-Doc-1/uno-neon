@@ -2,7 +2,11 @@
 
 #include "uno/app/ports.hpp"
 
+#include <algorithm>
+#include <chrono>
+#include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -23,6 +27,56 @@ public:
 
 private:
     std::int64_t now_;
+};
+
+// Time under the test's control: timers fire when the clock is advanced past them, in order, each one seeing the clock
+// at its own due time. It is also the Clock of the application, so deadlines and timers agree.
+class ManualScheduler final : public app::Scheduler {
+public:
+    explicit ManualScheduler(ManualClock& clock) noexcept : clock_(&clock) {}
+
+    [[nodiscard]] app::TimerHandle schedule(std::chrono::milliseconds delay, std::function<void()> callback) override
+    {
+        const app::TimerHandle handle{++lastId_};
+        timers_.push_back(
+            Timer{.id = handle.id, .due = clock_->nowMillis() + delay.count(), .callback = std::move(callback)});
+        return handle;
+    }
+
+    void cancel(app::TimerHandle timer) override
+    {
+        std::erase_if(timers_, [&timer](const Timer& entry) { return entry.id == timer.id; });
+    }
+
+    // Moves time forward, firing every timer that falls due on the way (a callback may schedule new ones).
+    void advance(std::chrono::milliseconds duration)
+    {
+        const std::int64_t target = clock_->nowMillis() + duration.count();
+        while (true) {
+            const auto next = std::ranges::min_element(timers_, {}, &Timer::due);
+            if (next == timers_.end() || next->due > target) {
+                break;
+            }
+            Timer fired = std::move(*next);
+            timers_.erase(next);
+            clock_->advanceMillis(std::max<std::int64_t>(0, fired.due - clock_->nowMillis()));
+            fired.callback();
+        }
+        clock_->advanceMillis(target - clock_->nowMillis());
+    }
+
+    [[nodiscard]] std::size_t pendingCount() const noexcept { return timers_.size(); }
+
+private:
+    struct Timer {
+        std::uint64_t id{};
+        std::int64_t due{};
+        std::function<void()> callback;
+    };
+
+    ManualClock* clock_;
+    std::uint64_t lastId_ = 0;
+    std::vector<Timer> timers_;
 };
 
 // Records everything the application sends, in order.

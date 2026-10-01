@@ -95,6 +95,10 @@ jobs:
         working-directory: server
         run: cmake --build --preset debug-asan
 
+      # UNO_TEST_SEED only exists in a binary built with UNO_ENABLE_TEST_HOOKS (SPEC §9.5): never the production one.
+      - name: Production binary has no test hooks
+        run: "! grep -q UNO_TEST_SEED server/build/debug-asan/uno_server"
+
       - name: Test
         working-directory: server
         # Un peu plus de parties qu'en local, sous sanitizers ; les 10 000 parties sont dans simulation.yml.

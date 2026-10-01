@@ -547,4 +547,49 @@ std::vector<DomainEvent> Round::resolveFirstCardEffect(Rank rank, RandomSource& 
     return events;
 }
 
+std::expected<std::vector<DomainEvent>, DomainError> Round::removePlayer(const PlayerId& player, RandomSource& random)
+{
+    const auto seat = turnOrder_.seatOf(player);
+    if (!seat.has_value()) {
+        return std::unexpected{DomainError::UnknownPlayer};
+    }
+    const bool wasCurrent = turnOrder_.current() == player;
+    const auto seatsBefore = turnOrder_.seats();
+    const PlayerId previousSeatPlayer = *std::next(
+        seatsBefore.begin(), static_cast<std::ptrdiff_t>((*seat + seatsBefore.size() - 1) % seatsBefore.size()));
+    if (!turnOrder_.remove(player)) {
+        return std::unexpected{DomainError::NotEnoughPlayers};
+    }
+
+    drawPile_.placeUnderneath(std::move(hands_.at(*seat)));
+    hands_.erase(hands_.begin() + static_cast<std::ptrdiff_t>(*seat));
+    unoCalled_.erase(unoCalled_.begin() + static_cast<std::ptrdiff_t>(*seat));
+    if (unoWindow_ == player) {
+        unoWindow_.reset();
+    }
+    if (dealer_ == player) {
+        dealer_ = previousSeatPlayer;
+    }
+
+    std::vector<DomainEvent> events;
+    const auto* penalty = std::get_if<AwaitingPenaltyResponse>(&phase_);
+    const bool penaltyVoid = penalty != nullptr && (wasCurrent || penalty->wildDrawFourPlayer == player);
+    if (penaltyVoid) {
+        phase_ = AwaitingPlay{};
+    }
+    if (wasCurrent && !std::holds_alternative<RoundOver>(phase_)) {
+        if (std::holds_alternative<AwaitingColorChoice>(phase_)) {
+            const Color color = kColors.at(random.uniform(static_cast<std::uint32_t>(kColors.size())));
+            currentColor_ = color;
+            events.emplace_back(ColorChosen{.player = player, .color = color});
+        }
+        if (std::holds_alternative<AwaitingDrawnCardDecision>(phase_) ||
+            std::holds_alternative<AwaitingColorChoice>(phase_)) {
+            phase_ = AwaitingPlay{};
+        }
+        events.emplace_back(TurnChanged{.player = turnOrder_.current()});
+    }
+    return events;
+}
+
 } // namespace uno::core

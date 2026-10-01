@@ -1,6 +1,7 @@
 #include "uno/net/websocket_server.hpp"
 
 #include "uno/net/codec.hpp"
+#include "uno/net/rate_limiter.hpp"
 
 #include <spdlog/spdlog.h>
 #include <uwebsockets/App.h>
@@ -8,6 +9,7 @@
 #include <chrono>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -28,6 +30,8 @@ constexpr int kCloseMessageTooBig = 1009;
 struct ConnectionData {
     app::ConnectionId id;
     unsigned malformedMessages = 0;
+    TokenBucket bucket;
+    std::string address; // what the per-address limits are counted against
 };
 
 using Socket = uWS::WebSocket<false, true, ConnectionData>;
@@ -37,7 +41,9 @@ using Socket = uWS::WebSocket<false, true, ConnectionData>;
 struct WebSocketServer::Impl {
     Impl(WebSocketServerConfig serverConfig, app::ConnectionHandler& connectionHandler)
         : config(std::move(serverConfig)), handler(&connectionHandler), loop(uWS::Loop::get()),
-          startedAt(std::chrono::steady_clock::now())
+          startedAt(std::chrono::steady_clock::now()),
+          createLimiter(config.rateLimits.createsPerMinute, std::chrono::minutes(1)),
+          joinLimiter(config.rateLimits.joinsPerMinute, std::chrono::minutes(1))
     {
     }
 
@@ -47,9 +53,20 @@ struct WebSocketServer::Impl {
         handler->onConnected(socket->getUserData()->id);
     }
 
-    void handleMessage(Socket* socket, std::string_view text, uWS::OpCode opCode) const
+    // Answers a message that is not worth treating: an error, and a strike against the connection.
+    static void refuse(Socket* socket, app::response::Error error)
     {
         ConnectionData& data = *socket->getUserData();
+        socket->send(encodeServerMessage(error), uWS::OpCode::TEXT);
+        if (++data.malformedMessages >= kMaxMalformedMessages) {
+            socket->end(kClosePolicyViolation, "Too many refused messages");
+        }
+    }
+
+    void handleMessage(Socket* socket, std::string_view text, uWS::OpCode opCode)
+    {
+        ConnectionData& data = *socket->getUserData();
+        const auto now = RateClock::now();
         if (opCode != uWS::OpCode::TEXT) {
             socket->end(kCloseUnsupportedData, "Text frames only");
             return;
@@ -58,15 +75,45 @@ struct WebSocketServer::Impl {
             socket->end(kCloseMessageTooBig, "MESSAGE_TOO_LARGE");
             return;
         }
+        // Before anything is parsed: a flood of garbage costs the same as a flood of valid messages.
+        if (!data.bucket.tryTake(now)) {
+            refuse(socket, rateLimited(std::nullopt, "Too many messages"));
+            return;
+        }
         auto request = decodeClientMessage(text);
         if (!request) {
-            socket->send(encodeServerMessage(toErrorResponse(request.error())), uWS::OpCode::TEXT);
-            if (++data.malformedMessages >= kMaxMalformedMessages) {
-                socket->end(kClosePolicyViolation, "Too many malformed messages");
-            }
+            refuse(socket, toErrorResponse(request.error()));
+            return;
+        }
+        if (const auto refusal = checkAddressLimits(data, *request, now)) {
+            socket->send(encodeServerMessage(*refusal), uWS::OpCode::TEXT);
             return;
         }
         handler->onRequest(data.id, std::move(*request));
+    }
+
+    [[nodiscard]] static app::response::Error rateLimited(std::optional<std::string> replyTo, std::string message)
+    {
+        return app::response::Error{
+            .replyTo = std::move(replyTo),
+            .code = app::ErrorCode::RateLimited,
+            .message = std::move(message),
+            .reason = std::nullopt,
+        };
+    }
+
+    // Room creation and join attempts (which could be used to guess codes) are limited per address.
+    [[nodiscard]] std::optional<app::response::Error>
+    checkAddressLimits(const ConnectionData& data, const app::request::Envelope& request, RateClock::time_point now)
+    {
+        if (std::holds_alternative<app::request::CreateRoom>(request.body) &&
+            !createLimiter.tryRecord(data.address, now)) {
+            return rateLimited(request.id, "Too many rooms created from this address");
+        }
+        if (std::holds_alternative<app::request::JoinRoom>(request.body) && !joinLimiter.tryRecord(data.address, now)) {
+            return rateLimited(request.id, "Too many join attempts from this address");
+        }
+        return std::nullopt;
     }
 
     void handleClose(Socket* socket)
@@ -83,9 +130,16 @@ struct WebSocketServer::Impl {
             response->writeStatus("403 Forbidden")->end("Origin not allowed");
             return;
         }
-        response->template upgrade<ConnectionData>(
-            ConnectionData{.id = app::ConnectionId{++lastConnectionId}}, request->getHeader("sec-websocket-key"),
-            request->getHeader("sec-websocket-protocol"), request->getHeader("sec-websocket-extensions"), context);
+        ConnectionData data{
+            .id = app::ConnectionId{++lastConnectionId},
+            .malformedMessages = 0,
+            .bucket = TokenBucket(config.rateLimits.burst, config.rateLimits.perSecond, RateClock::now()),
+            .address = clientAddress(response->getRemoteAddressAsText(), request->getHeader("x-forwarded-for"),
+                                     config.trustedProxy),
+        };
+        response->template upgrade<ConnectionData>(std::move(data), request->getHeader("sec-websocket-key"),
+                                                   request->getHeader("sec-websocket-protocol"),
+                                                   request->getHeader("sec-websocket-extensions"), context);
     }
 
     void handleHealth(uWS::HttpResponse<false>* response) const
@@ -102,6 +156,8 @@ struct WebSocketServer::Impl {
     app::ConnectionHandler* handler;
     uWS::Loop* loop;
     std::chrono::steady_clock::time_point startedAt;
+    SlidingWindowLimiter createLimiter;
+    SlidingWindowLimiter joinLimiter;
     std::unique_ptr<uWS::App> app;
     us_listen_socket_t* listenSocket = nullptr;
     std::uint16_t boundPort = 0;
@@ -165,6 +221,7 @@ void WebSocketServer::stop()
             impl.listenSocket = nullptr;
         }
         impl.app->close();
+        impl.config.onStop();
     });
 }
 

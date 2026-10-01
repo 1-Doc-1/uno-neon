@@ -29,6 +29,11 @@ std::optional<Card> DrawPile::drawTop()
     return top;
 }
 
+void DrawPile::placeUnderneath(std::vector<Card> cards)
+{
+    cards_.insert(cards_.begin(), std::make_move_iterator(cards.begin()), std::make_move_iterator(cards.end()));
+}
+
 void DrawPile::shuffleIn(std::vector<Card> cards, RandomSource& random)
 {
     std::ranges::copy(cards, std::back_inserter(cards_));

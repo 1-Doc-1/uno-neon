@@ -18,11 +18,25 @@ inline constexpr std::size_t kMaxMessageBytes = 4096;
 // Malformed messages tolerated on one connection before it is closed (WebSocket close code 1008).
 inline constexpr unsigned kMaxMalformedMessages = 10;
 
+// Limits on what a client may send (SPEC §9.4): a token bucket per connection for every message, and per address
+// for the requests that create rooms or try room codes.
+struct RateLimits {
+    double burst = 20;
+    double perSecond = 10;
+    std::size_t createsPerMinute = 5;
+    std::size_t joinsPerMinute = 20;
+};
+
 struct WebSocketServerConfig {
     std::uint16_t port{}; // 0 lets the system pick a free port (tests)
     OriginPolicy originPolicy{{}};
+    RateLimits rateLimits;
+    // Whether X-Forwarded-For can be believed to tell the real address of a client (UNO_TRUSTED_PROXY).
+    bool trustedProxy = false;
     // Number of rooms, for GET /health. Called on the server thread.
     std::function<std::size_t()> roomCount = [] { return std::size_t{0}; };
+    // Runs on the loop thread when the server stops, once its sockets are closed: the place to cancel timers.
+    std::function<void()> onStop = [] {};
 };
 
 // The single-threaded event loop of the server (SPEC §9.2): one uWebSockets loop carries every

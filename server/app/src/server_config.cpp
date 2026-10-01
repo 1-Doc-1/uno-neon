@@ -64,6 +64,21 @@ std::expected<std::uint16_t, ConfigError> parsePort(std::string_view text) noexc
     return static_cast<std::uint16_t>(value);
 }
 
+std::expected<bool, ConfigError> parseBoolean(std::string_view text)
+{
+    std::string lowered(text);
+    std::ranges::transform(lowered, lowered.begin(), [](char character) {
+        return static_cast<char>(std::tolower(static_cast<unsigned char>(character)));
+    });
+    if (lowered == "1" || lowered == "true" || lowered == "yes" || lowered == "on") {
+        return true;
+    }
+    if (lowered == "0" || lowered == "false" || lowered == "no" || lowered == "off") {
+        return false;
+    }
+    return std::unexpected(ConfigError::BooleanInvalid);
+}
+
 std::expected<std::vector<std::string>, ConfigError> parseAllowedOrigins(std::string_view text)
 {
     std::vector<std::string> origins;
