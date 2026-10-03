@@ -7,6 +7,11 @@
   padding: var(--space-5) var(--space-4);
 }
 
+.page.playing {
+  padding: 0;
+  place-items: stretch;
+}
+
 .notice {
   display: grid;
   gap: var(--space-4);

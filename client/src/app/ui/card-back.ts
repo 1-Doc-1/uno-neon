@@ -26,9 +26,8 @@ import { Component } from '@angular/core';
   `,
   styles: `
     :host {
-      --card-w: 104px;
       display: block;
-      width: var(--card-w);
+      width: var(--card-w, 104px);
       aspect-ratio: 5 / 7;
       color: var(--neon-cyan);
     }
