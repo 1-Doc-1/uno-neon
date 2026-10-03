@@ -1,5 +1,6 @@
 import { Component, computed, effect, input, output, signal } from '@angular/core';
 import type { Color, PlayerView } from '../../protocol/generated/protocol';
+import { Avatar } from '../../ui/avatar';
 import { ChallengeDialog } from './challenge-dialog';
 import { ColorPicker } from './color-picker';
 import { Hand } from './hand';
@@ -7,9 +8,13 @@ import { MatchOverDialog } from './match-over-dialog';
 import { OpponentSeat } from './opponent-seat';
 import { Piles } from './piles';
 import { RoundOverDialog } from './round-over-dialog';
-import { opponentsInViewOrder, seatSlots } from './seat-layout';
+import { opponentsInViewOrder, seatLayout } from './seat-layout';
 
 const CLOCK_TICK_MS = 250;
+const NARROW_QUERY = '(max-width: 639px)';
+/** En portrait étroit : au-delà, les adversaires passent en bande défilante. */
+const MAX_ARC_OPPONENTS = 4;
+const NARROW_MAX_BACKS = 5;
 const JOURNAL_LINES = 2;
 
 export interface CardPlay {
@@ -33,6 +38,7 @@ interface CatchButton {
 @Component({
   selector: 'app-table-view',
   imports: [
+    Avatar,
     OpponentSeat,
     Piles,
     Hand,
@@ -65,6 +71,10 @@ export class TableView {
   /** Joker choisi dans la main, en attente de sa couleur. */
   protected readonly pendingWild = signal<number | null>(null);
   private readonly now = signal(Date.now());
+  /** Écran étroit (portrait) : arc compact en haut, ou bande défilante au-delà de quatre adversaires. */
+  protected readonly narrow = signal(
+    typeof matchMedia === 'function' && matchMedia(NARROW_QUERY).matches,
+  );
   private readonly serverNow = computed(() => this.now() + this.clockOffset());
 
   protected readonly mySeat = computed(() =>
@@ -76,7 +86,25 @@ export class TableView {
   protected readonly opponents = computed(() =>
     opponentsInViewOrder(this.view().players, this.mySeat()?.seat ?? 0),
   );
-  protected readonly slots = computed(() => seatSlots(this.opponents().length));
+  protected readonly strip = computed(
+    () => this.narrow() && this.opponents().length > MAX_ARC_OPPONENTS,
+  );
+  protected readonly placements = computed(() =>
+    seatLayout(this.opponents().length, this.narrow() ? 'arc' : 'table').map((placement) => ({
+      ...placement,
+      compact: placement.compact || this.narrow(),
+    })),
+  );
+  protected readonly maxBacks = computed(() => (this.narrow() ? NARROW_MAX_BACKS : 12));
+  /** Part du temps de tour qu'il reste, pour l'anneau du joueur dont c'est le tour (`null` sans minuteur). */
+  protected readonly turnFraction = computed(() => {
+    const deadline = this.view().turnDeadline;
+    const total = this.view().settings.turnTimerSeconds * 1000;
+    if (deadline === null || total === 0) {
+      return null;
+    }
+    return Math.max(0, Math.min(1, (deadline - this.serverNow()) / total));
+  });
   protected readonly currentName = computed(() => this.nameOf(this.view().currentPlayerId));
   protected readonly turnSeconds = computed(() => this.secondsUntil(this.view().turnDeadline));
   protected readonly nextRoundSeconds = computed(() =>
@@ -111,6 +139,16 @@ export class TableView {
     effect((onCleanup) => {
       const timer = setInterval(() => this.now.set(Date.now()), CLOCK_TICK_MS);
       onCleanup(() => clearInterval(timer));
+    });
+    effect((onCleanup) => {
+      if (typeof matchMedia !== 'function') {
+        return;
+      }
+      const query = matchMedia(NARROW_QUERY);
+      const update = (): void => this.narrow.set(query.matches);
+      query.addEventListener('change', update);
+      update();
+      onCleanup(() => query.removeEventListener('change', update));
     });
   }
 

@@ -10,13 +10,21 @@
   </ul>
 
   <div class="stage">
-    <section class="arc" aria-label="Adversaires">
+    <section class="seats" [class.strip]="strip()" aria-label="Adversaires">
       @for (seat of opponents(); track seat.playerId; let index = $index) {
-        <div class="place" [style.--x.%]="slots()[index].x" [style.--y.%]="slots()[index].y">
+        <div
+          class="place"
+          [style.--x.%]="placements()[index].x"
+          [style.--y.%]="placements()[index].y"
+        >
           <app-opponent-seat
             [seat]="seat"
             [isCurrent]="seat.playerId === view().currentPlayerId"
             [forgotUno]="forgotten().has(seat.playerId)"
+            [rotation]="strip() ? 0 : placements()[index].rotation"
+            [compact]="placements()[index].compact"
+            [maxBacks]="maxBacks()"
+            [timerFraction]="seat.playerId === view().currentPlayerId ? turnFraction() : null"
           />
         </div>
       }
@@ -67,17 +75,35 @@
   </div>
 
   <section class="mine" aria-label="Ma main">
+    @if (mySeat(); as seat) {
+      <div class="me" [class.current]="myTurn()">
+        <div
+          class="portrait"
+          [class.timed]="myTurn() && turnFraction() !== null"
+          [style.--f]="turnFraction() ?? 0"
+        >
+          <app-avatar [playerId]="seat.playerId" [nickname]="seat.nickname" />
+          <span class="count-badge" [attr.aria-label]="seat.cardCount + ' cartes'">{{
+            seat.cardCount
+          }}</span>
+        </div>
+        <div class="me-info">
+          <p class="me-name">{{ seat.nickname }}</p>
+          <p class="me-meta">
+            {{ seat.score }} pts
+            @if (myTurn() && turnSeconds() !== null) {
+              · <span class="timer">{{ turnSeconds() }} s</span>
+            }
+          </p>
+        </div>
+      </div>
+    }
+
     <p class="turn" [class.mine-turn]="myTurn()" role="status">
       @if (myTurn()) {
         À toi de jouer
       } @else {
         Tour de {{ currentName() }}
-      }
-      @if (turnSeconds(); as seconds) {
-        <span class="pill">{{ seconds }} s</span>
-      }
-      @if (mySeat(); as seat) {
-        <span class="pill">{{ seat.score }} pts</span>
       }
     </p>
 

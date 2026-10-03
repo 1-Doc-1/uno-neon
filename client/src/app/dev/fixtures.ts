@@ -1,7 +1,15 @@
 import type { Card, PlayerView, SeatView, UnoWindow } from '../protocol/generated/protocol';
 
 export type ScenarioName =
-  'uno-window' | 'two-windows' | 'challenge' | 'must-declare' | 'full-table';
+  | 'uno-window'
+  | 'two-windows'
+  | 'challenge'
+  | 'must-declare'
+  | 'full-table'
+  | 'players-2'
+  | 'players-3'
+  | 'players-4'
+  | 'players-6';
 
 export const SCENARIOS: readonly ScenarioName[] = [
   'uno-window',
@@ -9,6 +17,10 @@ export const SCENARIOS: readonly ScenarioName[] = [
   'challenge',
   'must-declare',
   'full-table',
+  'players-2',
+  'players-3',
+  'players-4',
+  'players-6',
 ];
 
 const card = (id: number, color: Card['color'], rank: Card['rank']): Card => ({ id, color, rank });
@@ -139,6 +151,27 @@ export function scenarioView(name: ScenarioName, now: number): PlayerView {
         },
         settings: { ...base.settings, declareUnoToWin: true },
       };
+    case 'players-2':
+    case 'players-3':
+    case 'players-4':
+    case 'players-6': {
+      // N joueurs autour de la table (moi compris) : N - 1 adversaires, l'un d'eux joue
+      const total = Number(name.slice('players-'.length));
+      const names = ['Loïc', 'Zoé', 'Camille', 'Max', 'Inès', 'Noa'];
+      const counts = [4, 7, 2, 11, 5, 9];
+      const others = Array.from({ length: total - 1 }, (_, index) =>
+        seat(`o${index}`, names[index] ?? 'Joueur', index + 1, counts[index] ?? 5, {
+          isConnected: name !== 'players-6' || index !== 3,
+        }),
+      );
+      return {
+        ...base,
+        players: [me, ...(others as [SeatView, ...SeatView[]])],
+        currentPlayerId: others[Math.min(1, others.length - 1)].playerId,
+        me: { ...base.me, canDraw: false, playableCardIds: [] },
+        turnDeadline: now + 17_000,
+      };
+    }
     case 'full-table':
       return {
         ...base,
