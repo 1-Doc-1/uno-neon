@@ -10,12 +10,10 @@ async (page) => {
     return result.violations.map((v) => ({
       id: v.id,
       impact: v.impact,
-      nodes: v.nodes
-        .slice(0, 4)
-        .map((n) => ({
-          target: n.target.join(' '),
-          summary: (n.any[0] ?? n.all[0] ?? n.none[0] ?? {}).message,
-        })),
+      nodes: v.nodes.slice(0, 4).map((n) => ({
+        target: n.target.join(' '),
+        summary: (n.any[0] ?? n.all[0] ?? n.none[0] ?? {}).message,
+      })),
     }));
   });
 };
