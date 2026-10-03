@@ -169,9 +169,9 @@ TEST_CASE("Swapping hands is not available", "[app][match]")
 
     current.send(request::PlayCard{.cardId = card, .chosenColor = std::nullopt, .swapTargetId = target});
 
-    const auto error = ofType<response::Error>(current.received()).front();
-    REQUIRE(error.code == ErrorCode::IllegalMove);
-    REQUIRE(error.reason == IllegalMoveReason::SwapTargetInvalid);
+    const auto replies = current.received();
+    REQUIRE(refusal(replies) == ErrorCode::IllegalMove);
+    REQUIRE(uno::testing::refusalReason(replies) == IllegalMoveReason::SwapTargetInvalid);
 }
 
 TEST_CASE("Every accepted action reaches every player with a consecutive state version", "[app][match]")

@@ -27,8 +27,11 @@ fs::path examplesDirectory()
 
 std::string readFile(const fs::path& path)
 {
-    std::ifstream stream(path, std::ios::binary);
-    return {std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>()};
+    std::ifstream stream(path, std::ios::binary | std::ios::ate);
+    std::string content(static_cast<std::size_t>(stream.tellg()), '\0');
+    stream.seekg(0);
+    stream.read(content.data(), static_cast<std::streamsize>(content.size()));
+    return content;
 }
 
 std::vector<fs::path> filesIn(const fs::path& directory, const std::string& prefix)

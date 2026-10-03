@@ -122,7 +122,7 @@ TEST_CASE("Guided: drawing while a plain card can be played is refused as MUST_P
 
     const auto replies = current.received();
     REQUIRE(refusal(replies) == ErrorCode::IllegalMove);
-    REQUIRE(uno::testing::ofType<response::Error>(replies).front().reason == IllegalMoveReason::MustPlay);
+    REQUIRE(uno::testing::refusalReason(replies) == IllegalMoveReason::MustPlay);
     REQUIRE(table->room().match->round().hand(current.id())->size() == cards);
 }
 

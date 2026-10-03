@@ -46,6 +46,15 @@ inline std::optional<ErrorCode> refusal(const Messages& messages)
     return errors.empty() ? std::nullopt : std::optional<ErrorCode>(errors.front().code);
 }
 
+// The detail of the first error among the messages, if it has one.
+inline std::optional<IllegalMoveReason> refusalReason(const Messages& messages)
+{
+    for (const auto& error : ofType<response::Error>(messages)) {
+        return error.reason;
+    }
+    return std::nullopt;
+}
+
 // A room of `count` players, everyone ready, in the lobby.
 struct Table {
     explicit Table(std::size_t count, std::uint64_t seed = 7, core::MatchLength length = core::MatchLength::SingleRound,
