@@ -110,6 +110,23 @@
         }
       </p>
     </div>
+    <div class="setting">
+      <span class="setting-label">Dernière carte</span>
+      <app-segmented
+        label="Dernière carte"
+        [options]="lastCardRules"
+        [value]="lastCardRule()"
+        [disabled]="!isHost()"
+        (selected)="setLastCardRule($event)"
+      />
+      <p class="muted hint">
+        @if (room().settings.declareUnoToWin) {
+          Il faut annoncer UNO avant de poser sa dernière carte.
+        } @else {
+          On peut poser sa dernière carte sans annoncer UNO (mais on risque un contre-UNO).
+        }
+      </p>
+    </div>
     @if (!isHost()) {
       <p class="muted">Seul l’hôte peut modifier les réglages.</p>
     }

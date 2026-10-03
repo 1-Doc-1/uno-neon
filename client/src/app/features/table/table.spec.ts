@@ -31,6 +31,7 @@ function viewWith(
       playableCardIds: [],
       canDraw: false,
       canKeepDrawnCard: false,
+      mustDeclareUno: false,
       canCallUno: false,
       canChooseColor: false,
       penaltyResponse: null,
@@ -57,6 +58,7 @@ function viewWith(
       matchLength: 'to500',
       maxPlayers: 6,
       drawRule: 'guided',
+      declareUnoToWin: false,
     },
     roundResult: null,
     matchWinnerId: null,
@@ -159,6 +161,24 @@ describe('Table', () => {
 
     expect(button('.deck')?.disabled).toBe(true);
     expect(button('.deck')?.getAttribute('aria-label')).toBe('Pioche : 40 cartes');
+  });
+
+  it('puts the UNO button forward when the last card waits for the announcement', () => {
+    const { host, button } = render(viewWith({}, { canCallUno: true, mustDeclareUno: true }));
+
+    expect(button('.uno')?.classList.contains('must')).toBe(true);
+    expect(host.textContent).toContain('Annonce UNO pour poser ta dernière carte.');
+
+    button('.uno')?.click();
+
+    expect(transport.sent.at(-1)).toMatchObject({ type: 'game.callUno' });
+  });
+
+  it('keeps the UNO button discreet when nothing is waiting for it', () => {
+    const { host, button } = render(viewWith({}, { canCallUno: true }));
+
+    expect(button('.uno')?.classList.contains('must')).toBe(false);
+    expect(host.textContent).not.toContain('Annonce UNO pour poser');
   });
 
   it('shows the UNO button only when it is useful', () => {

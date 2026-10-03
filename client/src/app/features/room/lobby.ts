@@ -29,6 +29,13 @@ const DRAW_RULES: readonly SegmentOption<DrawRule>[] = [
   { value: 'official', label: 'Officielle' },
 ];
 
+type LastCardRule = 'free' | 'declare';
+
+const LAST_CARD_RULES: readonly SegmentOption<LastCardRule>[] = [
+  { value: 'free', label: 'Libre' },
+  { value: 'declare', label: 'UNO obligatoire' },
+];
+
 const MAX_PLAYERS: readonly SegmentOption<number>[] = [2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => ({
   value: n,
   label: String(n),
@@ -51,6 +58,15 @@ export class Lobby {
   protected readonly turnTimers = TURN_TIMERS;
   protected readonly maxPlayers = MAX_PLAYERS;
   protected readonly drawRules = DRAW_RULES;
+  protected readonly lastCardRules = LAST_CARD_RULES;
+
+  protected lastCardRule(): LastCardRule {
+    return this.room().settings.declareUnoToWin ? 'declare' : 'free';
+  }
+
+  protected setLastCardRule(rule: LastCardRule): void {
+    void this.store.updateSettings({ declareUnoToWin: rule === 'declare' });
+  }
 
   /** Joueur dont l'exclusion attend une confirmation. */
   protected readonly kickCandidate = signal<string | null>(null);

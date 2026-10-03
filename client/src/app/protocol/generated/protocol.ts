@@ -134,7 +134,8 @@ export type IllegalMoveReason =
   | 'JUMP_IN_TOO_LATE'
   | 'CANNOT_STACK'
   | 'CANNOT_CHALLENGE'
-  | 'MUST_PLAY';
+  | 'MUST_PLAY'
+  | 'MUST_DECLARE_UNO';
 /**
  * Server clock, milliseconds since the Unix epoch.
  */
@@ -226,6 +227,10 @@ export interface RoomSettingsPatch {
   matchLength?: MatchLength;
   maxPlayers?: MaxPlayers;
   drawRule?: DrawRule;
+  /**
+   * House rule (ADR 0019): the last card cannot be played before UNO is announced.
+   */
+  declareUnoToWin?: boolean;
 }
 /**
  * Joins an existing room that is in the lobby and not full.
@@ -491,6 +496,10 @@ export interface RoomSettings {
   matchLength: MatchLength;
   maxPlayers: MaxPlayers;
   drawRule: DrawRule;
+  /**
+   * House rule (ADR 0019): the last card cannot be played before UNO is announced.
+   */
+  declareUnoToWin: boolean;
 }
 export interface RoomMember {
   playerId: PlayerId;
@@ -730,6 +739,10 @@ export interface MyState {
   hand: Card[];
   playableCardIds: CardId[];
   canDraw: boolean;
+  /**
+   * House rule declareUnoToWin (ADR 0019): the viewer holds one playable card and cannot play it until they announce UNO (game.callUno). Computed by the server.
+   */
+  mustDeclareUno: boolean;
   /**
    * Pass: keep the card just drawn instead of playing it. Computed by the server from the draw rule (ADR 0017).
    */

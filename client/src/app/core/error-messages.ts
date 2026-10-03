@@ -40,6 +40,7 @@ const ILLEGAL_REASONS: Record<IllegalMoveReason, string> = {
   CANNOT_STACK: 'Tu ne peux pas empiler cette carte.',
   CANNOT_CHALLENGE: 'Tu ne peux pas contester ici.',
   MUST_PLAY: 'Tu dois jouer une carte : la pioche n’est pas permise ici.',
+  MUST_DECLARE_UNO: 'Annonce UNO avant de poser ta dernière carte.',
 };
 
 export function describeError(code: ErrorCode, reason?: IllegalMoveReason): string {

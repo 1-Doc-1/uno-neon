@@ -129,6 +129,7 @@
 }
 
 .actions {
+  flex-wrap: wrap;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -164,6 +165,21 @@
   }
 }
 
+// Règle « UNO obligatoire » : la dernière carte attend l'annonce, le bouton passe au premier plan.
+.uno.must {
+  width: 88px;
+  height: 88px;
+  font-size: var(--fs-lg);
+  box-shadow: 0 0 34px color-mix(in oklab, var(--neon-pink) 85%, transparent);
+  animation: pulse 0.7s ease-in-out infinite;
+}
+
+.uno-hint {
+  margin: 0;
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
 @keyframes pulse {
   50% {
     transform: scale(1.1);
@@ -174,4 +190,8 @@
   .journal li:nth-last-child(n + 3) {
     display: none;
   }
+}
+
+.actions {
+  padding-bottom: var(--space-2);
 }
