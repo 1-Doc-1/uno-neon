@@ -93,6 +93,23 @@
         (selected)="store.updateSettings({ maxPlayers: $event })"
       />
     </div>
+    <div class="setting">
+      <span class="setting-label">Règle de pioche</span>
+      <app-segmented
+        label="Règle de pioche"
+        [options]="drawRules"
+        [value]="room().settings.drawRule"
+        [disabled]="!isHost()"
+        (selected)="store.updateSettings({ drawRule: $event })"
+      />
+      <p class="muted hint">
+        @if (room().settings.drawRule === 'guided') {
+          Guidée : on pioche seulement quand on ne peut pas jouer, ou pour garder un +2 ou un Joker.
+        } @else {
+          Officielle : on peut toujours piocher une carte au lieu de jouer.
+        }
+      </p>
+    </div>
     @if (!isHost()) {
       <p class="muted">Seul l’hôte peut modifier les réglages.</p>
     }

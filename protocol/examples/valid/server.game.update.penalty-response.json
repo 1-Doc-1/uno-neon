@@ -69,15 +69,14 @@
         ],
         "playableCardIds": [3301, 650],
         "canDraw": false,
-        "canPass": false,
+        "canKeepDrawnCard": false,
         "canCallUno": false,
         "canChooseColor": false,
         "penaltyResponse": {
           "amount": 4,
           "canChallenge": false,
           "canStack": true
-        },
-        "catchableTargetIds": []
+        }
       },
       "players": [
         {
@@ -129,6 +128,7 @@
       "pendingDraw": 4,
       "turnDeadline": 1790000030000,
       "nextRoundDeadline": null,
+      "unoWindows": [],
       "round": 1,
       "settings": {
         "stacking": "mixed",
@@ -138,7 +138,8 @@
         "wildDrawFourMode": "officialChallenge",
         "turnTimerSeconds": 30,
         "matchLength": "to500",
-        "maxPlayers": 6
+        "maxPlayers": 6,
+        "drawRule": "guided"
       },
       "roundResult": null,
       "matchWinnerId": null

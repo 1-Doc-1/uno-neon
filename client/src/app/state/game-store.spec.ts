@@ -95,6 +95,7 @@ describe('GameStore', () => {
             turnTimerSeconds: 0,
             matchLength: 'to500',
             maxPlayers: 6,
+            drawRule: 'guided',
           },
           players: [
             {

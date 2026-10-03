@@ -22,6 +22,12 @@ Member* Room::find(const core::PlayerId& player)
     return found == members.end() ? nullptr : &*found;
 }
 
+const UnoWindowTiming* Room::findUnoWindow(const core::PlayerId& target) const
+{
+    const auto found = std::ranges::find(unoWindows, target, &UnoWindowTiming::target);
+    return found == unoWindows.end() ? nullptr : &*found;
+}
+
 const Member* Room::find(const core::PlayerId& player) const
 {
     const auto found = std::ranges::find(members, player, &Member::id);

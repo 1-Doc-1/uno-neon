@@ -101,6 +101,16 @@ struct SeatInfo {
     bool operator==(const SeatInfo&) const = default;
 };
 
+// An open UNO window (ADR 0018): `targetId` holds one unannounced card. Only the target may announce until
+// `graceEndsAt`; from then until `expiresAt` anybody else may catch them. Epoch milliseconds, server clock.
+struct UnoWindowInfo {
+    core::PlayerId targetId;
+    std::int64_t graceEndsAt{};
+    std::int64_t expiresAt{};
+
+    bool operator==(const UnoWindowInfo&) const = default;
+};
+
 // The protocol PlayerView: the engine projection for one player, completed with what only the application
 // knows. `seats` lists the same players as `game.players`, in the same order.
 struct GameView {
@@ -109,6 +119,7 @@ struct GameView {
     std::vector<SeatInfo> seats;
     std::optional<std::int64_t> turnDeadline;      // epoch ms, server clock
     std::optional<std::int64_t> nextRoundDeadline; // epoch ms, server clock
+    std::vector<UnoWindowInfo> unoWindows;         // oldest first
     RoomSettings settings;
 
     bool operator==(const GameView&) const = default;

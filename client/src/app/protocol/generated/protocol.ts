@@ -58,6 +58,10 @@ export type TurnTimerSeconds = 0 | 15 | 30 | 60;
 export type MatchLength = 'singleRound' | 'to250' | 'to500';
 export type MaxPlayers = number;
 /**
+ * guided: no pointless draws, a plain drawn card is played automatically (ADR 0017); official: SPEC §3.
+ */
+export type DrawRule = 'guided' | 'official';
+/**
  * 6 characters, without the ambiguous I, L, O, 0 and 1.
  */
 export type RoomCode = string;
@@ -114,7 +118,8 @@ export type ErrorCode =
   | 'INVALID_PHASE'
   | 'CARD_NOT_IN_HAND'
   | 'ILLEGAL_MOVE'
-  | 'UNO_WINDOW_CLOSED';
+  | 'UNO_WINDOW_CLOSED'
+  | 'UNO_GRACE_PERIOD';
 /**
  * Detail of an ILLEGAL_MOVE error.
  */
@@ -128,7 +133,8 @@ export type IllegalMoveReason =
   | 'ONLY_DRAWN_CARD_PLAYABLE'
   | 'JUMP_IN_TOO_LATE'
   | 'CANNOT_STACK'
-  | 'CANNOT_CHALLENGE';
+  | 'CANNOT_CHALLENGE'
+  | 'MUST_PLAY';
 /**
  * Server clock, milliseconds since the Unix epoch.
  */
@@ -219,6 +225,7 @@ export interface RoomSettingsPatch {
   turnTimerSeconds?: TurnTimerSeconds;
   matchLength?: MatchLength;
   maxPlayers?: MaxPlayers;
+  drawRule?: DrawRule;
 }
 /**
  * Joins an existing room that is in the lobby and not full.
@@ -483,6 +490,7 @@ export interface RoomSettings {
   turnTimerSeconds: TurnTimerSeconds;
   matchLength: MatchLength;
   maxPlayers: MaxPlayers;
+  drawRule: DrawRule;
 }
 export interface RoomMember {
   playerId: PlayerId;
@@ -702,6 +710,10 @@ export interface PlayerView {
    * In phase roundOver: when the next round starts automatically (server clock).
    */
   nextRoundDeadline: EpochMillis | null;
+  /**
+   * Players holding one unannounced card, oldest first (ADR 0018). Only the target may announce until graceEndsAt; from then until expiresAt anybody else may catch them. Server clock.
+   */
+  unoWindows: UnoWindow[];
   round: number;
   settings: RoomSettings;
   roundResult: RoundResult | null;
@@ -718,11 +730,13 @@ export interface MyState {
   hand: Card[];
   playableCardIds: CardId[];
   canDraw: boolean;
-  canPass: boolean;
+  /**
+   * Pass: keep the card just drawn instead of playing it. Computed by the server from the draw rule (ADR 0017).
+   */
+  canKeepDrawnCard: boolean;
   canCallUno: boolean;
   canChooseColor: boolean;
   penaltyResponse: PenaltyResponseOptions | null;
-  catchableTargetIds: PlayerId[];
 }
 /**
  * Present when the viewer is targeted by a pending draw penalty.
@@ -746,6 +760,11 @@ export interface SeatView {
   isHost: boolean;
   hasCalledUno: boolean;
   isReadyForNextRound: boolean;
+}
+export interface UnoWindow {
+  targetId: PlayerId;
+  graceEndsAt: EpochMillis;
+  expiresAt: EpochMillis;
 }
 export interface RoundResult {
   winnerId: PlayerId;

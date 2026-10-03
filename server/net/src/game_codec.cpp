@@ -20,6 +20,7 @@ namespace uno::net::detail {
 using app::response::GameUpdate;
 using app::response::GameView;
 using app::response::SeatInfo;
+using app::response::UnoWindowInfo;
 
 namespace {
 
@@ -49,15 +50,6 @@ Json encodeCards(const std::vector<Card>& cards)
 Json encodeColorOrNull(const std::optional<Color>& color)
 {
     return color ? Json(toWire(*color)) : Json(nullptr);
-}
-
-Json encodePlayerIds(const std::vector<PlayerId>& ids)
-{
-    Json array = Json::array();
-    for (const PlayerId& id : ids) {
-        array.push_back(id.value);
-    }
-    return array;
 }
 
 struct EventEncoder {
@@ -179,15 +171,10 @@ Json encodeMe(const MyState& me)
         };
     }
     return Json{
-        {"playerId", me.playerId.value},
-        {"hand", std::move(hand)},
-        {"playableCardIds", std::move(playable)},
-        {"canDraw", me.canDraw},
-        {"canPass", me.canPass},
-        {"canCallUno", me.canCallUno},
-        {"canChooseColor", me.canChooseColor},
-        {"penaltyResponse", std::move(penalty)},
-        {"catchableTargetIds", encodePlayerIds(me.catchableTargetIds)},
+        {"playerId", me.playerId.value},           {"hand", std::move(hand)},
+        {"playableCardIds", std::move(playable)},  {"canDraw", me.canDraw},
+        {"canKeepDrawnCard", me.canKeepDrawnCard}, {"canCallUno", me.canCallUno},
+        {"canChooseColor", me.canChooseColor},     {"penaltyResponse", std::move(penalty)},
     };
 }
 
@@ -231,6 +218,19 @@ Json nullable(const std::optional<T>& value)
     return value ? Json(*value) : Json(nullptr);
 }
 
+Json encodeUnoWindows(const std::vector<UnoWindowInfo>& windows)
+{
+    Json encoded = Json::array();
+    for (const UnoWindowInfo& window : windows) {
+        encoded.push_back(Json{
+            {"targetId", window.targetId.value},
+            {"graceEndsAt", window.graceEndsAt},
+            {"expiresAt", window.expiresAt},
+        });
+    }
+    return encoded;
+}
+
 Json encodeView(const GameView& view)
 {
     const PlayerView& game = view.game;
@@ -247,6 +247,7 @@ Json encodeView(const GameView& view)
         {"pendingDraw", game.pendingDraw},
         {"turnDeadline", nullable(view.turnDeadline)},
         {"nextRoundDeadline", nullable(view.nextRoundDeadline)},
+        {"unoWindows", encodeUnoWindows(view.unoWindows)},
         {"round", game.round},
         {"settings", encodeSettings(view.settings)},
         {"roundResult", encodeRoundResult(game.roundResult)},
@@ -347,11 +348,6 @@ Parsed<std::vector<Card>> parseCards(const Json& value)
 Parsed<std::vector<CardId>> parseCardIds(const Json& value)
 {
     return parseArray<CardId>(value, parseCardId);
-}
-
-Parsed<std::vector<PlayerId>> parsePlayerIds(const Json& value)
-{
-    return parseArray<PlayerId>(value, parsePlayerId);
 }
 
 // Reads the fields shared by every event kind that has the shape {kind, playerId}.
@@ -607,12 +603,11 @@ Parsed<MyState> parseMe(const Json& value)
     me.hand = reader.required<std::vector<Card>>("hand", parseCards);
     me.playableCardIds = reader.required<std::vector<CardId>>("playableCardIds", parseCardIds);
     me.canDraw = reader.required<bool>("canDraw", parseBool);
-    me.canPass = reader.required<bool>("canPass", parseBool);
+    me.canKeepDrawnCard = reader.required<bool>("canKeepDrawnCard", parseBool);
     me.canCallUno = reader.required<bool>("canCallUno", parseBool);
     me.canChooseColor = reader.required<bool>("canChooseColor", parseBool);
     me.penaltyResponse = reader.required<std::optional<PenaltyResponseOptions>>(
         "penaltyResponse", orNull<PenaltyResponseOptions>(parsePenaltyOptions));
-    me.catchableTargetIds = reader.required<std::vector<PlayerId>>("catchableTargetIds", parsePlayerIds);
     if (auto finished = reader.finish(); !finished) {
         return std::unexpected(finished.error());
     }
@@ -671,6 +666,19 @@ Parsed<RoundResult> parseRoundResult(const Json& value)
     return result;
 }
 
+Parsed<UnoWindowInfo> parseUnoWindow(const Json& value)
+{
+    ObjectReader reader(value, "unoWindow");
+    UnoWindowInfo window;
+    window.targetId = reader.required<PlayerId>("targetId", parsePlayerId);
+    window.graceEndsAt = reader.required<std::int64_t>("graceEndsAt", parseEpochMillis);
+    window.expiresAt = reader.required<std::int64_t>("expiresAt", parseEpochMillis);
+    if (auto finished = reader.finish(); !finished) {
+        return std::unexpected(finished.error());
+    }
+    return window;
+}
+
 Parsed<GameView> parseView(const Json& value)
 {
     ObjectReader reader(value, "view");
@@ -695,6 +703,8 @@ Parsed<GameView> parseView(const Json& value)
         reader.required<std::optional<std::int64_t>>("turnDeadline", orNull<std::int64_t>(parseEpochMillis));
     view.nextRoundDeadline =
         reader.required<std::optional<std::int64_t>>("nextRoundDeadline", orNull<std::int64_t>(parseEpochMillis));
+    view.unoWindows = reader.required<std::vector<UnoWindowInfo>>(
+        "unoWindows", [](const Json& windows) { return parseArray<UnoWindowInfo>(windows, parseUnoWindow); });
     game.round = reader.required<std::uint32_t>("round", parseUint32);
     view.settings = reader.required<RoomSettings>("settings", parseSettings);
     game.roundResult =
@@ -719,6 +729,7 @@ Json encodeSettings(const RoomSettings& settings)
         {"turnTimerSeconds", static_cast<int>(settings.turnTimer)},
         {"matchLength", toWire(settings.matchLength)},
         {"maxPlayers", settings.maxPlayers},
+        {"drawRule", toWire(settings.drawRule)},
     };
 }
 
@@ -734,6 +745,7 @@ Parsed<RoomSettings> parseSettings(const Json& value)
     settings.turnTimer = reader.required<TurnTimerSeconds>("turnTimerSeconds", parseTurnTimer);
     settings.matchLength = reader.required<MatchLength>("matchLength", parseEnum<MatchLength>);
     settings.maxPlayers = reader.required<std::uint8_t>("maxPlayers", parseMaxPlayers);
+    settings.drawRule = reader.required<core::DrawRule>("drawRule", parseEnum<core::DrawRule>);
     if (auto finished = reader.finish(); !finished) {
         return std::unexpected(finished.error());
     }

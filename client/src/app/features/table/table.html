@@ -4,8 +4,7 @@
       <app-opponent-seat
         [seat]="seat"
         [isCurrent]="seat.playerId === view().currentPlayerId"
-        [catchable]="view().me.catchableTargetIds.includes(seat.playerId)"
-        (caught)="catchUno(seat.playerId)"
+        [catchable]="isCatchable(seat.playerId)"
       />
     }
   </section>
@@ -17,7 +16,19 @@
       [currentColor]="view().currentColor"
       [direction]="view().direction"
       [pendingDraw]="view().pendingDraw"
+      [canDraw]="view().me.canDraw"
+      [canKeepDrawnCard]="view().me.canKeepDrawnCard"
+      (deckClicked)="onDeck()"
     />
+    @if (catchTargets().length > 0) {
+      <div class="catch-bar" role="group" aria-label="Contre-UNO">
+        @for (target of catchTargets(); track target.playerId) {
+          <button type="button" class="catch" (click)="catchUno(target.playerId)">
+            Contre-UNO ! {{ target.nickname }} · {{ target.secondsLeft }} s
+          </button>
+        }
+      </div>
+    }
     <ul class="journal" aria-label="Journal de la partie">
       @for (line of journal(); track $index) {
         <li>{{ line }}</li>
@@ -55,23 +66,11 @@
       (played)="play($event)"
     />
 
-    <div class="actions">
-      <button appNeonButton variant="outline" [disabled]="!view().me.canDraw" (click)="draw()">
-        Piocher
-      </button>
-      <button appNeonButton variant="outline" [disabled]="!view().me.canPass" (click)="pass()">
-        Passer
-      </button>
-      <button
-        type="button"
-        class="uno"
-        [class.active]="view().me.canCallUno"
-        [disabled]="!view().me.canCallUno"
-        (click)="callUno()"
-      >
-        UNO !
-      </button>
-    </div>
+    @if (view().me.canCallUno) {
+      <div class="actions">
+        <button type="button" class="uno active" (click)="callUno()">UNO !</button>
+      </div>
+    }
   </section>
 </div>
 

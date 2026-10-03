@@ -1,5 +1,6 @@
 #pragma once
 
+#include "uno/core/draw_rule.hpp"
 #include "uno/core/match.hpp"
 
 #include <cstddef>
@@ -26,6 +27,7 @@ struct RoomSettings {
     TurnTimerSeconds turnTimer{TurnTimerSeconds::Thirty};
     core::MatchLength matchLength{core::MatchLength::To500};
     std::uint8_t maxPlayers{6};
+    core::DrawRule drawRule{core::DrawRule::Guided}; // ADR 0017
 
     [[nodiscard]] bool operator==(const RoomSettings&) const = default;
 };
@@ -40,6 +42,7 @@ struct RoomSettingsPatch {
     std::optional<TurnTimerSeconds> turnTimer;
     std::optional<core::MatchLength> matchLength;
     std::optional<std::uint8_t> maxPlayers;
+    std::optional<core::DrawRule> drawRule;
 
     [[nodiscard]] bool operator==(const RoomSettingsPatch&) const = default;
 };

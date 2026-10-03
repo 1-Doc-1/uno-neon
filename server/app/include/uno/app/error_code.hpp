@@ -31,6 +31,7 @@ enum class ErrorCode : std::uint8_t {
     CardNotInHand,
     IllegalMove,
     UnoWindowClosed,
+    UnoGracePeriod, // the offender is still the only one who may announce (ADR 0018)
 };
 
 // Detail of an IllegalMove error (protocol `IllegalMoveReason`).
@@ -45,6 +46,7 @@ enum class IllegalMoveReason : std::uint8_t {
     JumpInTooLate,
     CannotStack,
     CannotChallenge,
+    MustPlay, // guided draw: play a card instead of drawing, or play the drawn one (ADR 0017)
 };
 
 } // namespace uno::app

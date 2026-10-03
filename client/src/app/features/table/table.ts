@@ -2,7 +2,6 @@ import { Component, computed, effect, inject, input, signal } from '@angular/cor
 import { Router } from '@angular/router';
 import type { Color, PlayerView } from '../../protocol/generated/protocol';
 import { GameStore } from '../../state/game-store';
-import { NeonButton } from '../../ui/neon-button';
 import { ColorPicker } from './color-picker';
 import { describeEvent } from './describe-event';
 import { Hand } from './hand';
@@ -18,16 +17,7 @@ const LOG_LINES = 4;
 /** Table de jeu : adversaires, piles, ma main et les actions ; le serveur décide, ici on affiche et on relaie. */
 @Component({
   selector: 'app-table',
-  imports: [
-    NeonButton,
-    OpponentSeat,
-    Piles,
-    Hand,
-    PenaltyBar,
-    ColorPicker,
-    RoundOverDialog,
-    MatchOverDialog,
-  ],
+  imports: [OpponentSeat, Piles, Hand, PenaltyBar, ColorPicker, RoundOverDialog, MatchOverDialog],
   templateUrl: './table.html',
   styleUrl: './table.scss',
 })
@@ -53,6 +43,25 @@ export class Table {
   protected readonly nextRoundSeconds = computed(() =>
     this.secondsUntil(this.view().nextRoundDeadline),
   );
+  /**
+   * Joueurs qu'on peut contrer : leur fenêtre est ouverte et la grâce de 2 s est passée. Le serveur décide ;
+   * ici on n'affiche que le bouton, avec le temps qu'il reste.
+   */
+  protected readonly catchTargets = computed(() => {
+    const serverNow = this.now() + this.store.serverClockOffset();
+    return this.view()
+      .unoWindows.filter(
+        (window) =>
+          window.targetId !== this.view().me.playerId &&
+          serverNow >= window.graceEndsAt &&
+          serverNow < window.expiresAt,
+      )
+      .map((window) => ({
+        playerId: window.targetId,
+        nickname: this.nameOf(window.targetId),
+        secondsLeft: Math.max(0, Math.ceil((window.expiresAt - serverNow) / 1000)),
+      }));
+  });
   protected readonly journal = computed(() =>
     this.store
       .recentEvents()
@@ -89,12 +98,18 @@ export class Table {
     void this.store.chooseColor(color);
   }
 
-  protected draw(): void {
-    void this.store.draw();
+  /** Le paquet sert à piocher ou à garder la carte piochée : c'est le serveur qui dit lequel des deux est permis. */
+  protected onDeck(): void {
+    const me = this.view().me;
+    if (me.canKeepDrawnCard) {
+      void this.store.pass();
+    } else if (me.canDraw) {
+      void this.store.draw();
+    }
   }
 
-  protected pass(): void {
-    void this.store.pass();
+  protected isCatchable(playerId: string): boolean {
+    return this.catchTargets().some((target) => target.playerId === playerId);
   }
 
   protected callUno(): void {

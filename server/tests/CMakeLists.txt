@@ -6,9 +6,11 @@ include(Catch)
 # Tests link against the libraries, never against the uno_server executable.
 add_executable(uno_tests
     card_test.cpp
+    application_draw_rule_test.cpp
     application_lifecycle_test.cpp
     application_match_test.cpp
     application_rooms_test.cpp
+    application_uno_test.cpp
     client_event_test.cpp
     codec_test.cpp
     crypto_random_source_test.cpp
@@ -27,6 +29,7 @@ add_executable(uno_tests
     simulation_test.cpp
     match_test.cpp
     round_apply_test.cpp
+    round_draw_rule_test.cpp
     round_effects_test.cpp
     round_end_test.cpp
     round_removal_test.cpp

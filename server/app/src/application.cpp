@@ -380,8 +380,9 @@ Application::Outcome Application::startMatch(Room& room)
     for (const Member& member : room.members) {
         seats.push_back(member.id);
     }
-    auto started =
-        core::Match::start(std::move(seats), core::MatchSettings{.matchLength = room.settings.matchLength}, *random_);
+    auto started = core::Match::start(
+        std::move(seats),
+        core::MatchSettings{.matchLength = room.settings.matchLength, .drawRule = room.settings.drawRule}, *random_);
     if (!started) {
         spdlog::error("room {}: the engine refused to start a match", room.code.value);
         return fail(ErrorCode::InvalidPhase, "The match could not be started");
@@ -487,6 +488,20 @@ Application::Outcome Application::handle(ConnectionId connection, const request:
 
 Application::Outcome Application::handle(ConnectionId connection, const request::CatchUno& request)
 {
+    // During the grace period the offender is the only one who may still announce (ADR 0018). The engine has no
+    // clock, so the application is the one to say "too early".
+    const auto session = sessionOf(connection);
+    if (!session) {
+        return std::unexpected(session.error());
+    }
+    const auto room = roomOf(**session);
+    if (!room) {
+        return std::unexpected(room.error());
+    }
+    const UnoWindowTiming* const window = (*room)->findUnoWindow(request.targetId);
+    if (window != nullptr && (*session)->playerId != request.targetId && clock_->nowMillis() < window->graceEndsAt) {
+        return fail(ErrorCode::UnoGracePeriod, "The player may still announce UNO");
+    }
     return play(connection, core::CatchUno{.target = request.targetId});
 }
 
@@ -528,6 +543,9 @@ Application::Outcome Application::play(ConnectionId connection, const core::Play
         case core::DomainError::ColorNotAllowed:
             return fail(ErrorCode::IllegalMove, "A color is only chosen for a Wild",
                         IllegalMoveReason::ColorNotAllowed);
+        case core::DomainError::MustPlay:
+            return fail(ErrorCode::IllegalMove, "Play a card instead of drawing, or the card you drew",
+                        IllegalMoveReason::MustPlay);
         case core::DomainError::OnlyDrawnCardPlayable:
             return fail(ErrorCode::IllegalMove, "Only the card you just drew can be played",
                         IllegalMoveReason::OnlyDrawnCardPlayable);
@@ -581,6 +599,7 @@ void Application::broadcastGame(Room& room, std::span<const core::DomainEvent> e
     }
     const core::Match& match = *room.match;
     ++room.stateVersion;
+    syncUnoWindows(room);
     armGameTimers(room);
     const std::int64_t serverTime = clock_->nowMillis();
     for (const Member& member : room.members) {
@@ -601,6 +620,13 @@ response::GameView Application::viewOf(const Room& room, const core::Match& matc
     view.settings = room.settings;
     view.turnDeadline = room.turnDeadline;
     view.nextRoundDeadline = room.nextRoundDeadline;
+    for (const UnoWindowTiming& window : room.unoWindows) {
+        view.unoWindows.push_back(response::UnoWindowInfo{
+            .targetId = window.target,
+            .graceEndsAt = window.graceEndsAt,
+            .expiresAt = window.expiresAt,
+        });
+    }
     // The viewer is a member of a room whose match is running: the engine knows them.
     if (auto projected = core::project(match, viewer)) {
         view.game = std::move(*projected);

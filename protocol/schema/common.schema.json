@@ -134,6 +134,12 @@
       "type": "integer",
       "enum": [0, 15, 30, 60]
     },
+    "DrawRule": {
+      "title": "DrawRule",
+      "description": "guided: no pointless draws, a plain drawn card is played automatically (ADR 0017); official: SPEC §3.",
+      "type": "string",
+      "enum": ["guided", "official"]
+    },
     "MatchLength": {
       "title": "MatchLength",
       "description": "singleRound: one round decides the winner; to250 / to500: first player to reach the score.",
@@ -174,6 +180,9 @@
         },
         "maxPlayers": {
           "$ref": "#/$defs/MaxPlayers"
+        },
+        "drawRule": {
+          "$ref": "#/$defs/DrawRule"
         }
       },
       "required": [
@@ -184,7 +193,8 @@
         "wildDrawFourMode",
         "turnTimerSeconds",
         "matchLength",
-        "maxPlayers"
+        "maxPlayers",
+        "drawRule"
       ],
       "additionalProperties": false
     },
@@ -216,6 +226,9 @@
         },
         "maxPlayers": {
           "$ref": "#/$defs/MaxPlayers"
+        },
+        "drawRule": {
+          "$ref": "#/$defs/DrawRule"
         }
       },
       "minProperties": 1,
@@ -249,7 +262,8 @@
         "INVALID_PHASE",
         "CARD_NOT_IN_HAND",
         "ILLEGAL_MOVE",
-        "UNO_WINDOW_CLOSED"
+        "UNO_WINDOW_CLOSED",
+        "UNO_GRACE_PERIOD"
       ]
     },
     "IllegalMoveReason": {
@@ -266,7 +280,8 @@
         "ONLY_DRAWN_CARD_PLAYABLE",
         "JUMP_IN_TOO_LATE",
         "CANNOT_STACK",
-        "CANNOT_CHALLENGE"
+        "CANNOT_CHALLENGE",
+        "MUST_PLAY"
       ]
     },
     "EmptyPayload": {

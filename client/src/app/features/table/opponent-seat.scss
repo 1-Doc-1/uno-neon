@@ -85,18 +85,13 @@ p {
   color: var(--neon-cyan);
 }
 
-.catch {
-  min-height: 44px;
-  padding: 0 var(--space-3);
-  border: 2px solid var(--neon-red);
-  border-radius: var(--radius-pill);
-  background: var(--neon-red);
-  color: var(--text-on-neon);
-  font-family: var(--font-display);
-  font-size: var(--fs-xs);
-  font-weight: 700;
-  cursor: pointer;
+.to-catch {
+  color: var(--text-primary);
   animation: blink 1s ease-in-out infinite;
+}
+
+.seat.catchable {
+  border-color: var(--neon-red);
 }
 
 @keyframes blink {

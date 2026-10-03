@@ -1,14 +1,19 @@
-import { Component, input, output } from '@angular/core';
+import { Component, input } from '@angular/core';
 import type { SeatView } from '../../protocol/generated/protocol';
 import { Avatar } from '../../ui/avatar';
 import { CardBack } from '../../ui/card-back';
 
-/** Un adversaire : avatar, pseudo, dos de cartes, état (tour, UNO, déconnexion) et contre-UNO. */
+/** Un adversaire : avatar, pseudo, dos de cartes, état (tour, UNO, déconnexion) et UNO oublié. */
 @Component({
   selector: 'app-opponent-seat',
   imports: [Avatar, CardBack],
   template: `
-    <article class="seat glass" [class.current]="isCurrent()" [class.offline]="!seat().isConnected">
+    <article
+      class="seat glass"
+      [class.current]="isCurrent()"
+      [class.catchable]="catchable()"
+      [class.offline]="!seat().isConnected"
+    >
       <app-avatar [playerId]="seat().playerId" [nickname]="seat().nickname" />
       <div class="info">
         <p class="name">{{ seat().nickname }}</p>
@@ -26,14 +31,14 @@ import { CardBack } from '../../ui/card-back';
           @if (!seat().isConnected) {
             <span class="off">Déconnecté</span>
           }
+          @if (catchable()) {
+            <span class="to-catch">UNO oublié !</span>
+          }
           @if (isCurrent()) {
             <span class="turn">Son tour</span>
           }
         </p>
       </div>
-      @if (catchable()) {
-        <button type="button" class="catch" (click)="caught.emit()">Contre-UNO !</button>
-      }
     </article>
   `,
   styleUrl: './opponent-seat.scss',
@@ -41,6 +46,6 @@ import { CardBack } from '../../ui/card-back';
 export class OpponentSeat {
   readonly seat = input.required<SeatView>();
   readonly isCurrent = input.required<boolean>();
+  /** Ce joueur n'a qu'une carte et n'a pas annoncé UNO : on peut le contrer. */
   readonly catchable = input.required<boolean>();
-  readonly caught = output<void>();
 }

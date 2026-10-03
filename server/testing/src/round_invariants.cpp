@@ -1,6 +1,7 @@
 #include "uno/testing/round_invariants.hpp"
 
 #include "uno/core/card.hpp"
+#include "uno/core/player_id.hpp"
 #include "uno/core/round.hpp"
 #include "uno/core/scoring.hpp"
 #include "uno/core/turn_phase.hpp"
@@ -82,17 +83,18 @@ void requireWildDrawFourPlayerIsNotCurrent(const core::Round& round)
     REQUIRE(round.currentPlayer() != awaiting->wildDrawFourPlayer);
 }
 
-// The UNO window only ever concerns a player holding exactly one card who did not announce it.
-void requireUnoWindowIsCoherent(const core::Round& round)
+// A UNO window only ever concerns a player holding exactly one card who did not announce it, once per player.
+void requireUnoWindowsAreCoherent(const core::Round& round)
 {
-    const auto& window = round.unoWindow();
-    if (!window.has_value()) {
-        return;
+    for (const auto& target : round.unoWindows()) {
+        const auto hand = round.hand(target);
+        REQUIRE(hand.has_value());
+        REQUIRE(hand->size() == 1);
+        REQUIRE(!round.hasCalledUno(target));
     }
-    const auto hand = round.hand(*window);
-    REQUIRE(hand.has_value());
-    REQUIRE(hand->size() == 1);
-    REQUIRE(!round.hasCalledUno(*window));
+    auto sorted = std::vector<core::PlayerId>{round.unoWindows().begin(), round.unoWindows().end()};
+    std::ranges::sort(sorted, {}, &core::PlayerId::value);
+    REQUIRE(std::ranges::adjacent_find(sorted) == sorted.end());
 }
 
 // An announcement is only kept while the hand it was made for (one or two cards) is unchanged.
@@ -120,7 +122,7 @@ void requireRoundOverIsCoherent(const core::Round& round)
     REQUIRE(handsMatchPhase);
     if (over != nullptr) {
         REQUIRE(over->points == othersPoints);
-        REQUIRE(round.unoWindow() == std::nullopt);
+        REQUIRE(round.unoWindows().empty());
     }
 }
 
@@ -134,7 +136,7 @@ void requireRoundInvariants(const core::Round& round)
     requireDrawnCardStillInHand(round);
     requireWildDrawFourPlayerIsNotCurrent(round);
     requireRoundOverIsCoherent(round);
-    requireUnoWindowIsCoherent(round);
+    requireUnoWindowsAreCoherent(round);
     requireAnnouncementsAreCoherent(round);
 }
 

@@ -3,6 +3,7 @@
 #include "uno/core/card.hpp"
 #include "uno/core/domain_error.hpp"
 #include "uno/core/domain_event.hpp"
+#include "uno/core/draw_rule.hpp"
 #include "uno/core/piles.hpp"
 #include "uno/core/player_action.hpp"
 #include "uno/core/player_id.hpp"
@@ -30,6 +31,7 @@ struct RoundSetup {
     std::vector<PlayerId> seats; // clockwise
     PlayerId dealer;
     std::vector<Card> deck; // already shuffled, in draw order: front() is drawn first
+    DrawRule drawRule{DrawRule::Official};
 };
 
 // Round::start returns one of these; defined below the class, since it holds a Round by value.
@@ -71,12 +73,27 @@ public:
     [[nodiscard]] const TurnPhase& phase() const noexcept { return phase_; }
     // Whether the player announced UNO and still holds the hand they announced it for.
     [[nodiscard]] bool hasCalledUno(const PlayerId& player) const;
-    // Whether CallUno would have an effect for `player` right now: about to play with two cards, or
-    // in the UNO window (ADR 0011).
+    [[nodiscard]] DrawRule drawRule() const noexcept { return drawRule_; }
+    // Whether DrawCard would be accepted from `player` right now: their turn, nothing else to answer, and the draw
+    // rule lets them draw (ADR 0017).
+    [[nodiscard]] bool canDraw(const PlayerId& player) const;
+    // Whether Pass would be accepted from `player` right now: they hold a drawn card they may keep instead of playing.
+    [[nodiscard]] bool canKeepDrawnCard(const PlayerId& player) const;
+    // The one move the current player has left, if they have no choice (ADR 0017, guided draw only): draw when
+    // nothing is playable, play a drawn card that is playable and plain. The engine only says what; the application
+    // decides when, and applies it like any player action.
+    [[nodiscard]] std::optional<PlayerAction> forcedAction() const;
+    // Whether CallUno would have an effect for `player` right now: about to play with two cards, or already down to
+    // one card and not announced (ADR 0018).
     [[nodiscard]] bool canCallUno(const PlayerId& player) const;
-    // The UNO window (SPEC §3, ADR 0011): open on a player who just left themselves with one card
-    // without announcing it, until the next play or draw. While open, CatchUno{player} is accepted.
-    [[nodiscard]] const std::optional<PlayerId>& unoWindow() const noexcept { return unoWindow_; }
+    // The UNO windows (SPEC §3, ADR 0018), oldest first: one per player who just left themselves with one card
+    // without announcing it. A window stays open until that player announces, is caught, no longer holds exactly one
+    // card, or the application closes it for lack of time (closeUnoWindow): playing or drawing does not close it.
+    // While open, CatchUno{player} is accepted from any other seated player.
+    [[nodiscard]] std::span<const PlayerId> unoWindows() const noexcept { return unoWindows_; }
+    [[nodiscard]] bool hasUnoWindowOn(const PlayerId& player) const;
+    // Closes the window on `player`, if any: its time ran out. The engine has no clock, so the application decides.
+    void closeUnoWindow(const PlayerId& player);
 
     [[nodiscard]] bool operator==(const Round&) const = default;
 
@@ -121,13 +138,14 @@ private:
 
     TurnOrder turnOrder_;
     PlayerId dealer_;
+    DrawRule drawRule_{DrawRule::Official};
     std::vector<Hand> hands_; // indexed by seat
     DrawPile drawPile_;
     DiscardPile discardPile_;
     std::optional<Color> currentColor_;
     TurnPhase phase_{AwaitingPlay{}};
     std::vector<bool> unoCalled_; // indexed by seat
-    std::optional<PlayerId> unoWindow_;
+    std::vector<PlayerId> unoWindows_;
 };
 
 // Result of Round::start(): the round itself, plus the events produced while resolving the first

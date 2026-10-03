@@ -1,4 +1,4 @@
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, input, output } from '@angular/core';
 import type { Card, Color, Direction } from '../../protocol/generated/protocol';
 import { CardBack } from '../../ui/card-back';
 import { CardFace } from '../../ui/card';
@@ -11,10 +11,17 @@ import { ColorSymbol } from '../../ui/color-symbol';
   imports: [CardFace, CardBack, ColorSymbol],
   template: `
     <div class="piles">
-      <div class="pile">
+      <button
+        type="button"
+        class="pile deck"
+        [class.usable]="deckAction() !== null"
+        [disabled]="deckAction() === null"
+        [attr.aria-label]="deckLabel()"
+        (click)="deckClicked.emit()"
+      >
         <app-card-back />
-        <p class="label"><span class="sr-only">Pioche : </span>{{ drawPileCount() }} cartes</p>
-      </div>
+        <span class="label" aria-hidden="true">{{ deckCaption() }}</span>
+      </button>
 
       <div class="pile discard" [class]="'discard tint-' + (currentColor() ?? 'wild')">
         <app-card [card]="discardTop()" [chosenColor]="chosenColor()" />
@@ -45,6 +52,30 @@ export class Piles {
   readonly currentColor = input.required<Color | null>();
   readonly direction = input.required<Direction>();
   readonly pendingDraw = input.required<number>();
+  /** Calculés par le serveur (règle de pioche) : le paquet n'est cliquable que si l'un des deux est vrai. */
+  readonly canDraw = input.required<boolean>();
+  readonly canKeepDrawnCard = input.required<boolean>();
+  readonly deckClicked = output<void>();
+
+  protected readonly deckAction = computed<'draw' | 'keep' | null>(() => {
+    if (this.canKeepDrawnCard()) {
+      return 'keep';
+    }
+    return this.canDraw() ? 'draw' : null;
+  });
+  protected readonly deckLabel = computed(() => {
+    switch (this.deckAction()) {
+      case 'keep':
+        return 'Garder la carte';
+      case 'draw':
+        return 'Piocher';
+      case null:
+        return `Pioche : ${this.drawPileCount()} cartes`;
+    }
+  });
+  protected readonly deckCaption = computed(() =>
+    this.deckAction() === null ? `${this.drawPileCount()} cartes` : this.deckLabel(),
+  );
 
   protected readonly names = COLOR_NAME;
   protected readonly chars = SHAPE_CHAR;

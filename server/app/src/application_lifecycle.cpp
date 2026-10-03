@@ -2,12 +2,14 @@
 // inactivity, session expiry) and the clocks of a match (turn timer, next round). Part of Application.
 
 #include "uno/app/application.hpp"
+#include "uno/core/playability.hpp"
 
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
 #include <chrono>
 #include <cstdint>
+#include <span>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -21,6 +23,34 @@ void autoApply(core::Match& match, const core::PlayerId& actor, const core::Play
 {
     if (auto applied = match.apply(actor, action, random)) {
         events.insert(events.end(), applied->begin(), applied->end());
+    }
+}
+
+// A player who let the clock run out does not play the card they drew, unless the rules say they have to.
+void passOrPlayDrawnCard(core::Match& match, const core::PlayerId& actor, core::RandomSource& random,
+                         std::vector<core::DomainEvent>& events)
+{
+    if (match.round().canKeepDrawnCard(actor)) {
+        autoApply(match, actor, core::Pass{}, random, events);
+    } else if (const auto forced = match.round().forcedAction()) {
+        autoApply(match, actor, *forced, random, events);
+    }
+}
+
+// Only reached when drawing is refused, which means every playable card is a plain one: no color to choose.
+void playFirstPlayableCard(core::Match& match, const core::PlayerId& actor, core::RandomSource& random,
+                           std::vector<core::DomainEvent>& events)
+{
+    const core::Round& round = match.round();
+    const auto hand = round.hand(actor);
+    if (!hand) {
+        return;
+    }
+    const auto playable = std::ranges::find_if(*hand, [&round](const core::Card& card) {
+        return core::isPlayable(card, round.discardPile().top(), round.currentColor());
+    });
+    if (playable != hand->end()) {
+        autoApply(match, actor, core::PlayCard{.cardId = playable->id, .chosenColor = std::nullopt}, random, events);
     }
 }
 
@@ -141,6 +171,7 @@ void Application::armGameTimers(Room& room)
 {
     scheduler_->cancel(std::exchange(room.turnTimer, TimerHandle{}));
     scheduler_->cancel(std::exchange(room.nextRoundTimer, TimerHandle{}));
+    scheduler_->cancel(std::exchange(room.forcedActionTimer, TimerHandle{}));
     room.turnDeadline.reset();
     room.nextRoundDeadline.reset();
     if (room.phase != response::RoomPhase::InGame || !room.match.has_value() || room.match->winner().has_value()) {
@@ -154,6 +185,11 @@ void Application::armGameTimers(Room& room)
             timeouts_.nextRound, [this, code = room.code, version] { onNextRoundDue(code, version); });
         return;
     }
+    // A move the engine says nobody can choose is played after a short pause, like the player would have (ADR 0017).
+    if (room.match->round().forcedAction().has_value()) {
+        room.forcedActionTimer = scheduler_->schedule(
+            timeouts_.forcedAction, [this, code = room.code, version] { onForcedActionDue(code, version); });
+    }
     const auto turnTime = std::chrono::seconds(static_cast<int>(room.settings.turnTimer));
     if (turnTime.count() == 0) {
         return;
@@ -161,6 +197,49 @@ void Application::armGameTimers(Room& room)
     room.turnDeadline = now + std::chrono::duration_cast<std::chrono::milliseconds>(turnTime).count();
     room.turnTimer =
         scheduler_->schedule(turnTime, [this, code = room.code, version] { onTurnExpired(code, version); });
+}
+
+void Application::syncUnoWindows(Room& room)
+{
+    const auto open = room.match.has_value() ? room.match->round().unoWindows() : std::span<const core::PlayerId>{};
+    for (auto timing = room.unoWindows.begin(); timing != room.unoWindows.end();) {
+        if (std::ranges::find(open, timing->target) == open.end()) {
+            scheduler_->cancel(timing->expiryTimer);
+            timing = room.unoWindows.erase(timing);
+        } else {
+            ++timing;
+        }
+    }
+    const std::int64_t now = clock_->nowMillis();
+    for (const core::PlayerId& target : open) {
+        if (room.findUnoWindow(target) != nullptr) {
+            continue;
+        }
+        const std::int64_t expiresAt = now + timeouts_.unoWindow.count();
+        room.unoWindows.push_back(UnoWindowTiming{
+            .target = target,
+            .graceEndsAt = now + timeouts_.unoGrace.count(),
+            .expiresAt = expiresAt,
+            .expiryTimer = scheduler_->schedule(
+                timeouts_.unoWindow,
+                // NOLINTNEXTLINE(bugprone-exception-escape): only out-of-memory
+                [this, code = room.code, target, expiresAt] { onUnoWindowExpired(code, target, expiresAt); }),
+        });
+    }
+}
+
+void Application::onUnoWindowExpired(const RoomCode& code, const core::PlayerId& target, std::int64_t expiresAt)
+{
+    Room* const room = rooms_->find(code);
+    const UnoWindowTiming* const window = room != nullptr ? room->findUnoWindow(target) : nullptr;
+    // A window closed and opened again since is another window, with its own timer.
+    if (window == nullptr || window->expiresAt != expiresAt || !room->match.has_value()) {
+        return;
+    }
+    if (room->match->closeUnoWindow(target)) {
+        afterMatchChange(*room, {});
+    }
+    flush();
 }
 
 void Application::startGraceTimer(Room& room, const core::PlayerId& player)
@@ -186,6 +265,10 @@ void Application::destroyRoom(Room& room, std::optional<response::RoomClosedReas
     scheduler_->cancel(std::exchange(room.expiryTimer, TimerHandle{}));
     scheduler_->cancel(std::exchange(room.turnTimer, TimerHandle{}));
     scheduler_->cancel(std::exchange(room.nextRoundTimer, TimerHandle{}));
+    scheduler_->cancel(std::exchange(room.forcedActionTimer, TimerHandle{}));
+    for (const UnoWindowTiming& window : room.unoWindows) {
+        scheduler_->cancel(window.expiryTimer);
+    }
     for (const auto& [player, timer] : room.graceTimers) {
         scheduler_->cancel(timer);
     }
@@ -233,15 +316,37 @@ void Application::onTurnExpired(const RoomCode& code, std::uint64_t stateVersion
         const auto color = core::kColors.at(random_->uniform(static_cast<std::uint32_t>(core::kColors.size())));
         autoApply(match, actor, core::ChooseColor{.color = color}, *random_, events);
     } else if (std::holds_alternative<core::AwaitingDrawnCardDecision>(phase)) {
-        autoApply(match, actor, core::Pass{}, *random_, events);
+        passOrPlayDrawnCard(match, actor, *random_, events);
     } else if (std::holds_alternative<core::AwaitingPlay>(phase)) {
-        autoApply(match, actor, core::DrawCard{}, *random_, events);
-        // The card drawn may be playable, but a player who let the clock run out does not play it.
-        if (std::holds_alternative<core::AwaitingDrawnCardDecision>(match.round().phase())) {
-            autoApply(match, actor, core::Pass{}, *random_, events);
+        if (match.round().canDraw(actor)) {
+            autoApply(match, actor, core::DrawCard{}, *random_, events);
+            if (std::holds_alternative<core::AwaitingDrawnCardDecision>(match.round().phase())) {
+                passOrPlayDrawnCard(match, actor, *random_, events);
+            }
+        } else {
+            // Guided draw: the player had to play. Playing the first card that fits is the least surprising move.
+            playFirstPlayableCard(match, actor, *random_, events);
         }
     }
     spdlog::info("room {}: turn of {} timed out", code.value, actor.value);
+    afterMatchChange(*room, events);
+    flush();
+}
+
+void Application::onForcedActionDue(const RoomCode& code, std::uint64_t stateVersion)
+{
+    Room* const room = rooms_->find(code);
+    if (room == nullptr || room->stateVersion != stateVersion || !room->match.has_value() ||
+        room->phase != response::RoomPhase::InGame || room->match->winner().has_value()) {
+        return;
+    }
+    core::Match& match = *room->match;
+    const auto forced = match.round().forcedAction();
+    if (!forced) {
+        return;
+    }
+    std::vector<core::DomainEvent> events;
+    autoApply(match, match.round().currentPlayer(), *forced, *random_, events);
     afterMatchChange(*room, events);
     flush();
 }

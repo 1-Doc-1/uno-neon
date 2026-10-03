@@ -176,7 +176,7 @@ TEST_CASE("Swapping hands is not available", "[app][match]")
 
 TEST_CASE("Every accepted action reaches every player with a consecutive state version", "[app][match]")
 {
-    Table table(3);
+    Table table(3, 7, core::MatchLength::SingleRound, core::DrawRule::Official);
     table.start();
     table.clearInboxes();
     auto& current = table.currentPlayer();

@@ -226,11 +226,10 @@ TEST_CASE("The view of the current player lists their hand and what they may do"
                            .hand = hand,
                            .playableCardIds = {CardId{0}},
                            .canDraw = true,
-                           .canPass = false,
+                           .canKeepDrawnCard = false,
                            .canCallUno = false,
                            .canChooseColor = false,
                            .penaltyResponse = std::nullopt,
-                           .catchableTargetIds = {},
                        });
     REQUIRE(view.players == std::vector<SeatView>{
                                 {.playerId = player(0), .seat = 0, .cardCount = 7, .score = 0, .hasCalledUno = false},
@@ -273,7 +272,7 @@ TEST_CASE("A player waiting for their turn sees their hand but cannot act", "[co
     REQUIRE(view.me.hand == fillerHand(1));
     REQUIRE(view.me.playableCardIds.empty());
     REQUIRE(!view.me.canDraw);
-    REQUIRE(!view.me.canPass);
+    REQUIRE(!view.me.canKeepDrawnCard);
     REQUIRE(view.currentPlayerId == player(0));
     requireViewLeaksNothing(round, view, player(1));
 }
@@ -291,7 +290,7 @@ TEST_CASE("After drawing a playable card, only that card can be played, or the t
     REQUIRE(view.phase == ViewPhase::AwaitingDrawnCardDecision);
     REQUIRE(view.me.playableCardIds == std::vector<CardId>{CardId{41}});
     REQUIRE(!view.me.canDraw);
-    REQUIRE(view.me.canPass);
+    REQUIRE(view.me.canKeepDrawnCard);
 }
 
 TEST_CASE("A flipped Wild leaves the color to choose, and the view says so", "[core][view]")
@@ -343,7 +342,7 @@ TEST_CASE("A player about to play their second-to-last card may announce UNO", "
     REQUIRE(!viewOf(round, 1, 2).me.canCallUno);
 }
 
-TEST_CASE("The UNO window shows the offender to the others and the call button to the offender", "[core][view]")
+TEST_CASE("The call button is offered to the offender, and only to them", "[core][view]")
 {
     SeededRandomSource random{kSeed};
     auto round = roundWithSkipsAndAFive(random);
@@ -355,8 +354,7 @@ TEST_CASE("The UNO window shows the offender to the others and the call button t
     const auto offender = viewOf(round, 0, 2);
     const auto other = viewOf(round, 1, 2);
     REQUIRE(offender.me.canCallUno);
-    REQUIRE(offender.me.catchableTargetIds.empty());
-    REQUIRE(other.me.catchableTargetIds == std::vector{player(0)});
+    REQUIRE(round.hasUnoWindowOn(player(0)));
     REQUIRE(!other.me.canCallUno);
 }
 
@@ -372,7 +370,7 @@ TEST_CASE("Once the offender announced UNO, nobody can be caught", "[core][view]
     REQUIRE(round.apply(player(0), CallUno{}, random).has_value());
 
     const auto announced = viewOf(round, 1, 2);
-    REQUIRE(announced.me.catchableTargetIds.empty());
+    REQUIRE(round.unoWindows().empty());
     REQUIRE(announced.players.at(0).hasCalledUno);
     REQUIRE(!announced.players.at(1).hasCalledUno);
 }

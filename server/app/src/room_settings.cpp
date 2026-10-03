@@ -28,6 +28,9 @@ RoomSettings applyPatch(RoomSettings settings, const RoomSettingsPatch& patch) n
     if (patch.maxPlayers) {
         settings.maxPlayers = *patch.maxPlayers;
     }
+    if (patch.drawRule) {
+        settings.drawRule = *patch.drawRule;
+    }
     return settings;
 }
 

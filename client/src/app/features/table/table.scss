@@ -41,6 +41,33 @@
   padding: 0 var(--space-4);
 }
 
+.catch-bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.catch {
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border: 2px solid var(--neon-red);
+  border-radius: var(--radius-pill);
+  background: var(--neon-red);
+  color: var(--text-on-neon);
+  font-family: var(--font-display);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  cursor: pointer;
+  animation: blink-catch 1s ease-in-out infinite;
+}
+
+@keyframes blink-catch {
+  50% {
+    opacity: 0.7;
+  }
+}
+
 .journal {
   display: grid;
   gap: 2px;

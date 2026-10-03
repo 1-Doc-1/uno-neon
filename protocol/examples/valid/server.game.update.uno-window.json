@@ -2,44 +2,57 @@
   "v": 1,
   "type": "game.update",
   "payload": {
-    "serverTime": 1790000500000,
+    "serverTime": 1790000400000,
     "events": [
       {
-        "kind": "cardPlayed",
-        "playerId": "p_Max8Qw3Zt",
-        "card": {
-          "id": 88,
-          "color": "yellow",
-          "rank": "3"
-        },
-        "chosenColor": null,
-        "isJumpIn": false
-      },
-      {
-        "kind": "roundEnded",
-        "winnerId": "p_Max8Qw3Zt",
-        "points": 70
+        "kind": "turnChanged",
+        "playerId": "p_Lea4f9Kx2"
       }
     ],
     "view": {
-      "stateVersion": 45,
-      "phase": "roundOver",
+      "stateVersion": 33,
+      "phase": "awaitingPlay",
       "me": {
         "playerId": "p_Lea4f9Kx2",
         "hand": [
+          {
+            "id": 1843,
+            "color": "red",
+            "rank": "7"
+          },
           {
             "id": 77,
             "color": null,
             "rank": "wild"
           },
           {
+            "id": 902,
+            "color": "blue",
+            "rank": "7"
+          },
+          {
+            "id": 4410,
+            "color": "green",
+            "rank": "skip"
+          },
+          {
             "id": 12,
             "color": "yellow",
             "rank": "0"
+          },
+          {
+            "id": 3301,
+            "color": "red",
+            "rank": "drawTwo"
+          },
+          {
+            "id": 650,
+            "color": null,
+            "rank": "wildDrawFour"
           }
         ],
-        "playableCardIds": [],
-        "canDraw": false,
+        "playableCardIds": [1843, 77, 3301, 650],
+        "canDraw": true,
         "canKeepDrawnCard": false,
         "canCallUno": false,
         "canChooseColor": false,
@@ -50,20 +63,8 @@
           "playerId": "p_Lea4f9Kx2",
           "nickname": "Léa",
           "seat": 0,
-          "cardCount": 2,
+          "cardCount": 7,
           "score": 0,
-          "isConnected": true,
-          "isBot": false,
-          "isHost": true,
-          "hasCalledUno": false,
-          "isReadyForNextRound": true
-        },
-        {
-          "playerId": "p_Max8Qw3Zt",
-          "nickname": "Max",
-          "seat": 1,
-          "cardCount": 0,
-          "score": 70,
           "isConnected": true,
           "isBot": false,
           "isHost": false,
@@ -71,10 +72,22 @@
           "isReadyForNextRound": false
         },
         {
+          "playerId": "p_Max8Qw3Zt",
+          "nickname": "Max",
+          "seat": 1,
+          "cardCount": 1,
+          "score": 0,
+          "isConnected": true,
+          "isBot": false,
+          "isHost": true,
+          "hasCalledUno": false,
+          "isReadyForNextRound": false
+        },
+        {
           "playerId": "p_Ines7Rt1Y",
           "nickname": "Inès",
           "seat": 2,
-          "cardCount": 1,
+          "cardCount": 7,
           "score": 0,
           "isConnected": true,
           "isBot": false,
@@ -83,19 +96,25 @@
           "isReadyForNextRound": false
         }
       ],
-      "currentPlayerId": "p_Max8Qw3Zt",
+      "currentPlayerId": "p_Lea4f9Kx2",
       "direction": "clockwise",
-      "currentColor": "yellow",
+      "currentColor": "red",
       "discardTop": {
-        "id": 88,
-        "color": "yellow",
-        "rank": "3"
+        "id": 5120,
+        "color": "red",
+        "rank": "4"
       },
       "drawPileCount": 86,
       "pendingDraw": 0,
       "turnDeadline": null,
-      "nextRoundDeadline": 1790000515000,
-      "unoWindows": [],
+      "nextRoundDeadline": null,
+      "unoWindows": [
+        {
+          "targetId": "p_Max8Qw3Zt",
+          "graceEndsAt": 1790000402000,
+          "expiresAt": 1790000415000
+        }
+      ],
       "round": 1,
       "settings": {
         "stacking": "off",
@@ -103,37 +122,12 @@
         "sevenZero": false,
         "drawUntilPlayable": false,
         "wildDrawFourMode": "officialChallenge",
-        "turnTimerSeconds": 30,
+        "turnTimerSeconds": 0,
         "matchLength": "to500",
         "maxPlayers": 6,
         "drawRule": "guided"
       },
-      "roundResult": {
-        "winnerId": "p_Max8Qw3Zt",
-        "points": 70,
-        "revealedHands": {
-          "p_Lea4f9Kx2": [
-            {
-              "id": 77,
-              "color": null,
-              "rank": "wild"
-            },
-            {
-              "id": 12,
-              "color": "yellow",
-              "rank": "0"
-            }
-          ],
-          "p_Max8Qw3Zt": [],
-          "p_Ines7Rt1Y": [
-            {
-              "id": 650,
-              "color": null,
-              "rank": "wildDrawFour"
-            }
-          ]
-        }
-      },
+      "roundResult": null,
       "matchWinnerId": null
     }
   }

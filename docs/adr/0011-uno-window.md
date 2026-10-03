@@ -1,6 +1,6 @@
 # 0011 — Fenêtre UNO : définition précise
 
-- **Statut** : accepté
+- **Statut** : remplacé en partie par l'[ADR 0018](0018-uno-catch-window.md) (règle de fermeture, plusieurs cibles, durées)
 - **Date** : 2026-10-01
 
 ## Contexte

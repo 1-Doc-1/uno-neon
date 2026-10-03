@@ -36,6 +36,7 @@ using uno::core::CatchUno;
 using uno::core::ChooseColor;
 using uno::core::Color;
 using uno::core::DrawCard;
+using uno::core::DrawRule;
 using uno::core::Match;
 using uno::core::MatchLength;
 using uno::core::MatchSettings;
@@ -84,10 +85,17 @@ constexpr std::uint32_t kColorCount = 4;
     return kLengths.at(static_cast<std::size_t>((seed / 9) % kLengths.size()));
 }
 
+// Both draw rules are simulated: the guided one is the default of the rooms, the official one stays available.
+[[nodiscard]] DrawRule drawRuleFor(std::uint64_t seed)
+{
+    return seed % 2 == 0 ? DrawRule::Guided : DrawRule::Official;
+}
+
 [[nodiscard]] Match startMatch(std::uint64_t seed, SeededRandomSource& random)
 {
     auto started =
-        Match::start(players(playerCountFor(seed)), MatchSettings{.matchLength = matchLengthFor(seed)}, random);
+        Match::start(players(playerCountFor(seed)),
+                     MatchSettings{.matchLength = matchLengthFor(seed), .drawRule = drawRuleFor(seed)}, random);
     REQUIRE(started.has_value());
     return std::move(started->match);
 }
@@ -122,7 +130,10 @@ private:
     // Someone leaves the match for good: the engine must stay consistent, and with two players left it ends by forfeit.
     void removeSomeoneSometimes()
     {
-        if (match_.winner().has_value() || pick(1000) >= kRemovalPerMille) {
+        // Not between two rounds: the points of a finished round are the value of the hands left on the table, which
+        // is what the invariants compare them to (the scores of the players who left are tracked separately).
+        const bool betweenRounds = std::holds_alternative<RoundOver>(match_.round().phase());
+        if (match_.winner().has_value() || betweenRounds || pick(1000) >= kRemovalPerMille) {
             return;
         }
         const auto leaver = anyPlayer();
@@ -211,6 +222,20 @@ private:
         const auto view = uno::core::project(match_, viewer);
         REQUIRE(view.has_value());
         requireViewLeaksNothing(round, *view, viewer);
+        requireForcedActionIsAccepted(round);
+    }
+
+    // A move the engine calls forced must be one it accepts, and only the guided draw has any. Tried on a copy, with
+    // its own random source, so that the simulation itself is not disturbed.
+    static void requireForcedActionIsAccepted(const uno::core::Round& round)
+    {
+        const auto forced = round.forcedAction();
+        REQUIRE((!forced.has_value() || round.drawRule() == DrawRule::Guided));
+        if (forced.has_value()) {
+            auto copy = round;
+            SeededRandomSource scratch{1};
+            REQUIRE(copy.apply(copy.currentPlayer(), *forced, scratch).has_value());
+        }
     }
 
     void startNextRoundIfOver()
