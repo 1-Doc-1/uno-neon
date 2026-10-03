@@ -1,0 +1,126 @@
+<div class="lobby">
+  <header class="glass head">
+    <div>
+      <p class="caption">Code du salon</p>
+      <p class="code" aria-label="Code du salon">{{ room().code }}</p>
+    </div>
+    <div class="actions">
+      <button appNeonButton variant="outline" (click)="copyCode()">Copier le code</button>
+      <button appNeonButton variant="outline" tone="pink" (click)="copyLink()">
+        Copier le lien
+      </button>
+    </div>
+  </header>
+
+  <section class="glass block" aria-labelledby="players-title">
+    <h2 id="players-title">
+      Joueurs ({{ room().players.length }}/{{ room().settings.maxPlayers }})
+    </h2>
+    <ul class="players">
+      @for (player of room().players; track player.playerId) {
+        <li class="player" [class.offline]="!player.isConnected">
+          <app-avatar [playerId]="player.playerId" [nickname]="player.nickname" />
+          <span class="name">
+            {{ player.nickname }}
+            @if (player.playerId === store.playerId()) {
+              <span class="tag">toi</span>
+            }
+            @if (player.isHost) {
+              <span class="tag host">hôte</span>
+            }
+            @if (!player.isConnected) {
+              <span class="tag off">déconnecté</span>
+            }
+          </span>
+          @if (player.isReady || player.isHost) {
+            <span class="ready">Prêt</span>
+          }
+          @if (isHost() && !player.isHost) {
+            @if (kickCandidate() === player.playerId) {
+              <button
+                appNeonButton
+                tone="red"
+                variant="outline"
+                (click)="confirmKick(player.playerId)"
+              >
+                Confirmer
+              </button>
+            } @else {
+              <button
+                appNeonButton
+                variant="ghost"
+                [attr.aria-label]="'Exclure ' + player.nickname"
+                (click)="askKick(player.playerId)"
+              >
+                Exclure
+              </button>
+            }
+          }
+        </li>
+      }
+    </ul>
+  </section>
+
+  <section class="glass block" aria-labelledby="settings-title">
+    <h2 id="settings-title">Réglages</h2>
+    <div class="setting">
+      <span class="setting-label">Durée de la partie</span>
+      <app-segmented
+        label="Durée de la partie"
+        [options]="matchLengths"
+        [value]="room().settings.matchLength"
+        [disabled]="!isHost()"
+        (selected)="store.updateSettings({ matchLength: $event })"
+      />
+    </div>
+    <div class="setting">
+      <span class="setting-label">Minuteur par tour</span>
+      <app-segmented
+        label="Minuteur par tour"
+        [options]="turnTimers"
+        [value]="room().settings.turnTimerSeconds"
+        [disabled]="!isHost()"
+        (selected)="store.updateSettings({ turnTimerSeconds: $event })"
+      />
+    </div>
+    <div class="setting">
+      <span class="setting-label">Joueurs maximum</span>
+      <app-segmented
+        label="Joueurs maximum"
+        [options]="maxPlayers"
+        [value]="room().settings.maxPlayers"
+        [disabled]="!isHost()"
+        (selected)="store.updateSettings({ maxPlayers: $event })"
+      />
+    </div>
+    @if (!isHost()) {
+      <p class="muted">Seul l’hôte peut modifier les réglages.</p>
+    }
+  </section>
+
+  <footer class="glass foot">
+    @if (isHost()) {
+      <button
+        appNeonButton
+        tone="green"
+        (click)="store.startMatch()"
+        [disabled]="startBlocker() !== null"
+      >
+        Lancer la partie
+      </button>
+      @if (startBlocker(); as blocker) {
+        <p class="muted" role="status">{{ blocker }}</p>
+      }
+    } @else {
+      <button
+        appNeonButton
+        tone="green"
+        [variant]="me()?.isReady ? 'outline' : 'solid'"
+        (click)="toggleReady()"
+      >
+        {{ me()?.isReady ? 'Je ne suis plus prêt' : 'Je suis prêt' }}
+      </button>
+    }
+    <button appNeonButton variant="ghost" (click)="leave()">Quitter</button>
+  </footer>
+</div>

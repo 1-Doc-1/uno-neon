@@ -1,0 +1,38 @@
+<main class="page">
+  <h1 class="logo" aria-label="UNO Néon">
+    <span class="uno">UNO</span>
+    <span class="neon">NÉON</span>
+  </h1>
+
+  <section class="glass panel" aria-label="Rejoindre une partie">
+    <label class="field">
+      <span>Ton pseudo</span>
+      <input type="text" autocomplete="nickname" [formField]="form.nickname" />
+    </label>
+
+    <button appNeonButton (click)="create()" [disabled]="!canCreate()">Créer un salon</button>
+
+    <p class="divider" aria-hidden="true"><span>ou</span></p>
+
+    <label class="field">
+      <span>Code d’un salon</span>
+      <input
+        type="text"
+        class="code"
+        autocomplete="off"
+        autocapitalize="characters"
+        spellcheck="false"
+        placeholder="K7M4XP"
+        [formField]="form.code"
+      />
+    </label>
+
+    <button appNeonButton variant="outline" tone="pink" (click)="join()" [disabled]="!canJoin()">
+      Rejoindre
+    </button>
+
+    @if (!store.ready()) {
+      <p class="hint">Connexion au serveur…</p>
+    }
+  </section>
+</main>

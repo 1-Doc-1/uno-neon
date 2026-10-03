@@ -1,13 +1,15 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 
+import { GAME_TRANSPORT } from './core/game-transport';
+import { FakeTransport } from './testing/fake-transport';
 import { App } from './app';
 
 describe('App', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [App],
-      providers: [provideRouter([])],
+      providers: [provideRouter([]), { provide: GAME_TRANSPORT, useValue: new FakeTransport() }],
     }).compileComponents();
   });
 

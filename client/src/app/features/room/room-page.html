@@ -1,0 +1,33 @@
+<main class="page">
+  @if (store.loading()) {
+    <p class="glass notice">Connexion au serveur…</p>
+  } @else if (store.closedReason(); as reason) {
+    <section class="glass notice" aria-labelledby="closed-title">
+      <h1 id="closed-title">Salon fermé</h1>
+      @switch (reason) {
+        @case ('kicked') {
+          <p>L’hôte t’a exclu du salon.</p>
+        }
+        @case ('expired') {
+          <p>Le salon est resté trop longtemps inactif.</p>
+        }
+        @case ('hostClosed') {
+          <p>L’hôte a fermé le salon.</p>
+        }
+      }
+      <button appNeonButton (click)="goHome()">Retour à l’accueil</button>
+    </section>
+  } @else if (store.room(); as room) {
+    <app-lobby [room]="room" />
+  } @else {
+    <section class="glass notice" aria-labelledby="join-title">
+      <h1 id="join-title">Rejoindre le salon {{ code().toUpperCase() }}</h1>
+      <label class="field">
+        <span>Ton pseudo</span>
+        <input type="text" autocomplete="nickname" [formField]="form.nickname" />
+      </label>
+      <button appNeonButton (click)="join()" [disabled]="!canJoin()">Rejoindre</button>
+      <button appNeonButton variant="ghost" (click)="goHome()">Accueil</button>
+    </section>
+  }
+</main>

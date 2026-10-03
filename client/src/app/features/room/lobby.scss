@@ -1,0 +1,110 @@
+.lobby {
+  display: grid;
+  gap: var(--space-4);
+  width: min(100%, 640px);
+}
+
+.head,
+.block,
+.foot {
+  padding: var(--space-4) var(--space-5);
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.caption {
+  color: var(--text-secondary);
+  font-size: var(--fs-sm);
+}
+
+.code {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xl);
+  font-weight: 600;
+  letter-spacing: 0.25em;
+  color: var(--neon-cyan);
+  text-shadow: var(--text-glow);
+}
+
+.actions,
+.foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+h2 {
+  margin-bottom: var(--space-3);
+  font-size: var(--fs-lg);
+}
+
+.players {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.player {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-md);
+  background: var(--surface-glass);
+
+  &.offline {
+    opacity: 0.7;
+  }
+}
+
+.name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.tag {
+  margin-left: var(--space-1);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--surface-glass-strong);
+  color: var(--text-secondary);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+}
+
+.host {
+  color: var(--neon-yellow);
+}
+
+.ready {
+  color: var(--neon-green);
+  font-weight: 700;
+  text-shadow: var(--text-glow);
+}
+
+.setting {
+  display: grid;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.setting-label {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.muted {
+  color: var(--text-secondary);
+}
