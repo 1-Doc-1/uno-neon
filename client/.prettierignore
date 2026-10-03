@@ -3,3 +3,5 @@ coverage/
 .angular/
 node_modules/
 package-lock.json
+../e2e/test-results/
+../e2e/playwright-report/

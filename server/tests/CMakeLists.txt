@@ -41,10 +41,11 @@ add_executable(uno_tests
     turn_order_test.cpp
     uws_scheduler_test.cpp
     smoke_test.cpp
+    test_hooks_test.cpp
     websocket_server_test.cpp
     support/test_client.cpp)
 target_link_libraries(uno_tests PRIVATE
-    uno_core uno_app uno_net uno_testing Catch2::Catch2WithMain nlohmann_json::nlohmann_json spdlog::spdlog)
+    uno_core uno_app uno_net uno_bootstrap uno_testing Catch2::Catch2WithMain nlohmann_json::nlohmann_json spdlog::spdlog)
 target_include_directories(uno_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 # Windows sockets, for the raw test client of the real server.
 if(WIN32)

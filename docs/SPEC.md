@@ -316,7 +316,7 @@ Les messages d'erreur sont en anglais technique ; **le client traduit chaque cod
 - **Vérification de l'`Origin`** au handshake contre `UNO_ALLOWED_ORIGINS` (protection contre le détournement de WebSocket depuis un autre site).
 
 ### 9.5 Configuration (variables d'environnement)
-`UNO_PORT` (défaut 9001), `UNO_ALLOWED_ORIGINS` (liste séparée par des virgules), `UNO_TRUSTED_PROXY` (bool), `UNO_LOG_LEVEL`, et uniquement si compilé avec `UNO_ENABLE_TEST_HOOKS` : `UNO_TEST_SEED` (partie déterministe pour les tests E2E).
+`UNO_PORT` (défaut 9001), `UNO_ALLOWED_ORIGINS` (liste séparée par des virgules), `UNO_TRUSTED_PROXY` (bool), `UNO_LOG_LEVEL`, et uniquement si compilé avec `UNO_ENABLE_TEST_HOOKS` : `UNO_TEST_SEED` (partie déterministe pour les tests E2E) et `UNO_TEST_RECONNECT_GRACE_MS` (grâce de reconnexion raccourcie).
 
 ### 9.6 Observabilité
 - Logs structurés spdlog : connexion/déconnexion, création/fermeture de salon, erreurs, avec `playerId` et `roomCode` (jamais le jeton de session).
@@ -515,7 +515,7 @@ Effets courts et originaux ou sous licence libre (licence notée dans `client/sr
 | Contrat | Catch2 + TypeScript | exemples valides/invalides du protocole (§8.1) |
 | App/serveur | Catch2 + `ManualScheduler` | salons, sessions, reconnexion, timers, rate limiting, Origin — sans vrai réseau quand c'est possible |
 | Client | Vitest | `GameStore` (file d'animations, `stateVersion`, erreurs), `WebSocketTransport` (backoff), composants de présentation clés |
-| E2E | Playwright (`e2e/`) | serveur lancé avec `UNO_TEST_SEED` + client ; partie complète à 2 joueurs (2 contextes navigateur), partie à 4 avec cumul, contestation du +4, contre-UNO, reconnexion après coupure, lien d'invitation, code invalide, salon plein, partie jouée **uniquement au clavier**, scan axe sur chaque écran, captures de référence en 375, 768 et 1440 px |
+| E2E | Playwright (`e2e/`, ADR 0023) | une pile par test (serveur lancé avec `UNO_TEST_SEED` + client construit), un contexte de navigateur par joueur. Couverts : salon, Prêt, Lancer, carte posée, pioche guidée, Joker, +4 contesté (à raison, à tort, accepté), UNO, contre-UNO, UNO obligatoire, rechargement, forfait, fin de manche unique. À écrire : partie à 4 avec cumul, code invalide, salon plein, partie jouée **uniquement au clavier**, scan axe sur chaque écran, captures de référence en 375, 768 et 1440 px |
 
 Qualité : clang-format, clang-tidy, ESLint, Prettier. Aucune étape n'est terminée avec un test rouge ou un warning.
 
