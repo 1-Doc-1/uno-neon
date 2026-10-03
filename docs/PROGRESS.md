@@ -39,12 +39,12 @@
 #### Phase 3 — UI minimale (Angular)
 - [x] 3.1 Tokens, typographies, fond, surfaces « verre », glow (version minimale)
 - [x] 3.2 Composant carte (toutes les cartes, états, daltonisme)
-- [ ] 3.3 Écrans Accueil et Salon
+- [x] 3.3 Écrans Accueil et Salon
 - [ ] 3.4 Table de jeu (main, adversaires, piles, indicateurs, sélecteur de couleur)
 
 #### Phase 4 — Intégration client ↔ serveur (minimale)
-- [ ] 4.1 `GameSocket` (reconnexion, backoff, messages typés)
-- [ ] 4.2 `GameStore` branché sur le serveur, réconciliation par `stateVersion`
+- [x] 4.1 `GameSocket` (reconnexion, backoff, messages typés)
+- [x] 4.2 `GameStore` branché sur le serveur, réconciliation par `stateVersion`
 - [ ] 4.3 Parcours complets : créer, rejoindre, jouer, gagner → **première partie jouable (MVP)**
 
 ### Après le MVP
@@ -116,3 +116,6 @@
 - 2026-10-01 — 2.6 — tests d'intégration sur un vrai serveur (câblage de production : aléatoire cryptographique, horloge système, timers uWebSockets) : parties complètes à 2 et à 3 joueurs jouées par sockets, chaque `game.update` reçu vérifié contre les fuites de cartes ; reprise de session avec fermeture de l'ancienne connexion (4000) ; déconnexion montrée au salon ; `SESSION_REQUIRED` ; `/health` ; limites de débit (par connexion, création, jonction) ; **la phase 2 est terminée** — `feat/timers-and-integration`
 - 2026-10-03 — 3.1 — tokens CSS de la SPEC §11.2 (`client/src/styles/`), polices auto-hébergées (`@fontsource`), fond Crépuscule (ciel, soleil, étoiles, sol quadrillé), surface `.glass`, `neon-button` (3 variantes) et `color-symbol` (▲ ● ■ ◆) — `feat/ui-design-system`
 - 2026-10-03 — 3.2 — composant `app-card` (un SVG paramétré : 10 chiffres, Skip, Reverse, +2, Wild, +4, couleur choisie, états jouable/non jouable), `app-card-back`, page `/dev` pour les revues visuelles ; captures 375 et 1440 px relues — `feat/ui-design-system`
+- 2026-10-03 — 4.1 — `GameTransport` (interface + `InjectionToken`) et `WebSocketTransport` : `/ws` sur la même origine, reconnexion à backoff exponentiel plafonné à 8 s avec jitter, pas de reconnexion après la fermeture 4000 (session reprise ailleurs), décodage de l'enveloppe sans exception ; jeton de session en `sessionStorage` (un onglet = un joueur), pseudo en `localStorage` ; `ErrorMessages` (code → français) — `feat/client-lobby`
+- 2026-10-03 — 4.2 — `GameStore` (signals en lecture seule + intentions) : `session.hello` à chaque ouverture, demandes corrélées par `id` (résolues `true`/`false`, erreur affichée en toast français), session expirée → nouvelle session, vues et salons plus anciens ignorés, salon fermé ; `FakeTransport` pour les tests — `feat/client-lobby`
+- 2026-10-03 — 3.3 — Accueil (Signal Forms : pseudo validé comme le serveur, créer, rejoindre par code) et page `/r/:code` : salon (code et lien copiables, joueurs, prêt, exclusion confirmée, réglages durée/minuteur/joueurs max pour l'hôte, lancer avec explication du blocage) et entrée par lien avec pseudo ; bannière « Connexion perdue » ; captures 375 et 1440 px relues sur le vrai serveur — `feat/client-lobby`
