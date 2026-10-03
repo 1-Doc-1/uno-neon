@@ -1,6 +1,5 @@
 import { TestBed } from '@angular/core/testing';
 import { APP_NAME } from '../core/app-name';
-import { ThemeService } from '../core/theme.service';
 import { Icon, IconName } from './icon';
 import { Logo } from './logo';
 
@@ -41,29 +40,5 @@ describe('Icon', () => {
       expect(svg?.getAttribute('aria-hidden')).toBe('true');
       expect(svg?.querySelectorAll('path, rect, circle').length).toBeGreaterThan(0);
     }
-  });
-});
-
-describe('ThemeService', () => {
-  beforeEach(() => {
-    localStorage.clear();
-    delete document.documentElement.dataset['theme'];
-  });
-
-  it('starts on the table cloth theme and applies it to the page', () => {
-    const service = TestBed.inject(ThemeService);
-    TestBed.tick();
-
-    expect(service.theme()).toBe('tapis');
-    expect(document.documentElement.dataset['theme']).toBe('tapis');
-  });
-
-  it('switches theme, remembers it, and restores it next time', () => {
-    const service = TestBed.inject(ThemeService);
-    service.toggle();
-    TestBed.tick();
-
-    expect(document.documentElement.dataset['theme']).toBe('nuit');
-    expect(localStorage.getItem('uno.theme')).toBe('nuit');
   });
 });

@@ -1,21 +1,6 @@
 <main class="page">
   <app-logo [size]="56" />
 
-  <section class="panel box" aria-labelledby="h-theme">
-    <h2 id="h-theme">Thème</h2>
-    <div class="row">
-      @for (t of themes; track t.name) {
-        <button
-          appButton
-          [kind]="theme.theme() === t.name ? 'primary' : 'neutral'"
-          (click)="theme.set(t.name)"
-        >
-          {{ t.label }}
-        </button>
-      }
-    </div>
-  </section>
-
   <section class="panel box" aria-labelledby="h-cards">
     <h2 id="h-cards">Cartes</h2>
     @for (row of rows; track row.color) {

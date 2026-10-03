@@ -1,6 +1,7 @@
-// Jeux de tokens des deux thèmes (ADR 0021, SPEC §11). Même structure : un composant n'écrit aucune couleur en dur.
+// Tokens de la direction artistique « Nuit » (ADR 0021, SPEC §11). Un composant n'écrit aucune couleur en dur : tout
+// passe par ces variables, ce qui permettrait d'ajouter un thème plus tard en les redéfinissant.
 // Le néon (--glow-*) est réservé aux cartes (bord, carte jouable, dessus de la défausse) et à quelques actions
-// (primaire, destructive, UNO, Contre-UNO) ; tout le reste est sobre : panneaux unis, un seul niveau d'élévation.
+// (primaire, destructive, UNO, Contre-UNO) ; tout le reste est sobre : panneaux en verre sombre, un seul niveau d'élévation.
 
 :root {
   // Typographie : display ronde et grasse + sans-serif lisible, auto-hébergées (licence OFL)
@@ -51,38 +52,17 @@
   // Corps des cartes : sombre, teinté de 34 % de la couleur de la carte (le blanc dessus reste ≥ 7:1)
   --card-body: #17171b;
   --card-tint: 34%;
-  --accent-strip: none;
-  --elevation: 0 8px 24px rgb(0 0 0 / 0.35);
-}
+  --elevation: 0 10px 30px rgb(0 0 0 / 0.38);
 
-// A « Tapis » : tapis de table rouge très sombre, panneaux anthracite
-:root,
-:root[data-theme='tapis'] {
-  --page-bg:
-    radial-gradient(ellipse 125% 95% at 50% 40%, transparent 52%, rgb(0 0 0 / 0.6) 100%),
-    repeating-linear-gradient(45deg, rgb(255 255 255 / 0.016) 0 2px, transparent 2px 5px),
-    radial-gradient(ellipse at 50% 42%, #5e1b26 0%, #3e1018 55%, #230910 100%);
-  --panel: #2b2b30;
-  --field: #1e1e22;
-  --text: #f4f2ef;
-  --text-dim: #c0bcb5;
-  --back-neon: #ffd633;
-  --accent-strip: none;
-}
-
-// B « Nuit » : anthracite / bleu nuit très sombre, les quatre couleurs du jeu en accents discrets
-:root[data-theme='nuit'] {
+  // Fond « Nuit » : anthracite / bleu nuit très sombre
   --page-bg: radial-gradient(ellipse at 50% 36%, #1d2742 0%, #111830 55%, #0a0e1d 100%);
-  --panel: #1e2438;
+
+  // Verre sombre : fond translucide + flou (repli opaque sans backdrop-filter), liseré clair très fin en haut
+  --panel: rgb(30 36 56 / 0.62);
+  --panel-solid: #1e2438;
+  --panel-rim: inset 0 1px 0 rgb(255 255 255 / 0.1);
   --field: #131829;
   --text: #eef1fa;
   --text-dim: #adb6cf;
   --back-neon: #5fd8ff;
-  --accent-strip: linear-gradient(
-    90deg,
-    var(--game-red) 0 25%,
-    var(--game-yellow) 25% 50%,
-    var(--game-green) 50% 75%,
-    var(--game-blue) 75% 100%
-  );
 }

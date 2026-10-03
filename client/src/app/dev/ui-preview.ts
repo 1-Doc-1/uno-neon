@@ -1,5 +1,4 @@
-import { Component, inject } from '@angular/core';
-import { ThemeService, THEMES } from '../core/theme.service';
+import { Component } from '@angular/core';
 import type { Card, Color, Rank } from '../protocol/generated/protocol';
 import { Button } from '../ui/button';
 import { CardFace } from '../ui/card';
@@ -23,8 +22,6 @@ const card = (color: Color | null, rank: Rank): Card => ({ id: nextId++, color, 
   styleUrl: './ui-preview.scss',
 })
 export class UiPreview {
-  protected readonly theme = inject(ThemeService);
-  protected readonly themes = THEMES;
   protected readonly colors = COLORS;
   protected readonly colorName = COLOR_NAME;
   protected readonly icons = [

@@ -2,7 +2,7 @@ import { Component, computed, input } from '@angular/core';
 import { TableView } from '../features/table/table-view';
 import { SCENARIO_JOURNAL, ScenarioName, SCENARIOS, scenarioView } from './fixtures';
 
-/** Page `/dev/table?scenario=uno-window&theme=nuit` : la table alimentée par une situation écrite à la main. */
+/** Page `/dev/table?scenario=uno-window` : la table alimentée par une situation écrite à la main. */
 @Component({
   selector: 'app-table-fixture',
   imports: [TableView],

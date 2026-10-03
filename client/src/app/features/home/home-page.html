@@ -33,14 +33,4 @@
       <p class="hint">Connexion au serveur…</p>
     }
   </section>
-
-  <button
-    appButton
-    kind="ghost"
-    class="theme"
-    (click)="theme.toggle()"
-    [attr.aria-label]="'Changer de thème (actuel : ' + theme.theme() + ')'"
-  >
-    <app-icon name="palette" /> Thème {{ theme.theme() === 'tapis' ? 'Tapis' : 'Nuit' }}
-  </button>
 </main>

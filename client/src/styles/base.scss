@@ -57,21 +57,20 @@ select {
   border: 0;
 }
 
-// Panneau : uni, sans bordure ni halo, un seul niveau d'élévation
+// Panneau : verre sombre (fond translucide, flou, liseré clair très fin en haut, ombre douce), un seul niveau
+// d'élévation. Le flou ne sert que sur ces panneaux : jamais sur les cartes ni sur de grandes surfaces animées.
 .panel {
   position: relative;
   background: var(--panel);
+  backdrop-filter: blur(14px);
   border-radius: var(--radius-lg);
-  box-shadow: var(--elevation);
+  box-shadow: var(--panel-rim), var(--elevation);
   overflow: hidden;
+}
 
-  // Thème Nuit : filet des quatre couleurs du jeu en haut du panneau
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0 0 auto 0;
-    height: 3px;
-    background: var(--accent-strip);
+@supports not (backdrop-filter: blur(1px)) {
+  .panel {
+    background: var(--panel-solid);
   }
 }
 
