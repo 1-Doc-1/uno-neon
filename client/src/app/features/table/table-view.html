@@ -35,7 +35,11 @@
     </section>
 
     <section class="center" aria-label="Table">
-      <app-table-center [currentColor]="view().currentColor" [direction]="view().direction">
+      <app-table-center
+        [currentColor]="shownColor()"
+        [direction]="view().direction"
+        [burst]="burst()"
+      >
         <app-piles
           [drawPileCount]="view().drawPileCount"
           [discardTop]="view().discardTop"
@@ -84,9 +88,16 @@
       [cards]="view().me.hand"
       [playableIds]="view().me.playableCardIds"
       [myTurn]="myTurn()"
+      [hiddenIds]="director.hiddenCardIds()"
       (played)="play($event)"
     />
   </section>
+
+  <app-effects-layer
+    [effects]="director.active()"
+    [meId]="view().me.playerId"
+    [handRect]="handRect"
+  />
 </div>
 
 @if (view().me.penaltyResponse; as penalty) {
@@ -104,7 +115,7 @@
 @if (view().me.canChooseColor) {
   <app-color-picker [cancellable]="false" (picked)="colorChosen.emit($event)" />
 }
-@if (view().phase === 'roundOver' && view().roundResult; as result) {
+@if (view().phase === 'roundOver' && !director.dialogsHeld() && view().roundResult; as result) {
   <app-round-over-dialog
     [result]="result"
     [players]="view().players"

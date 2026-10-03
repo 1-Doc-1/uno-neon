@@ -18,7 +18,7 @@ import { MAX_FAN_BACKS, OpponentFan } from './opponent-fan';
       [class.offline]="!seat().isConnected"
     >
       <app-opponent-fan class="fan" [count]="seat().cardCount" [maxBacks]="maxBacks()" />
-      <div class="pill">
+      <div class="pill" [attr.data-anchor]="'seat:' + seat().playerId">
         <div
           class="portrait"
           [class.timed]="timerFraction() !== null"

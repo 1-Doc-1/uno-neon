@@ -15,6 +15,8 @@ const FORBIDDEN = [
   'two-windows',
   'must-declare',
   'full-table',
+  'Démo des animations',
+  'Loïc pose un 8 rouge',
 ];
 // Une chaîne de l'application elle-même : prouve que l'on a bien lu le bundle de l'application
 const EXPECTED = 'session.hello';

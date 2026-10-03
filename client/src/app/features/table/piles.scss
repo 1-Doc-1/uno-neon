@@ -64,6 +64,27 @@
   font-weight: 600;
 }
 
+// La défausse : les dernières cartes posées, en pile désordonnée (rotation et décalage dérivés de leur identifiant)
+.stack {
+  position: relative;
+  width: var(--card-w);
+  aspect-ratio: 5 / 7;
+}
+
+.pile-card {
+  position: absolute;
+  inset: 0;
+  transform: translate(var(--dx), var(--dy)) rotate(var(--rot));
+
+  &.in-flight {
+    visibility: hidden;
+  }
+}
+
+.under {
+  filter: brightness(0.7);
+}
+
 // La couleur active : une lueur autour de la défausse (ombre statique, jamais animée)
 .glow {
   border-radius: 12px;

@@ -102,8 +102,9 @@ export class AnimationDirector {
     if (steps.length === 0) {
       return;
     }
+    // Retard mesuré à vitesse normale : ralentir les effets (démo) ne doit pas faire abandonner la file
     const backlog = [...this.queue, ...steps].reduce((total, step) => total + step.stepMs, 0);
-    if (backlog / this.speed() > MAX_BACKLOG_MS) {
+    if (backlog > MAX_BACKLOG_MS) {
       this.flush();
       return;
     }

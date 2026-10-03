@@ -1,0 +1,313 @@
+// La couche des effets : par-dessus la table, elle n'intercepte jamais un clic. Seuls `transform` et `opacity` bougent.
+:host {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+// Les éléments centrés sur un point (left/top) se placent par leur centre
+.big,
+.label,
+.skip,
+.wheel {
+  position: absolute;
+  margin: 0;
+  translate: -50% -50%;
+  animation-duration: calc(var(--dur) * 1ms);
+  animation-timing-function: cubic-bezier(0.2, 0.9, 0.3, 1);
+  animation-fill-mode: both;
+}
+
+// En mouvement réduit, tout devient un simple fondu (la règle globale qui coupe les animations est plus faible : voir base.scss)
+.reduced {
+  animation-name: fade !important;
+  animation-duration: calc(var(--dur) * 1ms) !important;
+  animation-fill-mode: both !important;
+  animation-iteration-count: 1 !important;
+}
+
+@keyframes fade {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  30%,
+  70% {
+    opacity: 1;
+  }
+}
+
+// ---- Cartes qui volent (le mouvement vient de FlightMotion) ----
+.flight {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: center;
+  will-change: transform;
+}
+
+.back,
+.front {
+  position: absolute;
+  inset: 0;
+}
+
+// Une carte retournée en vol : le dos cède la place à la face à mi-parcours
+.swap .back {
+  animation: hide-late calc(var(--dur) * 1ms) calc(var(--delay) * 1ms) both;
+}
+
+.swap .front {
+  animation: show-late calc(var(--dur) * 1ms) calc(var(--delay) * 1ms) both;
+}
+
+@keyframes hide-late {
+  0%,
+  55% {
+    opacity: 1;
+  }
+  70%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes show-late {
+  0%,
+  55% {
+    opacity: 0;
+  }
+  70%,
+  100% {
+    opacity: 1;
+  }
+}
+
+// ---- « +2 » / « +4 » en grand au centre ----
+.big {
+  font-family: var(--font-display);
+  font-size: clamp(72px, 17vh, 170px);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--uno);
+  -webkit-text-stroke: 0.06em var(--card-ink);
+  paint-order: stroke fill;
+  animation-name: pop;
+}
+
+@keyframes pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  30% {
+    opacity: 1;
+    transform: scale(1.18);
+  }
+  55% {
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.08);
+  }
+}
+
+// ---- UNO !, Contre-UNO !, verdict de contestation ----
+.label {
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  white-space: nowrap;
+  animation-name: stamp;
+}
+
+.text {
+  position: relative;
+}
+
+.star {
+  position: absolute;
+  width: 190%;
+  height: auto;
+  aspect-ratio: 1;
+  fill: var(--uno);
+  stroke: var(--card-ink);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.uno {
+  min-width: 96px;
+  font-size: var(--fs-xl);
+  color: var(--text-on-neon);
+}
+
+.caught,
+.challenge {
+  padding: var(--space-2) var(--space-5);
+  border: 3px solid var(--danger);
+  border-radius: var(--radius-md);
+  background: var(--panel-solid);
+  color: var(--danger);
+  font-size: var(--fs-xl);
+  text-transform: uppercase;
+}
+
+.caught {
+  rotate: -8deg;
+}
+
+.challenge {
+  color: var(--text);
+  border-color: var(--text);
+}
+
+@keyframes stamp {
+  0% {
+    opacity: 0;
+    transform: scale(2.2);
+  }
+  25% {
+    opacity: 1;
+    transform: scale(0.94);
+  }
+  40% {
+    transform: scale(1);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+// ---- Passe-tour : le symbole « interdit » s'imprime sur le siège ----
+.skip {
+  fill: none;
+  stroke: var(--danger);
+  stroke-width: 9;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 6px var(--danger));
+  animation-name: stamp;
+}
+
+// ---- Joker : la roue des quatre couleurs ----
+.wheel {
+  // Le quart choisi grossit au-delà du cadre : le SVG ne doit pas le rogner
+  overflow: visible;
+  animation-name: wheel-life;
+}
+
+.quarter {
+  stroke: var(--card-body);
+  stroke-width: 2;
+  transform-box: view-box;
+  transform-origin: center;
+}
+
+.q-red {
+  fill: var(--game-red);
+}
+.q-yellow {
+  fill: var(--game-yellow);
+}
+.q-green {
+  fill: var(--game-green);
+}
+.q-blue {
+  fill: var(--game-blue);
+}
+
+.hub {
+  fill: var(--card-body);
+}
+
+// Le quart choisi grossit pendant que les autres reculent
+.chosen {
+  animation: grow calc(var(--dur) * 1ms) cubic-bezier(0.3, 1.4, 0.5, 1) both;
+}
+
+@keyframes wheel-life {
+  0% {
+    opacity: 0;
+    transform: scale(0.4) rotate(-40deg);
+  }
+  25%,
+  80% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.15) rotate(0deg);
+  }
+}
+
+@keyframes grow {
+  0%,
+  30% {
+    transform: scale(1);
+  }
+  60%,
+  100% {
+    transform: scale(1.22);
+  }
+}
+
+// ---- Tour : un petit éclat glisse d'un siège à l'autre ----
+.orb {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border-radius: 50%;
+  background: var(--text);
+  box-shadow: 0 0 14px 4px var(--text);
+  animation: glide-orb calc(var(--dur) * 1ms) ease-in-out both;
+}
+
+@keyframes glide-orb {
+  0% {
+    opacity: 0;
+    transform: translate(var(--x0), var(--y0)) scale(0.6);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--x1), var(--y1)) scale(1.4);
+  }
+}
+
+// ---- Fin de manche : un projecteur sur le gagnant ----
+.spot {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at var(--x) var(--y),
+    transparent 0,
+    transparent 90px,
+    var(--scrim) 260px
+  );
+  animation: spot-life calc(var(--dur) * 1ms) ease-in-out both;
+}
+
+@keyframes spot-life {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  25%,
+  75% {
+    opacity: 1;
+  }
+}

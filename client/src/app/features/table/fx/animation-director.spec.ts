@@ -153,6 +153,14 @@ describe('AnimationDirector', () => {
     expect(MAX_BACKLOG_MS).toBeGreaterThan(0);
   });
 
+  it('does not drop a queue just because the effects were slowed down', () => {
+    director.speed.set(0.5);
+
+    director.enqueue([played('loic', redDrawTwo), drew('zoe', 2), turnTo('me')], live);
+
+    expect(kinds()).toEqual(['play']);
+  });
+
   it('hides a flying card until it lands, then shows it', () => {
     director.enqueue([played('loic', red7)], live);
     expect(director.hiddenCardIds().has(red7.id)).toBe(true);

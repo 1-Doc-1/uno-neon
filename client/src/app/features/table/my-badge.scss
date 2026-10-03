@@ -11,8 +11,13 @@
   border-radius: var(--radius-pill);
   background: var(--panel-solid);
   box-shadow: var(--elevation);
+  transition:
+    box-shadow var(--dur-base),
+    transform var(--dur-base) var(--ease-out);
 
   &.current {
+    transform: scale(1.05);
+    transform-origin: left center;
     box-shadow:
       0 0 0 2px rgb(255 255 255 / 0.85),
       0 0 20px rgb(255 255 255 / 0.4);
