@@ -47,6 +47,13 @@
 - [x] 4.2 `GameStore` branché sur le serveur, réconciliation par `stateVersion`
 - [ ] 4.3 Parcours complets : créer, rejoindre, jouer, gagner → **première partie jouable (MVP)**
 
+#### Lot G — Gameplay (après le MVP)
+- [x] G1 Bug du contre-UNO : reproduit par des tests, cause trouvée (fenêtre fermée trop tôt)
+- [x] G2 Fenêtre de contre-UNO : grâce de 2 s, échéance de 15 s, plusieurs cibles (ADR 0018)
+- [x] G3 Pioche guidée, règle de salon `drawRule` (ADR 0017)
+- [x] G4 Client : paquet cliquable, barre de contre-UNO, réglage de la règle de pioche
+- [x] G5 Protocole, SPEC, ADR, simulation avec les deux règles
+
 ### Après le MVP
 
 #### Phase 1 (suite)
@@ -86,6 +93,8 @@
 - [0014 — Couche réseau : modèle de messages dans `app`, limites du transport, client de test sans dépendance](adr/0014-network-layer.md)
 - [0015 — Projection des événements : `ClientEvent`, projetés par lot contre l'état d'après](adr/0015-event-projection.md)
 - [0016 — Le temps et les départs : timers, retrait d'un joueur, limitation de débit, options de test](adr/0016-time-and-departures.md)
+- [0017 — Pioche guidée : le moteur dit quoi, l'application dit quand](adr/0017-guided-draw.md)
+- [0018 — Fenêtre de contre-UNO : grâce, échéance, plusieurs cibles](adr/0018-uno-catch-window.md)
 
 ## Journal
 - 2026-09-30 — 0.1 — arborescence du monorepo, `.editorconfig`, README, modèle d'ADR, BOM retiré de `.gitattributes` — `chore/phase-0-foundations`
@@ -121,3 +130,8 @@
 - 2026-10-03 — 3.3 — Accueil (Signal Forms : pseudo validé comme le serveur, créer, rejoindre par code) et page `/r/:code` : salon (code et lien copiables, joueurs, prêt, exclusion confirmée, réglages durée/minuteur/joueurs max pour l'hôte, lancer avec explication du blocage) et entrée par lien avec pseudo ; bannière « Connexion perdue » ; captures 375 et 1440 px relues sur le vrai serveur — `feat/client-lobby`
 - 2026-10-03 — 3.4 — table de jeu (`features/table`) : adversaires (tour, UNO, déconnexion, contre-UNO), piles, couleur courante avec forme (▲ ● ■ ◆), sens, pénalité en attente, journal des 4 derniers événements, ma main (jouable / éteinte, défilement horizontal, chevauchement au-delà de 8 cartes), Piocher / Passer / UNO, minuteur ; modales `<dialog>` natives (focus piégé, Échap) pour le choix de couleur (touches 1-4), la fin de manche (mains révélées, scores, départ automatique) et la fin de partie ; corrigé en route : `--card-w` défini sur l'hôte de la carte écrasait la taille imposée par les parents ; captures 375 et 1440 px relues — `feat/client-table`
 - 2026-10-03 — 4.3 — **première partie jouable (MVP)** : parties complètes à deux onglets (500 points, plusieurs manches, contre-UNO, Joker et +4) jouées par un script de test dans deux sessions playwright-cli, sans erreur côté serveur ; `GameStore.recentEvents` ; `scripts/dev.ps1` lance serveur et client ensemble — `feat/client-table`
+- 2026-10-03 — G1 — bug « on ne peut pas contrer » : les deux causes soupçonnées (refus côté app d'un joueur qui n'est pas le joueur courant, bouton absent côté client hors de son tour) n'existaient pas, des tests le montrent ; la vraie cause était la fenêtre elle-même (ADR 0011) : elle se fermait au premier `PlayCard`/`DrawCard` accepté de n'importe qui, donc à trois joueurs ou plus, ou après un Skip, personne n'avait le temps de cliquer — `feat/gameplay-uno-window-guided-draw`
+- 2026-10-03 — G2 — fenêtres de contre-UNO sans fermeture au tour suivant (`Round::unoWindows`, `closeUnoWindow`), grâce de 2 s (seul le fautif peut annoncer, `UNO_GRACE_PERIOD` sinon) et échéance de 15 s armées par l'application (`Timeouts::unoGrace`, `unoWindow`), vue `unoWindows` en heure serveur à la place de `me.catchableTargetIds`, annonce possible à 1 carte tant qu'on n'est pas contré ; ADR 0018 (remplace la règle de fermeture de l'ADR 0011) — `feat/gameplay-uno-window-guided-draw`
+- 2026-10-03 — G3 — pioche guidée : `DrawRule`, `Round::canDraw` / `canKeepDrawnCard` / `forcedAction`, `DomainError::MustPlay` (`ILLEGAL_MOVE` / `MUST_PLAY`), timer de 700 ms de l'application qui joue le coup forcé par `Match::apply`, minuteur de tour adapté, réglage de salon `drawRule` (défaut `guided`), `me.canPass` devient `me.canKeepDrawnCard` ; ADR 0017 — `feat/gameplay-uno-window-guided-draw`
+- 2026-10-03 — G4 — client : paquet cliquable (« Piocher » / « Garder la carte » selon le serveur), boutons Piocher et Passer supprimés, bouton UNO affiché seulement quand il sert, barre « Contre-UNO ! nom · compte à rebours » visible hors de son tour, pastille « UNO oublié ! » sur le siège, réglage de la règle de pioche dans le salon ; vérifié sur le vrai serveur dans deux onglets (375 et 1440 px) — `feat/gameplay-uno-window-guided-draw`
+- 2026-10-03 — G5 — protocole (schémas, types générés, exemples dont `server.game.update.uno-window`, tests de contrat), SPEC §3, §4, §5 et §8, simulation avec les deux règles de pioche (une graine sur deux, tout `forcedAction` doit être accepté) ; la simulation ne retire plus de joueur entre deux manches (l'invariant « points = mains restantes » n'y tient pas, sans que ce soit un défaut du moteur) — `feat/gameplay-uno-window-guided-draw`
