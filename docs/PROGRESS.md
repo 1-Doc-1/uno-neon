@@ -3,7 +3,7 @@
 > Tenu à jour par Claude Code à la fin de chaque étape. Les cases cochées = build + tests + lint verts.
 > Format d'une entrée de journal : `AAAA-MM-JJ — phase.étape — résumé — branche/PR`.
 
-## Phase en cours : 3 — UI minimale (phases 0, 1 et 2 terminées)
+## Phase en cours : MVP atteint — reste le polish (phases 0, 1, 2, 3 et 4 minimales terminées)
 
 > Cap : un **MVP jouable au plus tôt**. Ordre d'exécution ci-dessous (les numéros d'étape sont conservés pour la traçabilité). Les phases 3 et 4 sont d'abord faites en version minimale ; le polish (animations, galerie, responsive fin, accessibilité poussée, E2E) vient après le MVP.
 
@@ -40,7 +40,7 @@
 - [x] 3.1 Tokens, typographies, fond, surfaces « verre », glow (version minimale)
 - [x] 3.2 Composant carte (toutes les cartes, états, daltonisme)
 - [x] 3.3 Écrans Accueil et Salon
-- [ ] 3.4 Table de jeu (main, adversaires, piles, indicateurs, sélecteur de couleur)
+- [x] 3.4 Table de jeu (main, adversaires, piles, indicateurs, sélecteur de couleur)
 
 #### Phase 4 — Intégration client ↔ serveur (minimale)
 - [x] 4.1 `GameSocket` (reconnexion, backoff, messages typés)
@@ -119,3 +119,5 @@
 - 2026-10-03 — 4.1 — `GameTransport` (interface + `InjectionToken`) et `WebSocketTransport` : `/ws` sur la même origine, reconnexion à backoff exponentiel plafonné à 8 s avec jitter, pas de reconnexion après la fermeture 4000 (session reprise ailleurs), décodage de l'enveloppe sans exception ; jeton de session en `sessionStorage` (un onglet = un joueur), pseudo en `localStorage` ; `ErrorMessages` (code → français) — `feat/client-lobby`
 - 2026-10-03 — 4.2 — `GameStore` (signals en lecture seule + intentions) : `session.hello` à chaque ouverture, demandes corrélées par `id` (résolues `true`/`false`, erreur affichée en toast français), session expirée → nouvelle session, vues et salons plus anciens ignorés, salon fermé ; `FakeTransport` pour les tests — `feat/client-lobby`
 - 2026-10-03 — 3.3 — Accueil (Signal Forms : pseudo validé comme le serveur, créer, rejoindre par code) et page `/r/:code` : salon (code et lien copiables, joueurs, prêt, exclusion confirmée, réglages durée/minuteur/joueurs max pour l'hôte, lancer avec explication du blocage) et entrée par lien avec pseudo ; bannière « Connexion perdue » ; captures 375 et 1440 px relues sur le vrai serveur — `feat/client-lobby`
+- 2026-10-03 — 3.4 — table de jeu (`features/table`) : adversaires (tour, UNO, déconnexion, contre-UNO), piles, couleur courante avec forme (▲ ● ■ ◆), sens, pénalité en attente, journal des 4 derniers événements, ma main (jouable / éteinte, défilement horizontal, chevauchement au-delà de 8 cartes), Piocher / Passer / UNO, minuteur ; modales `<dialog>` natives (focus piégé, Échap) pour le choix de couleur (touches 1-4), la fin de manche (mains révélées, scores, départ automatique) et la fin de partie ; corrigé en route : `--card-w` défini sur l'hôte de la carte écrasait la taille imposée par les parents ; captures 375 et 1440 px relues — `feat/client-table`
+- 2026-10-03 — 4.3 — **première partie jouable (MVP)** : parties complètes à deux onglets (500 points, plusieurs manches, contre-UNO, Joker et +4) jouées par un script de test dans deux sessions playwright-cli, sans erreur côté serveur ; `GameStore.recentEvents` ; `scripts/dev.ps1` lance serveur et client ensemble — `feat/client-table`

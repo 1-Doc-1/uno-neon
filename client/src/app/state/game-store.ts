@@ -3,6 +3,7 @@ import { describeError } from '../core/error-messages';
 import { GAME_TRANSPORT } from '../core/game-transport';
 import { SessionService } from '../core/session.service';
 import type {
+  ClientEvent,
   ClientMessage,
   Color,
   ErrorPayload,
@@ -26,6 +27,7 @@ interface PendingRequest {
 }
 
 const NOTICE_LIFETIME_MS = 5000;
+const LOG_SIZE = 20;
 const CLIENT_VERSION = '0.1.0';
 
 /**
@@ -50,6 +52,7 @@ export class GameStore {
   private readonly serverClockOffsetState = signal(0);
   private readonly resumedRoomState = signal<string | null>(null);
   private readonly closedState = signal<RoomClosedPayload['reason'] | null>(null);
+  private readonly recentEventsState = signal<readonly ClientEvent[]>([]);
   private readonly noticesState = signal<readonly Notice[]>([]);
 
   readonly connection = this.transport.status;
@@ -61,6 +64,8 @@ export class GameStore {
   readonly view = this.viewState.asReadonly();
   /** Pourquoi le salon a fermé sous nos pieds (exclusion, expiration), le cas échéant. */
   readonly closedReason = this.closedState.asReadonly();
+  /** Les derniers événements de la partie, du plus ancien au plus récent (journal de la table). */
+  readonly recentEvents = this.recentEventsState.asReadonly();
   readonly notices = this.noticesState.asReadonly();
 
   /** Vrai tant que la session n'est pas établie ou que le salon repris n'est pas encore arrivé. */
@@ -245,7 +250,7 @@ export class GameStore {
         this.onRoomUpdate(message.payload.roomVersion, message.payload.room);
         break;
       case 'game.update':
-        this.onGameUpdate(message.payload.serverTime, message.payload.view);
+        this.onGameUpdate(message.payload.serverTime, message.payload.events, message.payload.view);
         break;
       case 'room.closed':
         this.forgetRoom();
@@ -285,12 +290,15 @@ export class GameStore {
   }
 
   /** La vue complète fait foi ; une vue plus ancienne que celle déjà affichée (message tardif) est ignorée. */
-  private onGameUpdate(serverTime: number, view: PlayerView): void {
+  private onGameUpdate(serverTime: number, events: ClientEvent[], view: PlayerView): void {
     const current = this.viewState();
     if (current && view.stateVersion < current.stateVersion) {
       return;
     }
     this.serverClockOffsetState.set(serverTime - Date.now());
+    if (!current || view.stateVersion > current.stateVersion) {
+      this.recentEventsState.update((log) => [...log, ...events].slice(-LOG_SIZE));
+    }
     this.viewState.set(view);
   }
 
@@ -299,6 +307,7 @@ export class GameStore {
     this.resumedRoomState.set(null);
     this.roomState.set(null);
     this.viewState.set(null);
+    this.recentEventsState.set([]);
   }
 
   notify(text: string): void {

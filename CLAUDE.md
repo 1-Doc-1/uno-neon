@@ -31,6 +31,7 @@ Serveur : depuis `server/`, dans un terminal où `dev64` a été lancé. Client 
 | Lancer le serveur | `build/dev/uno_server` (variables : `UNO_PORT`, défaut 9001 ; `UNO_ALLOWED_ORIGINS`, défaut les origines du serveur de dev Angular ; `UNO_LOG_LEVEL` ; `UNO_TRUSTED_PROXY`, défaut faux) |
 | Formater le C++ | `git ls-files '*.cpp' '*.hpp' '*.cpp.in' | xargs clang-format -i` (depuis `server/`) |
 | Vérifier le C++ (clang-tidy) | `git ls-files '*.cpp' | xargs clang-tidy -p build/dev --quiet` (depuis `server/`, comme le CI) |
+| Jouer / développer (serveur + client ensemble) | `./scripts/dev.ps1` depuis la racine (`-Build` pour recompiler le serveur ; ouvrir deux onglets sur http://localhost:4200) |
 | Client : dev (proxy `/ws` → `localhost:9001`) | `npm start` |
 | Client : tests (unitaires + contrat du protocole) | `npm test` (mode watch : `npm run test:watch`) |
 | Client : lint | `npm run lint` |
