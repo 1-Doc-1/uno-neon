@@ -32,12 +32,23 @@
       "displayName": "Release (production)",
       "inherits": "base",
       "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
+    },
+    {
+      "name": "e2e",
+      "displayName": "Release + crochets de test, serveur seul (tests E2E uniquement, jamais en production)",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "UNO_ENABLE_TEST_HOOKS": "ON",
+        "UNO_BUILD_TESTS": "OFF"
+      }
     }
   ],
   "buildPresets": [
     { "name": "dev", "configurePreset": "dev" },
     { "name": "debug-asan", "configurePreset": "debug-asan" },
-    { "name": "release", "configurePreset": "release" }
+    { "name": "release", "configurePreset": "release" },
+    { "name": "e2e", "configurePreset": "e2e", "targets": ["uno_server"] }
   ],
   "testPresets": [
     {

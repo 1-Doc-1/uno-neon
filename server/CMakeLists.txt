@@ -27,18 +27,15 @@ add_subdirectory(net)
 
 find_package(spdlog CONFIG REQUIRED)
 
-add_executable(uno_server main.cpp)
-target_link_libraries(uno_server PRIVATE uno_core uno_app uno_net spdlog::spdlog)
-if(UNO_ENABLE_TEST_HOOKS)
-    target_compile_definitions(uno_server PRIVATE UNO_ENABLE_TEST_HOOKS)
-    target_link_libraries(uno_server PRIVATE uno_testing)
-endif()
-uno_set_warnings(uno_server)
-
 # Test doubles (SeededRandomSource): linked into the server only with UNO_ENABLE_TEST_HOOKS (SPEC §7.4).
 if(UNO_BUILD_TESTS OR UNO_ENABLE_TEST_HOOKS)
     add_subdirectory(testing)
 endif()
+add_subdirectory(bootstrap)
+
+add_executable(uno_server main.cpp)
+target_link_libraries(uno_server PRIVATE uno_core uno_app uno_net uno_bootstrap spdlog::spdlog)
+uno_set_warnings(uno_server)
 
 if(UNO_BUILD_TESTS)
     enable_testing()

@@ -97,7 +97,7 @@ jobs:
 
       # UNO_TEST_SEED only exists in a binary built with UNO_ENABLE_TEST_HOOKS (SPEC §9.5): never the production one.
       - name: Production binary has no test hooks
-        run: "! grep -q UNO_TEST_SEED server/build/debug-asan/uno_server"
+        run: "! grep -q UNO_TEST_ server/build/debug-asan/uno_server"
 
       - name: Test
         working-directory: server

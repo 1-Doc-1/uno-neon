@@ -2,18 +2,15 @@
 #include "uno/app/application.hpp"
 #include "uno/app/room_repository.hpp"
 #include "uno/app/server_config.hpp"
+#include "uno/bootstrap/test_hooks.hpp"
 #include "uno/core/build_info.hpp"
 #include "uno/core/random_source.hpp"
-#include "uno/net/crypto_random_source.hpp"
 #include "uno/net/crypto_runtime.hpp"
 #include "uno/net/protocol_version.hpp"
 #include "uno/net/server_message_sink.hpp"
 #include "uno/net/system_clock.hpp"
 #include "uno/net/uws_scheduler.hpp"
 #include "uno/net/websocket_server.hpp"
-#ifdef UNO_ENABLE_TEST_HOOKS
-#include "uno/testing/seeded_random_source.hpp"
-#endif
 
 #include <spdlog/spdlog.h>
 
@@ -80,21 +77,6 @@ std::expected<uno::app::ServerConfig, std::string> loadConfig()
 }
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): written by a signal handler
-// The source of randomness of the whole server: cryptographic, always (SPEC §7.4). Only a binary built with
-// UNO_ENABLE_TEST_HOOKS can be given a seed (UNO_TEST_SEED) for deterministic end-to-end tests; the variable is not
-// even read, nor its name present, in any other build.
-std::unique_ptr<uno::core::RandomSource> makeRandomSource()
-{
-#ifdef UNO_ENABLE_TEST_HOOKS
-    if (const auto seed = readEnvironmentVariable("UNO_TEST_SEED")) {
-        spdlog::warn("UNO_TEST_SEED is set: randomness is NOT secure (test build)");
-        return std::make_unique<uno::testing::SeededRandomSource>(std::stoull(*seed));
-    }
-#endif
-    return std::make_unique<uno::net::CryptoRandomSource>();
-}
-
-// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): written by a signal handler
 std::atomic<bool> gStopRequested{false};
 static_assert(std::atomic<bool>::is_always_lock_free, "needed to be set from a signal handler");
 
@@ -120,12 +102,13 @@ int run()
         return EXIT_FAILURE;
     }
 
-    const auto random = makeRandomSource();
+    const auto random = uno::bootstrap::makeRandomSource(readEnvironmentVariable);
     const uno::net::SystemClock clock;
     uno::net::UwsScheduler scheduler;
     uno::app::InMemoryRoomRepository rooms;
     uno::net::ServerMessageSink sink;
-    uno::app::Application application(sink, rooms, *random, clock, scheduler);
+    uno::app::Application application(sink, rooms, *random, clock, scheduler,
+                                       uno::bootstrap::makeTimeouts(readEnvironmentVariable));
 
     uno::net::WebSocketServerConfig serverConfig;
     serverConfig.port = config->port;
