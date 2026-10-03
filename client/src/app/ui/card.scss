@@ -1,10 +1,23 @@
 :host {
+  --fill: var(--card-body);
   display: block;
   width: var(--card-w, 104px);
   aspect-ratio: 5 / 7;
-  transition:
-    filter var(--dur-base),
-    opacity var(--dur-base);
+  transition: filter var(--dur-base);
+}
+
+// Fond plein de la couleur de la carte (le bord néon, lui, vient de `currentColor`)
+:host(.tint-red) {
+  --fill: var(--card-red);
+}
+:host(.tint-yellow) {
+  --fill: var(--card-yellow);
+}
+:host(.tint-green) {
+  --fill: var(--card-green);
+}
+:host(.tint-blue) {
+  --fill: var(--card-blue);
 }
 
 svg {
@@ -15,16 +28,16 @@ svg {
 }
 
 .body {
-  // Sombre, teinté de la couleur de la carte : le blanc dessus reste très lisible
-  fill: color-mix(in oklab, var(--card-body) calc(100% - var(--card-tint)), currentColor);
+  fill: var(--fill);
 }
 
+// Ovale incliné : un peu plus sombre que le fond, pour que le chiffre blanc ressorte
 .oval {
-  fill: color-mix(in oklab, var(--card-body) 52%, currentColor);
+  fill: color-mix(in oklab, var(--fill) 72%, black);
 }
 
 .shine {
-  fill: rgb(255 255 255 / 0.06);
+  fill: rgb(255 255 255 / 0.1);
 }
 
 // Le bord néon, toujours de la couleur de la carte ; il ne brille fort que pour une carte jouable ou le dessus de la défausse
@@ -40,9 +53,9 @@ svg {
   filter: drop-shadow(0 0 3px currentColor) drop-shadow(0 0 12px currentColor);
 }
 
+// Non jouable : atténuée par la luminosité et la saturation, jamais par l'opacité (la carte reste opaque)
 :host(.unplayable) {
-  filter: saturate(0.7);
-  opacity: 0.72;
+  filter: brightness(0.6) saturate(0.7);
 }
 
 .corner,
@@ -50,14 +63,26 @@ svg {
   font-family: var(--font-display);
   font-weight: 700;
   fill: #ffffff;
+  stroke: var(--card-ink);
+  paint-order: stroke;
+  stroke-linejoin: round;
 }
 
 .corner {
   font-size: 16px;
+  stroke-width: 0.2em;
 }
 
+.value {
+  stroke-width: 0.1em;
+}
+
+// Symbole de forme : blanc cerné de sombre, lisible sur n'importe quel fond de couleur
 .mark {
-  fill: currentColor;
+  fill: #ffffff;
+  stroke: var(--card-ink);
+  stroke-width: 2px;
+  paint-order: stroke;
 }
 
 .icon {
@@ -66,6 +91,7 @@ svg {
   stroke-width: 6;
   stroke-linecap: round;
   stroke-linejoin: round;
+  filter: drop-shadow(0 0 1px var(--card-ink)) drop-shadow(0 1px 1px var(--card-ink));
 
   .fill {
     fill: #ffffff;
@@ -73,7 +99,7 @@ svg {
   }
 
   .mini {
-    fill: color-mix(in oklab, var(--card-body) 60%, currentColor);
+    fill: color-mix(in oklab, var(--fill) 60%, black);
     stroke-width: 3;
   }
 }

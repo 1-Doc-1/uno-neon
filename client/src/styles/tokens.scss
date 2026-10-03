@@ -49,9 +49,13 @@
   --glow-edge: 0 0 3px currentColor;
   --glow-strong: 0 0 4px currentColor, 0 0 16px color-mix(in oklab, currentColor 60%, transparent);
 
-  // Corps des cartes : sombre, teinté de 34 % de la couleur de la carte (le blanc dessus reste ≥ 7:1)
-  --card-body: #17171b;
-  --card-tint: 34%;
+  // Cartes : fond plein de la couleur (saturée, pas fluo), bord néon de la couleur du jeu ci-dessus
+  --card-red: #d4283b;
+  --card-yellow: #e5a900;
+  --card-green: #1c9a52;
+  --card-blue: #1d6bd0;
+  --card-body: #17171b; // corps des jokers et des dos
+  --card-ink: #14141c; // contour sombre des chiffres
   --elevation: 0 10px 30px rgb(0 0 0 / 0.38);
 
   // Fond « Nuit » : anthracite / bleu nuit très sombre
