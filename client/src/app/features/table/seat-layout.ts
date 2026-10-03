@@ -71,7 +71,7 @@ export function seatLayout(count: number, shape: TableShape = 'table'): readonly
       x: cx + rx * Math.sin(radians),
       y: cy - ry * Math.cos(radians),
       angle,
-      rotation: Math.max(-MAX_ROTATION, Math.min(MAX_ROTATION, -angle * SIDE_ROTATION_FACTOR)),
+      rotation: Math.max(-MAX_ROTATION, Math.min(MAX_ROTATION, -angle * SIDE_ROTATION_FACTOR)) || 0, // jamais -0
       compact: count >= COMPACT_FROM,
     };
   });
