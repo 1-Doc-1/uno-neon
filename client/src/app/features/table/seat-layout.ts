@@ -22,7 +22,7 @@ export function seatSlots(count: number): readonly SeatSlot[] {
     const radians = (angle * Math.PI) / 180;
     return {
       x: 50 + 44 * Math.sin(radians),
-      y: 30 + 52 * (1 - Math.cos(radians)),
+      y: 50 + 40 * (1 - Math.cos(radians)),
     };
   });
 }

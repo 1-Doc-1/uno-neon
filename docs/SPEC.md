@@ -13,7 +13,7 @@
 8. Protocole client ↔ serveur
 9. Serveur réseau (C++)
 10. Client Angular
-11. Design system « Néon Crépuscule »
+11. Design system
 12. Écrans et parcours
 13. Animations et son
 14. Accessibilité
@@ -329,7 +329,7 @@ Les messages d'erreur sont en anglais technique ; **le client traduit chaque cod
 - **Angular CDK** : `a11y` (`LiveAnnouncer`, `FocusTrap`, `ListKeyManager`), `overlay` (modales, bottom sheets).
 - Formulaires (pseudo, code) : **Signal Forms**.
 - Pas de bibliothèque de composants UI (Material, PrimeNG…) : tout le design est sur mesure (§11).
-- Polices auto-hébergées via `@fontsource` (pas de CDN : performance, confidentialité, CSP plus simple).
+- Polices auto-hébergées via `@fontsource-variable` (Fredoka, Inter), licence OFL (pas de CDN : performance, confidentialité, CSP plus simple).
 - ESLint (`angular-eslint`) + Prettier.
 
 ### 10.2 Structure
@@ -364,140 +364,79 @@ client/src/styles/   tokens.scss, themes.scss, base.scss, typography.scss, backg
 - `/` Accueil — `/r/:code` Salon + table (lien partageable) — `/dev/gallery` (dev uniquement) — `**` page 404 dans le style du jeu.
 - Arriver sur `/r/:code` sans pseudo → petite modale de pseudo, puis `room.join`.
 
-## 11. Design system « Néon Crépuscule »
+## 11. Design system
 
 ### 11.1 Intention
-**Une salle d'arcade futuriste au coucher du soleil** : un ciel indigo qui vire au violet puis au magenta, un soleil rétro qui brille derrière la table, un sol quadrillé de lignes cyan en perspective, des panneaux de verre fumé et des cartes qui émettent leur propre lumière.
-- **Lumineux, jamais noir** : aucun fond `#000` ni proche du noir sur une grande surface. Le fond le plus sombre est un indigo (`#2E2272`) ; on voit toujours de la couleur et de la profondeur.
-- **Le néon est de la lumière, pas du texte courant** : il sert aux bordures, halos, icônes, grands titres et indicateurs. Le texte courant est blanc ou lavande sur des panneaux de verre teinté, toujours lisible (ratios mesurés ci-dessous).
-- **Chaque lueur a un sens** : ce qui brille est ce qui est jouable, actif ou urgent. Une carte non jouable s'éteint, le joueur dont c'est le tour s'illumine. Le glow n'est pas une décoration uniforme.
-- **Original** : aucune reprise du design des cartes officielles (§1).
+**L'esprit du jeu de cartes classique, en plus sombre** : quatre couleurs franches (rouge, jaune, vert, bleu), une table de jeu, de gros chiffres lisibles, une ambiance conviviale.
+- **Le néon est rare** : il est réservé aux **cartes** (bord de la couleur de la carte, carte jouable, dessus de la défausse) et à quelques **actions** (boutons primaires en vert, destructifs en rouge, UNO en jaune, Contre-UNO en rouge). Tout le reste est sobre.
+- **Panneaux neutres** : fond uni sombre, peu ou pas de bordure, aucun halo, **un seul niveau d'élévation**.
+- **Chaque lueur a un sens** : ce qui brille est jouable, actif ou urgent.
+- **Original** : ni le logo ni les cartes officielles ne sont repris (§1).
+- Plus de fond « coucher de soleil + grille » : le fond est celui du thème choisi (§11.3).
 
-### 11.2 Tokens (dans `client/src/styles/tokens.scss`, en CSS custom properties)
-Les ratios indiqués ont été calculés selon la formule WCAG ; ils doivent être revérifiés automatiquement (axe en E2E) après implémentation.
+### 11.2 Tokens (`client/src/styles/tokens.scss`, propriétés CSS)
+Un composant n'écrit **aucune couleur en dur** : tout passe par les tokens. Les deux thèmes (§11.3) ont exactement la même structure.
 
-**Fond (thème Crépuscule, par défaut)**
-```
---bg-sky-top:   #2E2272;   /* indigo */
---bg-sky-mid:   #5B2C8F;   /* violet */
---bg-horizon:   #C2448F;   /* magenta */
---bg-sun:       #FF8A5C;   /* soleil, uniquement en halo radial derrière la zone centrale */
---bg-floor:     #3A1D6E;   /* sol, sous la grille */
---grid-line:    rgb(0 245 255 / 0.22);
-```
-Composition du fond (`backgrounds.scss`, un seul élément fixe en arrière-plan, jamais re-rendu) : dégradé vertical ciel (top → mid → horizon à ~60 % de la hauteur), halo radial du soleil centré derrière la zone des piles, sol quadrillé en perspective (`transform: perspective() rotateX()`, lignes en `repeating-linear-gradient`) sur les 40 % du bas, quelques « étoiles » statiques en haut, et une texture de bruit SVG très légère pour éviter le banding des dégradés.
+| Famille | Tokens |
+|---|---|
+| Fond | `--page-bg` (fond complet du thème), `--panel` (panneau), `--field` (champ, puits) |
+| Texte | `--text`, `--text-dim` (≥ 4,5:1 sur `--panel`), `--text-on-neon` (texte sombre sur aplat néon) |
+| Couleurs du jeu | `--game-red`, `--game-yellow`, `--game-green`, `--game-blue` |
+| Actions néon | `--primary` (vert), `--danger` (rouge), `--uno` (jaune), `--glow-edge`, `--glow-strong` |
+| Cartes | `--card-body`, `--card-tint` (34 % de la couleur de la carte dans le corps), `--back-neon` (bord du dos) |
+| Forme, espace | `--radius-*`, `--space-1…6`, `--elevation` (l'unique ombre des panneaux), `--accent-strip` |
+| Typographie | `--font-display`, `--font-ui`, `--font-mono`, `--fs-*` |
+| Mouvement | `--dur-fast/base`, `--ease-out` |
 
-**Surfaces (verre teinté)**
-```
---surface-glass:        rgb(28 20 70 / 0.55);   /* + backdrop-filter: blur(14px) saturate(140%) */
---surface-glass-strong: rgb(28 20 70 / 0.72);   /* modales, bottom sheets */
---surface-border:       rgb(255 255 255 / 0.22);
---surface-highlight:    linear-gradient(180deg, rgb(255 255 255 / 0.14), transparent 40%); /* reflet en haut des panneaux */
-```
-Repli sans `backdrop-filter` (`@supports not`) : `rgb(40 28 100 / 0.92)`.
+**Typographie** (auto-hébergée, licence OFL, `@fontsource-variable`) : **Fredoka** (ronde et grasse) pour les titres, le logo, les chiffres et les boutons ; **Inter** pour l'interface ; **JetBrains Mono** pour le code de salon.
 
-**Texte** (mesures sur `--surface-glass`, du pire fond — halo du soleil — au meilleur)
-```
---text-primary:   #FFFFFF;  /* 6,95:1 → 15,3:1 */
---text-secondary: #EDE7FF;  /* 5,78:1 → 12,7:1 */
---text-muted:     #CFC4F5;  /* 4,26:1 → 9,4:1 : réservé aux textes ≥ 18 px, jamais sur le halo du soleil */
---text-on-neon:   #120B30;  /* texte sur bouton néon plein : 5,46:1 (rouge) → 13,9:1 (cyan) */
-```
-Règles : jamais de texte blanc sur un aplat néon (1,35:1 sur cyan). Jamais de texte directement sur le fond : toujours sur une surface de verre, une carte ou un bouton.
+**Contrastes** : texte courant ≥ 4,5:1 sur les panneaux ; texte sombre (`--text-on-neon`) sur tous les aplats néon ; les chiffres blancs des cartes sur un corps teinté à 34 % restent ≥ 7:1. Jamais de texte directement sur le fond : un panneau, une carte ou un bouton.
 
-**Néons** (couleurs de jeu + accents d'interface)
-```
---neon-red:    #FF3B6B;   --neon-yellow: #FFD23F;   --neon-green: #2EF2A0;   --neon-blue: #33C8FF;
---neon-cyan:   #00F5FF;   --neon-violet: #B36BFF;   --neon-pink:  #FF5FD2;
---focus-ring:  var(--neon-cyan);
---danger: var(--neon-red); --success: var(--neon-green); --warning: var(--neon-yellow); --info: var(--neon-cyan);
-```
-Texte en néon autorisé seulement pour les grands titres (≥ 24 px) en cyan, jaune, vert ou bleu. Le rouge et le violet ne servent jamais de couleur de texte.
-
-**Halos** (basés sur `currentColor` : un seul jeu de tokens pour toutes les couleurs)
-```
---glow-sm: 0 0 2px currentColor, 0 0 8px  color-mix(in oklab, currentColor 60%, transparent);
---glow-md: 0 0 3px currentColor, 0 0 14px color-mix(in oklab, currentColor 55%, transparent), 0 0 32px color-mix(in oklab, currentColor 30%, transparent);
---glow-lg: 0 0 4px currentColor, 0 0 22px color-mix(in oklab, currentColor 60%, transparent), 0 0 60px color-mix(in oklab, currentColor 35%, transparent);
---text-glow: 0 0 6px color-mix(in oklab, currentColor 70%, transparent), 0 0 20px color-mix(in oklab, currentColor 40%, transparent);
-```
-
-**Forme, espace, profondeur**
-```
---radius-sm: 8px; --radius-md: 14px; --radius-lg: 22px; --radius-card: 12px; --radius-pill: 999px;
---space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 24px; --space-6: 32px; --space-7: 48px; --space-8: 64px;
---z-bg: 0; --z-table: 10; --z-hand: 20; --z-overlay: 100; --z-modal: 200; --z-toast: 300;
-```
-
-**Typographie** (auto-hébergée, `font-display: swap`, sous-ensemble latin)
-- Titres, logo, grands nombres (valeurs de cartes, scores, compte à rebours) : **Orbitron** 700–900, `letter-spacing: 0.04em`.
-- Interface et texte : **Exo 2** (variable) 400–700. Taille de base 16 px minimum.
-- Code de salon : **JetBrains Mono** 600.
-```
---fs-xs: 0.75rem; --fs-sm: 0.875rem; --fs-base: 1rem; --fs-lg: 1.25rem;
---fs-xl: clamp(1.5rem, 1rem + 2vw, 2rem); --fs-2xl: clamp(2rem, 1rem + 4vw, 3.5rem); --fs-logo: clamp(2.75rem, 1rem + 8vw, 6.5rem);
-```
-
-**Mouvement**
-```
---dur-fast: 120ms; --dur-base: 220ms; --dur-slow: 400ms; --dur-deal: 550ms;
---ease-out: cubic-bezier(.16, 1, .3, 1); --ease-spring: cubic-bezier(.34, 1.56, .64, 1); --ease-in-out: cubic-bezier(.65, 0, .35, 1);
-```
-
-### 11.3 Thème « Aube » (clair, optionnel)
-Même structure de tokens, surchargés sous `[data-theme="dawn"]` : ciel `#F3EEFF` → `#FFE3F1` → `#FFE9D6`, panneaux `rgb(255 255 255 / 0.65)` avec bordure `rgb(90 44 143 / 0.25)`, texte `#1E1540` (≈ 16:1) et `#43397A` (≈ 9,4:1), néons assombris pour le texte et les bordures : rouge `#D6154A` (4,9:1), jaune `#8A6300` (5,1:1), vert `#00855A` (4,4:1 → réservé aux ≥ 18 px ou aux bordures), bleu `#0069B8` (5,3:1), violet `#6E2BE0` (6,4:1). Les halos deviennent des ombres colorées douces. Le choix du thème suit `prefers-color-scheme` au premier chargement, puis la préférence du joueur (stockée en `localStorage`).
-*Pourquoi deux thèmes* : c'est la démonstration que tout passe par les tokens. Si un composant casse en thème Aube, c'est qu'il contient une valeur codée en dur.
+### 11.3 Thèmes (`[data-theme]` sur `<html>`)
+- **A « Tapis »** (`tapis`, défaut) : tapis de table rouge très sombre (dégradé radial, vignette, légère texture en rayures CSS), panneaux anthracite.
+- **B « Nuit »** (`nuit`) : anthracite / bleu nuit très sombre ; les quatre couleurs du jeu apparaissent en accents discrets (filet en haut des panneaux).
+Dans les deux : faces de cartes au bord néon de leur couleur, dos de carte original (wordmark + bord néon). Le choix vient de `?theme=` dans l'adresse (utile aux captures), sinon de `localStorage`, sinon « Tapis » ; un bouton de l'accueil le change. *Pourquoi deux thèmes* : c'est la preuve que tout passe par les tokens.
 
 ### 11.4 Les cartes (composant `ui/card`, un seul SVG paramétré)
-- Proportions 5:7, `--radius-card`. Tailles : main desktop 104×146, main mobile 68×95, défausse 128×180, adversaires (dos) 36×50.
-- **Face** : corps en verre sombre teinté de la couleur de la carte (`#1C1446` + 20 % de la couleur, blanc dessus ≥ 10:1), bordure 2 px de la couleur en `--glow-sm`, reflet diagonal subtil, grande valeur centrale en Orbitron avec `--text-glow`, petite valeur + symbole de couleur dans deux coins opposés.
-- **Symbole de forme par couleur** (daltonisme, obligatoire partout où une couleur de jeu apparaît) : rouge = triangle ▲, jaune = cercle ●, vert = carré ■, bleu = losange ◆. Présent dans les coins des cartes, le sélecteur de couleur, l'indicateur de couleur courante et le texte (« Bleu ◆ »). Un **mode daltonien** (réglage) ajoute en plus un motif de fond (hachures, points…) par couleur.
-- **Icônes d'action originales** (SVG maison) : `Skip` = cercle barré ; `Reverse` = deux flèches courbes en orbite ; `DrawTwo` = « +2 » avec deux mini-cartes décalées ; `Wild` = anneau à quatre quadrants (dégradé conique des 4 néons) ; `WildDrawFour` = anneau + « +4 ».
-- Un Joker posé affiche la couleur choisie (anneau qui se remplit de cette couleur + symbole).
-- **Dos** : dégradé violet → cyan, motif de circuits fins, monogramme du logo au centre.
-- **États** (dans la main) :
-  - jouable : soulevée de 8 px, `--glow-md`, bordure qui respire lentement (désactivé en mouvement réduit) ;
-  - non jouable : désaturée à 45 %, opacité 0,6, aucun halo — la valeur reste lisible ;
-  - survol/focus : soulevée de 16 px, anneau de focus cyan 3 px avec décalage ;
-  - sélectionnée (clavier) : soulevée de 20 px + `--glow-lg` ;
-  - pas mon tour : pas d'effet de survol ; les cartes interceptables (`jumpIn`) restent lumineuses.
-- **Le rendu SVG est la seule source** : pas de fichiers image par carte. Un seul composant qui se paramètre (DRY), net à toutes les tailles.
+- Proportions 5:7. Tailles : main 104 px (64 px en mobile), défausse et pioche 110 px (84 px en mobile), dos d'adversaire 34 px.
+- **Face** : corps sombre teinté de la couleur de la carte, **bord néon** de cette couleur, ovale incliné au centre, grand chiffre blanc en Fredoka, petite valeur et symbole de couleur dans deux coins opposés.
+- **Symbole de forme par couleur** (daltonisme, obligatoire partout où une couleur de jeu apparaît) : rouge = triangle ▲, jaune = cercle ●, vert = carré ■, bleu = losange ◆. Présent dans les coins, le sélecteur de couleur, l'indicateur de couleur active et les textes (« Bleu ◆ »).
+- **Icônes d'action** originales : `Skip` = cercle barré ; `Reverse` = deux flèches courbes ; `DrawTwo` = « +2 » et deux mini-cartes ; `Wild` = anneau à quatre quadrants ; `WildDrawFour` = anneau + « +4 ». Un Joker posé montre la couleur choisie dans son anneau.
+- **Dos** : fond uni sombre, wordmark penché au centre, bord néon (`--back-neon`).
+- **États** : jouable = surélevée de 16 px, bord qui brille ; non jouable = légèrement désaturée et atténuée, **toujours lisible** ; dessus de la défausse = bord qui brille ; pas mon tour = aucune réaction.
+- **Le rendu SVG est la seule source** : pas de fichier image par carte.
 
-### 11.5 Composants d'interface
-`neon-button` (variantes : plein néon avec `--text-on-neon` ; contour néon sur verre ; fantôme), `glass-panel`, `icon-button`, `avatar` (initiales dans un anneau néon, couleur dérivée de façon déterministe du `playerId`), `badge` (nombre de cartes, UNO), `timer-ring` (anneau conique qui se vide), `toggle`, `segmented-control`, `code-input` (6 cases, collage accepté, avance automatique), `modal`, `bottom-sheet`, `toast`, `tooltip`. Chacun apparaît dans la galerie dans tous ses états (repos, survol, focus, actif, désactivé, chargement, erreur).
+### 11.5 Logo, icônes, composants
+- **Logo** (`ui/logo`) : wordmark « UNO » en **SVG inline**, une tuile arrondie par lettre de `APP_NAME` (`core/app-name.ts`), aux couleurs du jeu, légèrement penchées. Le nom du jeu vient d'une seule constante.
+- **Icônes** (`ui/icon`) : composant SVG maison (porte, couronne, copier, coche, fermer, flèches de sens, palette), `currentColor`, décoratives (`aria-hidden`), sans `innerHTML` ni dépendance.
+- **Boutons** (`button[appButton]`) : `primary` (vert néon plein), `danger` (contour rouge néon, plein au survol), `uno` (jaune), `neutral`, `ghost`. Un bouton **atténué** pose `aria-disabled` (et non `disabled`) quand son survol ou son focus doit expliquer pourquoi.
+- Autres : `avatar` (initiale dans un disque teinté), `segmented-control`, `modal` (`<dialog>` natif), `toast`, `connection-banner`.
 
 ## 12. Écrans et parcours
 
 ### 12.1 Accueil `/`
-- Logo « UNO Néon » géant en Orbitron, allumage néon au chargement (2-3 clignotements puis stable, **jamais plus de 3 flashs par seconde**, désactivé en mouvement réduit). Cartes stylisées qui flottent lentement en arrière-plan (parallaxe légère à la souris, désactivée en mouvement réduit et sur tactile).
-- Panneau de verre central : champ pseudo (mémorisé en `localStorage`), bouton plein « Créer un salon », séparateur, `code-input` + bouton « Rejoindre ».
-- Liens discrets : « Comment jouer ? » (modale des règles et options, avec illustrations des cartes), réglages (thème Crépuscule/Aube, son, mode daltonien, animations réduites forcées).
-- Mobile : tout tient sans défilement sur 360×640.
+Le logo en haut, **un seul panneau sobre** : pseudo, « Créer un salon » (primaire), « Rejoindre » avec le champ code. Rien d'autre, sinon le changement de thème, discret, en dessous.
 
 ### 12.2 Salon (lobby) `/r/:code`
-- En-tête : code en JetBrains Mono très lisible, bouton copier le code, bouton copier le lien (avec toast « Lien copié »).
-- Liste des joueurs (cartes de verre) : avatar, pseudo, couronne pour l'hôte, pastille « Prêt » néon verte, état de connexion ; l'hôte peut exclure un joueur (confirmation).
-- Panneau des réglages (modifiable par l'hôte, lecture seule pour les autres) : chaque option maison avec un libellé clair, une infobulle d'explication et un mini-schéma ; nombre max de joueurs ; minuteur ; objectif de score.
-- Pied : « Je suis prêt » (toggle), « Lancer la partie » (hôte ; désactivé avec explication tant que < 2 joueurs ou pas tous prêts), « Ajouter un bot » (phase 5), « Quitter ».
+- **Barre du haut** : logo à gauche ; à droite le code du salon (pastille mono) avec un bouton copier qui répond « Copié », puis « Quitter » (icône porte, rouge néon).
+- **Colonne gauche — joueurs** : couronne pour l'hôte (`aria-label="Hôte"`), « toi » discret, coche verte quand le joueur est prêt, « Exclure » en rouge néon (hôte seulement, avec confirmation).
+- **Colonne droite — réglages** : formulaire pour l'**hôte seulement** (durée, minuteur, joueurs maximum, règle de pioche, dernière carte) ; les autres voient un **résumé en lecture seule** sur deux lignes. Le serveur n'a pas à se fier à cet affichage : un non-hôte qui tente de modifier les réglages ou d'exclure reçoit `NOT_HOST` et rien ne change (test).
+- **Bas, au centre, un grand bouton** : « Prêt » (vert néon, bascule, `aria-pressed`) pour un joueur ; « Lancer la partie » (vert néon) pour l'hôte. Il n'y a pas de texte « En attente de… » : tant que la partie ne peut pas démarrer, « Lancer » est **atténué avec `aria-disabled`** (jamais `disabled`, pour garder survol et focus) et une **info-bulle**, au survol, au focus et au toucher, donne la raison (« En attente de : Loïc », « Il faut au moins 2 joueurs »), reliée par `aria-describedby`.
+- **Mobile** : colonnes empilées, bouton principal collé en bas.
 
 ### 12.3 Table de jeu `/r/:code` (phase de jeu)
-**Desktop (≥ 1024 px)**
-- Haut : adversaires en arc de cercle. Chaque siège : avatar, pseudo, dos de cartes en éventail (7 max + « +N »), badge du nombre de cartes, badge UNO clignotant (lent) à 1 carte, icône de déconnexion, et quand c'est son tour : anneau lumineux + `timer-ring`. Bouton « Contre-UNO ! » qui apparaît sur le siège d'un adversaire attrapable.
-- Centre : pioche (pile avec compteur), défausse (carte du dessus en grand, 2-3 cartes précédentes légèrement tournées dessous), **anneau de couleur courante** autour de la défausse (couleur + symbole + libellé texte), **indicateur de sens** (flèches en orbite autour de la table qui tournent lentement dans le sens du jeu), badge de pénalité en attente (« +6 » géant qui grossit à chaque cumul).
-- Bas : ma main en éventail (chevauchement adaptatif selon le nombre de cartes), barre d'actions : « Piocher », « Passer » (seulement après avoir pioché une carte jouable), gros bouton rond **UNO** (pulse quand il est pertinent), mon score.
-- Côté droit, repliable : journal des 20 derniers événements en texte (« Léa pose +2 rouge ▲ »), barre de réactions.
-- Bannière « À toi de jouer ! » brève et lumineuse au début de mon tour.
-
-**Mobile portrait (< 768 px)** : bande d'adversaires compacte en haut (défilement horizontal), piles au centre, main en bas avec défilement horizontal aimanté (`scroll-snap`), barre d'actions fixe, journal et réactions dans un bottom sheet. Zones tactiles ≥ 44×44 px. **Tablette** : disposition intermédiaire.
-
-**Modales et superpositions**
-- Sélecteur de couleur (Joker) : 4 grandes tuiles néon (couleur + symbole + nom), raccourcis clavier 1-4, focus piégé, annulation possible (la carte revient dans la main).
-- Réponse à une pénalité : « Piocher +N », « Contester » (si +4 en mode officiel), cartes empilables mises en avant, compte à rebours.
-- Verdict de contestation : animation qui révèle la main du poseur au seul contestataire, puis le résultat.
-- Choix de la cible d'un 7 (`sevenZero`) : liste des adversaires avec leur nombre de cartes.
-- Fin de manche : mains révélées, décompte animé des points, tableau des scores, bouton « Manche suivante » (tout le monde doit valider).
-- Fin de partie : vainqueur au centre sous une pluie de confettis néon (courte, désactivée en mouvement réduit), classement, « Revanche » (hôte) et « Quitter ».
-- Perte de connexion : table floutée + panneau « Connexion perdue — reconnexion… (tentative n) ». Session expirée → retour à l'accueil avec un message clair.
+- **Moi en bas, adversaires en arc en haut**, répartis selon leur nombre (un seul adversaire : en haut au centre) ; le joueur qui me suit est à gauche. Sous 640 px, les adversaires passent en bande défilante.
+- **Chaque adversaire** : ses cartes **de dos en éventail légèrement courbé** (rotation autour d'un pivot bas), dessinées d'après le seul nombre de cartes, **plafonnées à 12 dos avec « +N »** ; à côté une pastille avec l'initiale, le pseudo, le nombre de cartes, l'état de connexion et un **anneau lumineux quand c'est son tour**. Le badge « **UNO oublié !** » reste sur le siège de la cible tant que sa fenêtre de contre-UNO est ouverte.
+- **Centre** : la pioche (cliquable quand le serveur dit `canDraw` ou `canKeepDrawnCard`, info-bulle « Piocher » / « Garder la carte ») et la défausse, entourée d'un **anneau de la couleur active** (indispensable après un Joker, avec le nom et la forme de la couleur) ; le sens du jeu, discret ; la pénalité en attente.
+- **Journal** : en haut à droite, les deux dernières lignes, petit, `aria-live="polite"`.
+- **Ma main** : en bas, en éventail ; les cartes jouables sont surélevées avec un bord néon qui brille, les autres légèrement atténuées mais lisibles ; le chevauchement se resserre quand la main grossit.
+- **Bouton UNO** : grand, rond, jaune, centré entre le centre de la table et ma main, **visible seulement quand il sert** ; mis en avant (taille, pulsation) quand `mustDeclareUno` est vrai, avec une phrase d'explication.
+- **Contre-UNO** : plusieurs fenêtres peuvent coexister (`unoWindows`), donc **un bouton « Contre-UNO ! » par cible**, avec son nom, empilés au même endroit que le bouton UNO, en rouge néon. Chacun est **grisé avec un compte à rebours pendant la grâce**, puis actif jusqu'à l'échéance (heure serveur).
+- **Mouvement réduit** : avec `prefers-reduced-motion`, toutes les pulsations et animations sont coupées.
+- **Contestation du +4** : modale façon jeu de cartes : la carte, une ligne d'explication de la règle, « **Contester** » (rouge) et « **Accepter, piocher 4** », puis un **bandeau de résultat** une fois le verdict rendu.
+- **Choix de couleur** (Joker et +4) : quatre grandes tuiles avec le nom de la couleur écrit, utilisables au clavier (touches 1 à 4).
+- **Fin de manche** : mains révélées, scores, « Manche suivante » (départ automatique après 30 s). **Fin de partie** : vainqueur, classement, « Quitter ».
+- **Perte de connexion** : panneau « Connexion perdue — reconnexion… (tentative n) » par-dessus la table. Session expirée : retour à l'accueil avec un message clair.
 
 ### 12.4 Galerie `/dev/gallery` (développement uniquement)
 Toutes les cartes (108 faces + dos) et tous les composants dans tous leurs états ; la table de jeu alimentée par `FixtureTransport` avec des scénarios nommés : début de partie à 2, table pleine à 10, cumul de +4, contestation, fenêtre UNO, interception, fin de manche, reconnexion. Chaque scénario est accessible par une URL (`/dev/gallery?scenario=stacking`) pour que Playwright en prenne des captures.

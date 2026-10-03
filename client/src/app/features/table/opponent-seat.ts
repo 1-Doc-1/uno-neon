@@ -35,10 +35,10 @@ const MAX_STEP_DEGREES = 7;
         <div class="info">
           <p class="name">{{ seat().nickname }}</p>
           <p class="meta">
-            <span>{{ seat().cardCount }} {{ seat().cardCount > 1 ? 'cartes' : 'carte' }}</span>
-            @if (!seat().isConnected) {
-              <span class="off">hors ligne</span>
-            }
+            <span
+              >{{ seat().cardCount }} {{ seat().cardCount > 1 ? 'cartes' : 'carte'
+              }}{{ seat().isConnected ? '' : ' · hors ligne' }}</span
+            >
           </p>
         </div>
         @if (forgotUno()) {

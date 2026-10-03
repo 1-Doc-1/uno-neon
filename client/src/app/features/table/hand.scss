@@ -11,7 +11,7 @@
   justify-content: center;
   margin: 0;
   // De la place pour la surélévation des cartes jouables, sans rogner l'éventail
-  padding: 34px var(--space-4) var(--space-3);
+  padding: 34px var(--space-4) var(--space-5);
   list-style: none;
 
   li {
@@ -19,7 +19,7 @@
     min-width: 0;
     // Éventail : chaque carte tourne autour d'un pivot sous la main et suit une légère courbe
     transform-origin: 50% 160%;
-    transform: translateY(calc(var(--d) * var(--d) * 0.7px)) rotate(calc(var(--d) * var(--rot)));
+    transform: translateY(calc(var(--d) * var(--d) * 0.45px)) rotate(calc(var(--d) * var(--rot)));
     transition: transform var(--dur-base) var(--ease-out);
   }
 
@@ -46,6 +46,17 @@
     &:focus-visible {
       transform: translateY(-26px);
     }
+  }
+}
+
+// Étroit : une marge de chaque côté pour que l'éventail incliné ne sorte pas de l'écran
+@media (max-width: 767px) {
+  :host {
+    --card-w: 64px;
+  }
+
+  .hand {
+    padding-inline: 40px;
   }
 }
 

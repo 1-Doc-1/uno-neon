@@ -1,6 +1,6 @@
 :host {
   display: block;
-  width: 168px;
+  width: 190px;
 }
 
 .seat {
@@ -76,14 +76,11 @@
 }
 
 .meta {
+  white-space: nowrap;
   display: flex;
   gap: var(--space-2);
   color: var(--text-dim);
   font-size: var(--fs-xs);
-}
-
-.off {
-  font-style: italic;
 }
 
 // « UNO oublié ! » reste sur le siège tant que la fenêtre de contre-UNO de ce joueur est ouverte

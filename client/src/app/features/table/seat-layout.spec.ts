@@ -5,7 +5,7 @@ describe('seatSlots', () => {
     const [slot] = seatSlots(1);
 
     expect(slot.x).toBeCloseTo(50);
-    expect(slot.y).toBeCloseTo(30);
+    expect(slot.y).toBeCloseTo(50);
   });
 
   it('spreads opponents left to right, the ends lower than the middle', () => {
