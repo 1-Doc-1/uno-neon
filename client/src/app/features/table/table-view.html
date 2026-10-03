@@ -10,7 +10,12 @@
   </ul>
 
   <div class="stage">
-    <section class="seats" [class.strip]="strip()" aria-label="Adversaires">
+    <section
+      class="seats"
+      [class.strip]="strip()"
+      [attr.tabindex]="strip() ? 0 : null"
+      aria-label="Adversaires"
+    >
       @for (seat of opponents(); track seat.playerId; let index = $index) {
         <div
           class="place"

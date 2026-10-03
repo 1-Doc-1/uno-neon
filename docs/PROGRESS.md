@@ -54,10 +54,14 @@
 - [x] G4 Client : paquet cliquable, barre de contre-UNO, réglage de la règle de pioche
 - [x] G5 Protocole, SPEC, ADR, simulation avec les deux règles
 
-#### Lot H — Nouvelle direction artistique (PR ouverte, non fusionnée : le thème A ou B reste à choisir)
+#### Lot H — Nouvelle direction artistique, puis lot I — finitions du thème « Nuit » et nouvelle disposition de la table
 - [x] H1 Tokens et deux thèmes (« Tapis », « Nuit »), Fredoka + Inter, logo SVG (`APP_NAME`), icônes maison, boutons, cartes
 - [x] H2 Accueil à un panneau ; salon en deux colonnes, bouton central expliqué par une info-bulle
 - [x] H3 Table : adversaires en arc, éventails, pile UNO / Contre-UNO, contestation du +4, `TableView` + page `/dev/table`
+- [x] I1 Un seul thème (« Nuit »), panneaux en verre sombre sans filet de couleurs
+- [x] I2 Cartes opaques à fond plein ; les non jouables s'atténuent par la luminosité, pas par l'opacité
+- [x] I3 Table autour d'une ellipse (`seatLayout` pure et testée), sièges plus grands, zone de table et anneau de flèches
+- [x] I4 Axe (AA) sans violation, `prefers-reduced-motion` émulé, pages `/dev` hors du build de production (test + CI)
 
 ### Après le MVP
 
@@ -102,7 +106,7 @@
 - [0018 — Fenêtre de contre-UNO : grâce, échéance, plusieurs cibles](adr/0018-uno-catch-window.md)
 - [0019 — Règle maison « UNO obligatoire pour gagner »](adr/0019-declare-uno-to-win.md)
 - [0020 — L'horloge d'un tour n'est réarmée que quand le tour change](adr/0020-turn-clock.md)
-- [0021 — Nouvelle direction artistique : l'esprit du jeu de cartes, le néon en réserve](adr/0021-art-direction-v2.md)
+- [0021 — Direction artistique « Nuit » : l'esprit du jeu de cartes, le néon en réserve](adr/0021-art-direction-v2.md)
 
 ## Journal
 - 2026-09-30 — 0.1 — arborescence du monorepo, `.editorconfig`, README, modèle d'ADR, BOM retiré de `.gitattributes` — `chore/phase-0-foundations`
@@ -147,3 +151,4 @@
 - 2026-10-03 — règle maison UNO obligatoire — `declareUnoToWin` (défaut faux) : `MustDeclareUno` → `ILLEGAL_MOVE` / `MUST_DECLARE_UNO`, `Round::mustDeclareUno` et `me.mustDeclareUno` calculés par le serveur, une carte bloquée ne déclenche jamais `forcedAction` (assertion dans la simulation, jouée une partie sur deux), minuteur de tour : le serveur annonce puis pose ; client : bouton UNO mis en avant, réglage dans le salon ; ADR 0019 — `fix/sim-and-uno-last-card`
 - 2026-10-03 — minuteur de tour — défaut trouvé par un test de la règle : toute diffusion réarmait le minuteur de tour, donc la fin d'une fenêtre de contre-UNO (ou un contre, une annonce) donnait 30 s de plus au joueur dont c'était le tour ; clé de tour (manche, joueur, phase) et `turnEpoch`, ADR 0020 — `fix/sim-and-uno-last-card`
 - 2026-10-03 — H — nouvelle direction artistique (ADR 0021, SPEC §11 et §12 réécrites) : le néon est réservé aux cartes et à quelques actions, panneaux unis sans halo, deux thèmes à tokens identiques (« Tapis » rouge très sombre, « Nuit » bleu nuit), Fredoka + Inter (OFL), wordmark SVG tiré de `APP_NAME`, icônes SVG maison, accueil sobre, salon en deux colonnes (réglages réservés à l'hôte, résumé pour les autres, « Lancer » atténué en `aria-disabled` avec info-bulle `aria-describedby`), table (adversaires en arc, éventails de dos plafonnés à 12 + « +N », ma main en éventail, pile UNO / Contre-UNO avec grâce grisée et compte à rebours, modale de contestation, bandeau de verdict), `TableView` de présentation + page `/dev/table` ; test serveur : un non-hôte ne change ni réglages ni membres ; 113 tests client — `feat/art-direction-v2` (PR non fusionnée)
+- 2026-10-03 — I — finitions de la DA « Nuit » : thème Tapis, bascule et `?theme` supprimés (tokens centralisés dans `:root`), panneaux en verre sombre (`backdrop-filter` avec repli `@supports`, jamais sur les cartes), cartes à fond plein et opaques (bord néon conservé, non jouables atténuées par `brightness`/`saturate`), table disposée par `seatLayout(n)` sur une ellipse (1 à 9 adversaires, éventails orientés vers le centre, sièges compacts dès 6, arc plat ou bande défilante en 375 px), pastille du joueur en bas à gauche, zone de table elliptique et anneau de flèches du sens du jeu, anneau de minuteur et lueur sur le siège dont c'est le tour ; vérifications : axe WCAG 2.2 AA sans violation sur l'accueil, le salon (hôte et invité) et les tables (corrigés : opacité des sièges hors ligne, bande défilante focalisable), `prefers-reduced-motion` émulé (pulsations et respiration du paquet coupées), `DEV_ROUTES` remplacé en production (`fileReplacements`) avec `scripts/check-prod-bundle.mjs` au CI — `feat/art-direction-v2`

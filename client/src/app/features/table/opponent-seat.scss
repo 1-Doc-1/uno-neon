@@ -70,8 +70,10 @@
     0 0 20px rgb(255 255 255 / 0.4);
 }
 
-.offline {
-  opacity: 0.6;
+// Hors ligne : éventail et avatar passés en gris, mais le texte garde son contraste (jamais d'opacité)
+.offline .fan,
+.offline .portrait app-avatar {
+  filter: grayscale(1) brightness(0.8);
 }
 
 .portrait {

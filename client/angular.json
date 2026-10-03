@@ -47,8 +47,14 @@
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "4kB",
+                  "maximumWarning": "6kB",
                   "maximumError": "8kB"
+                }
+              ],
+              "fileReplacements": [
+                {
+                  "replace": "src/app/dev/dev.routes.ts",
+                  "with": "src/app/dev/dev.routes.prod.ts"
                 }
               ],
               "outputHashing": "all"
