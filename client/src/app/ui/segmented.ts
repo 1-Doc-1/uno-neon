@@ -29,9 +29,8 @@ export interface SegmentOption<T> {
       flex-wrap: wrap;
       gap: var(--space-1);
       padding: var(--space-1);
-      border: 1px solid var(--surface-border);
       border-radius: var(--radius-lg);
-      background: var(--surface-glass);
+      background: var(--field);
     }
     button {
       min-height: 36px;
@@ -40,11 +39,11 @@ export interface SegmentOption<T> {
       border: 0;
       border-radius: var(--radius-pill);
       background: transparent;
-      color: var(--text-secondary);
+      color: var(--text-dim);
       cursor: pointer;
     }
     button[aria-checked='true'] {
-      background: var(--neon-cyan);
+      background: var(--text);
       color: var(--text-on-neon);
       font-weight: 700;
     }

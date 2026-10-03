@@ -7,7 +7,7 @@ import { afterNextRender, Component, ElementRef, input, output, viewChild } from
 @Component({
   selector: 'app-modal',
   template: `
-    <dialog #dialog class="glass strong" [attr.aria-label]="label()" (cancel)="onCancel($event)">
+    <dialog #dialog class="panel" [attr.aria-label]="label()" (cancel)="onCancel($event)">
       <ng-content />
     </dialog>
   `,
@@ -16,13 +16,12 @@ import { afterNextRender, Component, ElementRef, input, output, viewChild } from
       width: min(92vw, 520px);
       max-height: 90dvh;
       padding: var(--space-5);
-      border: 1px solid var(--surface-border);
-      color: var(--text-primary);
+      border: 0;
+      color: var(--text);
       overflow: auto;
     }
     dialog::backdrop {
-      background: color-mix(in oklab, var(--bg-sky-top) 60%, transparent);
-      backdrop-filter: blur(4px);
+      background: rgb(0 0 0 / 0.6);
     }
     dialog[open] {
       animation: modal-in var(--dur-base) var(--ease-out);

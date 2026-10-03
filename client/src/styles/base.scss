@@ -6,7 +6,8 @@
 
 html {
   color-scheme: dark;
-  background: var(--bg-sky-top);
+  min-height: 100%;
+  background: var(--page-bg) fixed;
 }
 
 body {
@@ -15,8 +16,7 @@ body {
   font-family: var(--font-ui);
   font-size: var(--fs-base);
   line-height: 1.5;
-  color: var(--text-primary);
-  background: var(--bg-sky-top);
+  color: var(--text);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -26,7 +26,6 @@ h3 {
   margin: 0;
   font-family: var(--font-display);
   font-weight: 700;
-  letter-spacing: 0.04em;
   line-height: 1.15;
 }
 
@@ -58,29 +57,48 @@ select {
   border: 0;
 }
 
+// Panneau : uni, sans bordure ni halo, un seul niveau d'élévation
+.panel {
+  position: relative;
+  background: var(--panel);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--elevation);
+  overflow: hidden;
+
+  // Thème Nuit : filet des quatre couleurs du jeu en haut du panneau
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 3px;
+    background: var(--accent-strip);
+  }
+}
+
+// Teinte d'une couleur de jeu : fixe `color` pour que bords et ombres (currentColor) suivent.
+.tint-red {
+  color: var(--game-red);
+}
+.tint-yellow {
+  color: var(--game-yellow);
+}
+.tint-green {
+  color: var(--game-green);
+}
+.tint-blue {
+  color: var(--game-blue);
+}
+.tint-wild {
+  color: var(--text);
+}
+
+// Mouvement réduit : plus aucune animation (pulsations comprises), les transitions deviennent instantanées
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
+    animation: none !important;
     transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
   }
-}
-
-// Teinte d'une couleur de jeu : fixe `color` pour que halos et bordures (currentColor) suivent.
-.tint-red {
-  color: var(--neon-red);
-}
-.tint-yellow {
-  color: var(--neon-yellow);
-}
-.tint-green {
-  color: var(--neon-green);
-}
-.tint-blue {
-  color: var(--neon-blue);
-}
-.tint-wild {
-  color: var(--neon-violet);
 }

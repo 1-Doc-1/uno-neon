@@ -7,7 +7,7 @@ import { GameStore } from '../state/game-store';
   template: `
     @if (store.connection() === 'reconnecting' || store.connection() === 'closed') {
       <div class="veil" role="alert">
-        <div class="glass strong panel">
+        <div class="panel box">
           <h2>Connexion perdue</h2>
           @if (store.connection() === 'reconnecting') {
             <p>Reconnexion… (tentative {{ store.reconnectAttempt() }})</p>
@@ -25,10 +25,9 @@ import { GameStore } from '../state/game-store';
       z-index: var(--z-modal);
       display: grid;
       place-items: center;
-      background: color-mix(in oklab, var(--bg-sky-top) 55%, transparent);
-      backdrop-filter: blur(6px);
+      background: rgb(0 0 0 / 0.6);
     }
-    .panel {
+    .box {
       display: grid;
       gap: var(--space-2);
       padding: var(--space-5);
@@ -36,7 +35,7 @@ import { GameStore } from '../state/game-store';
     }
     h2 {
       font-size: var(--fs-lg);
-      color: var(--neon-yellow);
+      color: var(--text);
     }
   `,
 })

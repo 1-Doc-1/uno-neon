@@ -33,6 +33,7 @@ const CORNER_TEXT: Record<Rank, string> = {
     '[class]': 'tint()',
     '[class.playable]': 'state() === "playable"',
     '[class.unplayable]': 'state() === "unplayable"',
+    '[class.top]': 'top()',
     role: 'img',
     '[attr.aria-label]': 'label()',
   },
@@ -42,6 +43,8 @@ export class CardFace {
   readonly state = input<CardState>('neutral');
   /** Couleur choisie pour un Joker posé : remplit l'anneau central. */
   readonly chosenColor = input<Color | null>(null);
+  /** Carte du dessus de la défausse : son bord brille. */
+  readonly top = input(false);
 
   protected readonly tint = computed(() => tintClass(this.card().color));
   protected readonly label = computed(() => cardLabel(this.card()));
