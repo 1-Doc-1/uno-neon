@@ -65,11 +65,15 @@
 
 ### Après le MVP
 
+#### Lot J — retouches de la table, puis animations
+- [x] J1 Retouches de la table (éventails droits, ellipse et liseré, tout plus grand, main lisible, composants découpés)
+- [x] J2 = 3.5 : `AnimationDirector` piloté par les événements, couche d'effets, démo `/dev/table?scenario=animations`
+
 #### Phase 1 (suite)
 - [ ] 1.6 Options maison (politiques injectables)
 
 #### Phase 3 (suite) et 4 (suite)
-- [ ] 3.5 Animations et `prefers-reduced-motion`
+- [x] 3.5 Animations et `prefers-reduced-motion` (lot J)
 - [ ] 3.6 Galerie `/dev/gallery` avec tous les états
 - [ ] 3.7 Responsive 360 → 1920 px, accessibilité clavier et lecteur d'écran
 - [ ] 4.3b Revanche
@@ -106,6 +110,7 @@
 - [0018 — Fenêtre de contre-UNO : grâce, échéance, plusieurs cibles](adr/0018-uno-catch-window.md)
 - [0019 — Règle maison « UNO obligatoire pour gagner »](adr/0019-declare-uno-to-win.md)
 - [0020 — L'horloge d'un tour n'est réarmée que quand le tour change](adr/0020-turn-clock.md)
+- [0022 — Animations : pilotées par les événements, purement cosmétiques](adr/0022-event-driven-animations.md)
 - [0021 — Direction artistique « Nuit » : l'esprit du jeu de cartes, le néon en réserve](adr/0021-art-direction-v2.md)
 
 ## Journal
@@ -152,3 +157,5 @@
 - 2026-10-03 — minuteur de tour — défaut trouvé par un test de la règle : toute diffusion réarmait le minuteur de tour, donc la fin d'une fenêtre de contre-UNO (ou un contre, une annonce) donnait 30 s de plus au joueur dont c'était le tour ; clé de tour (manche, joueur, phase) et `turnEpoch`, ADR 0020 — `fix/sim-and-uno-last-card`
 - 2026-10-03 — H — nouvelle direction artistique (ADR 0021, SPEC §11 et §12 réécrites) : le néon est réservé aux cartes et à quelques actions, panneaux unis sans halo, deux thèmes à tokens identiques (« Tapis » rouge très sombre, « Nuit » bleu nuit), Fredoka + Inter (OFL), wordmark SVG tiré de `APP_NAME`, icônes SVG maison, accueil sobre, salon en deux colonnes (réglages réservés à l'hôte, résumé pour les autres, « Lancer » atténué en `aria-disabled` avec info-bulle `aria-describedby`), table (adversaires en arc, éventails de dos plafonnés à 12 + « +N », ma main en éventail, pile UNO / Contre-UNO avec grâce grisée et compte à rebours, modale de contestation, bandeau de verdict), `TableView` de présentation + page `/dev/table` ; test serveur : un non-hôte ne change ni réglages ni membres ; 113 tests client — `feat/art-direction-v2` (PR non fusionnée)
 - 2026-10-03 — I — finitions de la DA « Nuit » : thème Tapis, bascule et `?theme` supprimés (tokens centralisés dans `:root`), panneaux en verre sombre (`backdrop-filter` avec repli `@supports`, jamais sur les cartes), cartes à fond plein et opaques (bord néon conservé, non jouables atténuées par `brightness`/`saturate`), table disposée par `seatLayout(n)` sur une ellipse (1 à 9 adversaires, éventails orientés vers le centre, sièges compacts dès 6, arc plat ou bande défilante en 375 px), pastille du joueur en bas à gauche, zone de table elliptique et anneau de flèches du sens du jeu, anneau de minuteur et lueur sur le siège dont c'est le tour ; vérifications : axe WCAG 2.2 AA sans violation sur l'accueil, le salon (hôte et invité) et les tables (corrigés : opacité des sièges hors ligne, bande défilante focalisable), `prefers-reduced-motion` émulé (pulsations et respiration du paquet coupées), `DEV_ROUTES` remplacé en production (`fileReplacements`) avec `scripts/check-prod-bundle.mjs` au CI — `feat/art-direction-v2`
+- 2026-10-03 — J1 — retouches de la table : éventails adverses droits au-dessus de la pastille, ellipse plus grande et douce dont le liseré prend la couleur active (lueur qui glisse dans le sens du jeu, flèches supprimées), un seul libellé de couleur, tailles proportionnelles à la hauteur de l'écran (lisible dès 1280 × 720), badge de cartes au-dessus de l'anneau, main : jouables surélevées avec halo, autres abaissées et atténuées, tient en 375 px (container query), table découpée en `OpponentFan`, `TableCenter`, `MyBadge`, `UnoActions` (`table-view.scss` < 4 kB, budget remis à 4 kB) — `fix/table-polish` / PR #24
+- 2026-10-03 — 3.5 — animations : `planEffects` (événements → effets, pure), `AnimationDirector` (file ordonnée, un seul effet plein écran, vidage sur vue complète, retard ou onglet caché, mode réduit en fondus, vitesse réglable), `EffectsLayer` (vols de cartes FLIP en Web Animations, +2/+4, roue des couleurs, tampons Passe/UNO/Contre-UNO, projecteur, éclat de tour), pile de défausse désordonnée déterministe, impulsion d'inversion, `EventBatch` dans le store (`resync`), démo `/dev/table?scenario=animations` (Rejouer, vitesse ×0,5/×1/×2) exclue du build de production ; ADR 0022 — `feat/client-game-animations`
