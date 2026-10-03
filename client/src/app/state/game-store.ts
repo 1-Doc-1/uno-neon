@@ -17,6 +17,13 @@ import type {
 type RequestType = ClientMessage['type'];
 type PayloadOf<T extends RequestType> = Extract<ClientMessage, { type: T }>['payload'];
 
+/** Les événements d'une mise à jour de partie, pour les animations. `resync` : vue complète, il n'y a rien à rejouer. */
+export interface EventBatch {
+  readonly id: number;
+  readonly events: readonly ClientEvent[];
+  readonly resync: boolean;
+}
+
 export interface Notice {
   readonly id: number;
   readonly text: string;
@@ -44,6 +51,9 @@ export class GameStore {
   private nextRequestId = 1;
   private nextNoticeId = 1;
   private roomVersion = -1;
+  private nextBatchId = 1;
+  /** Après une coupure, la prochaine mise à jour est une vue complète : rien à rejouer. */
+  private resyncNext = false;
 
   private readonly playerIdState = signal<string | null>(null);
   private readonly readyState = signal(false);
@@ -53,6 +63,7 @@ export class GameStore {
   private readonly resumedRoomState = signal<string | null>(null);
   private readonly closedState = signal<RoomClosedPayload['reason'] | null>(null);
   private readonly recentEventsState = signal<readonly ClientEvent[]>([]);
+  private readonly eventBatchState = signal<EventBatch | null>(null);
   private readonly noticesState = signal<readonly Notice[]>([]);
 
   readonly connection = this.transport.status;
@@ -66,6 +77,8 @@ export class GameStore {
   readonly closedReason = this.closedState.asReadonly();
   /** Les derniers événements de la partie, du plus ancien au plus récent (journal de la table). */
   readonly recentEvents = this.recentEventsState.asReadonly();
+  /** Le dernier lot d'événements reçu : les animations le consomment (elles ne comparent jamais deux vues). */
+  readonly eventBatch = this.eventBatchState.asReadonly();
   readonly notices = this.noticesState.asReadonly();
 
   /** Vrai tant que la session n'est pas établie ou que le salon repris n'est pas encore arrivé. */
@@ -191,6 +204,7 @@ export class GameStore {
 
   private dropConnection(): void {
     this.readyState.set(false);
+    this.resyncNext = true;
     for (const request of this.pending.values()) {
       request.settle({ code: 'SESSION_REQUIRED', message: 'connection lost' });
     }
@@ -298,6 +312,13 @@ export class GameStore {
     this.serverClockOffsetState.set(serverTime - Date.now());
     if (!current || view.stateVersion > current.stateVersion) {
       this.recentEventsState.update((log) => [...log, ...events].slice(-LOG_SIZE));
+      const missedUpdates = current !== null && view.stateVersion !== current.stateVersion + 1;
+      this.eventBatchState.set({
+        id: this.nextBatchId++,
+        events,
+        resync: current === null || missedUpdates || this.resyncNext,
+      });
+      this.resyncNext = false;
     }
     this.viewState.set(view);
   }
@@ -308,6 +329,7 @@ export class GameStore {
     this.roomState.set(null);
     this.viewState.set(null);
     this.recentEventsState.set([]);
+    this.eventBatchState.set(null);
   }
 
   notify(text: string): void {
