@@ -28,7 +28,6 @@ namespace core = uno::core;
 using namespace uno::app;
 using namespace std::chrono_literals;
 using uno::testing::AppHarness;
-using uno::testing::ofType;
 using uno::testing::refusal;
 using uno::testing::Table;
 using uno::testing::toRequest;

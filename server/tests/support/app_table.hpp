@@ -49,10 +49,11 @@ inline std::optional<ErrorCode> refusal(const Messages& messages)
 // The detail of the first error among the messages, if it has one.
 inline std::optional<IllegalMoveReason> refusalReason(const Messages& messages)
 {
-    for (const auto& error : ofType<response::Error>(messages)) {
-        return error.reason;
+    const auto errors = ofType<response::Error>(messages);
+    if (errors.begin() == errors.end()) {
+        return std::nullopt;
     }
-    return std::nullopt;
+    return errors.begin()->reason;
 }
 
 // A room of `count` players, everyone ready, in the lobby.
