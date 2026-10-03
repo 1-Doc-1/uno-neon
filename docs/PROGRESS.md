@@ -37,8 +37,8 @@
 - [x] 2.6 Tests d'intégration (clients WebSocket de test)
 
 #### Phase 3 — UI minimale (Angular)
-- [ ] 3.1 Tokens, typographies, fond, surfaces « verre », glow (version minimale)
-- [ ] 3.2 Composant carte (toutes les cartes, états, daltonisme)
+- [x] 3.1 Tokens, typographies, fond, surfaces « verre », glow (version minimale)
+- [x] 3.2 Composant carte (toutes les cartes, états, daltonisme)
 - [ ] 3.3 Écrans Accueil et Salon
 - [ ] 3.4 Table de jeu (main, adversaires, piles, indicateurs, sélecteur de couleur)
 
@@ -114,3 +114,5 @@
 - 2026-10-01 — chore — `linux-check.sh` borne son parallélisme (`CMAKE_BUILD_PARALLEL_LEVEL`, `VCPKG_MAX_CONCURRENCY` = min(cœurs, mémoire disponible / 2 Go), au moins 1) : Ninja lançait un job par cœur, la compilation ASan saturait la mémoire — `feat/rooms-and-game-broadcast`
 - 2026-10-01 — 2.5 — retrait d'un joueur dans le moteur (`TurnOrder::remove`, `Round::removePlayer`, `Match::removePlayer` : cartes sous la pioche, tour/pénalité/couleur gérés, forfait à deux joueurs ; la simulation retire des joueurs au hasard) ; port `Scheduler` (`UwsScheduler`, `ManualScheduler`) et `Timeouts` ; délai de grâce de 60 s (lobby et partie), expiration des salons (15 min en lobby, 5 min après la partie) et des sessions (10 min), minuteur de tour avec action automatique par `Match::apply` (pénalité acceptée, couleur au hasard, piocher puis passer ; la fenêtre UNO se ferme), manche suivante d'office après 30 s, `turnDeadline`/`nextRoundDeadline` dans les vues, quitter/exclure/expirer par un seul `removeFromRoom` (hôte transmis, `hostChanged`) ; limites de débit dans `uno_net` (seau par connexion, fenêtres par adresse pour création et jonction de salon, `UNO_TRUSTED_PROXY`) ; `UNO_ENABLE_TEST_HOOKS`/`UNO_TEST_SEED` à la compilation seulement, avec vérification en CI ; ADR 0016 — `feat/timers-and-integration`
 - 2026-10-01 — 2.6 — tests d'intégration sur un vrai serveur (câblage de production : aléatoire cryptographique, horloge système, timers uWebSockets) : parties complètes à 2 et à 3 joueurs jouées par sockets, chaque `game.update` reçu vérifié contre les fuites de cartes ; reprise de session avec fermeture de l'ancienne connexion (4000) ; déconnexion montrée au salon ; `SESSION_REQUIRED` ; `/health` ; limites de débit (par connexion, création, jonction) ; **la phase 2 est terminée** — `feat/timers-and-integration`
+- 2026-10-03 — 3.1 — tokens CSS de la SPEC §11.2 (`client/src/styles/`), polices auto-hébergées (`@fontsource`), fond Crépuscule (ciel, soleil, étoiles, sol quadrillé), surface `.glass`, `neon-button` (3 variantes) et `color-symbol` (▲ ● ■ ◆) — `feat/ui-design-system`
+- 2026-10-03 — 3.2 — composant `app-card` (un SVG paramétré : 10 chiffres, Skip, Reverse, +2, Wild, +4, couleur choisie, états jouable/non jouable), `app-card-back`, page `/dev` pour les revues visuelles ; captures 375 et 1440 px relues — `feat/ui-design-system`

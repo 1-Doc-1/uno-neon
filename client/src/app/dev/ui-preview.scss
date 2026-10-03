@@ -1,0 +1,49 @@
+.page {
+  position: relative;
+  z-index: var(--z-table);
+  display: grid;
+  gap: var(--space-5);
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: var(--space-5) var(--space-4);
+}
+
+.panel {
+  padding: var(--space-5);
+}
+
+h1 {
+  font-size: var(--fs-2xl);
+  color: var(--neon-cyan);
+  text-shadow: var(--text-glow);
+}
+
+h2 {
+  margin-bottom: var(--space-4);
+  font-size: var(--fs-lg);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+  padding-top: 8px;
+}
+
+.small {
+  --card-w: 68px;
+}
+
+.states figure {
+  margin: 0;
+  display: grid;
+  gap: var(--space-2);
+  justify-items: center;
+  padding-top: 12px;
+}
+
+.names {
+  font-family: var(--font-display);
+  font-weight: 700;
+}

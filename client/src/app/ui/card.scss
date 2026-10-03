@@ -1,0 +1,110 @@
+:host {
+  --card-w: 104px;
+  display: block;
+  width: var(--card-w);
+  aspect-ratio: 5 / 7;
+  transition:
+    transform var(--dur-base) var(--ease-out),
+    filter var(--dur-base),
+    opacity var(--dur-base);
+}
+
+svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.body {
+  // Verre sombre teinté de 20 % de la couleur de la carte
+  fill: color-mix(in oklab, var(--surface-card-body) 80%, currentColor);
+}
+
+.shine {
+  fill: rgb(255 255 255 / 0.07);
+}
+
+.edge {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.5;
+}
+
+:host(.playable) .edge {
+  filter: drop-shadow(0 0 6px currentColor) drop-shadow(0 0 14px currentColor);
+}
+
+:host(.playable) {
+  transform: translateY(-8px);
+}
+
+:host(.unplayable) {
+  filter: saturate(0.45);
+  opacity: 0.6;
+}
+
+.corner,
+.value {
+  font-family: var(--font-display);
+  font-weight: 900;
+  fill: var(--text-primary);
+}
+
+.corner {
+  font-size: 15px;
+}
+
+.value {
+  filter: drop-shadow(0 0 5px currentColor);
+}
+
+.mark {
+  fill: currentColor;
+}
+
+.icon {
+  fill: none;
+  stroke: var(--text-primary);
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 5px currentColor);
+
+  .fill {
+    fill: var(--text-primary);
+    stroke-width: 1;
+  }
+
+  .mini {
+    fill: color-mix(in oklab, var(--surface-card-body) 70%, currentColor);
+    stroke-width: 3;
+  }
+}
+
+.ring path {
+  stroke: var(--surface-card-body);
+  stroke-width: 1;
+}
+
+.q-red {
+  fill: var(--neon-red);
+}
+.q-yellow {
+  fill: var(--neon-yellow);
+}
+.q-green {
+  fill: var(--neon-green);
+}
+.q-blue {
+  fill: var(--neon-blue);
+}
+
+.chosen {
+  fill: currentColor;
+  filter: drop-shadow(0 0 5px currentColor);
+}
+
+.chosen-shape {
+  fill: var(--text-on-neon);
+}

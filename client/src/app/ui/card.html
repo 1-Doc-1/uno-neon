@@ -1,0 +1,104 @@
+<svg viewBox="0 0 100 140" aria-hidden="true">
+  <rect class="body" x="2" y="2" width="96" height="136" rx="10" />
+  <path class="shine" d="M12 2 H98 V10 L10 100 L2 92 V12 Q2 2 12 2Z" />
+  <rect class="edge" x="2" y="2" width="96" height="136" rx="10" />
+
+  @if (corner()) {
+    <text class="corner" x="8" y="24">{{ corner() }}</text>
+    <text class="corner" x="8" y="24" transform="rotate(180 50 70)">{{ corner() }}</text>
+  }
+  @let color = card().color;
+  @if (color) {
+    <g class="mark" transform="translate(7 30) scale(0.6)">
+      <ng-container *ngTemplateOutlet="shape; context: { $implicit: color }" />
+    </g>
+    <g class="mark" transform="rotate(180 50 70) translate(7 30) scale(0.6)">
+      <ng-container *ngTemplateOutlet="shape; context: { $implicit: color }" />
+    </g>
+  }
+
+  @switch (card().rank) {
+    @case ('skip') {
+      <g class="icon">
+        <circle cx="50" cy="70" r="24" />
+        <line x1="33" y1="87" x2="67" y2="53" />
+      </g>
+    }
+    @case ('reverse') {
+      <g class="icon">
+        <path d="M70 60 A22 22 0 0 0 32 56" />
+        <polygon class="fill" points="24,54 40,48 36,64" />
+        <path d="M30 80 A22 22 0 0 0 68 84" />
+        <polygon class="fill" points="76,86 60,92 64,76" />
+      </g>
+    }
+    @case ('drawTwo') {
+      <g class="icon">
+        <rect
+          class="mini"
+          x="30"
+          y="36"
+          width="26"
+          height="36"
+          rx="4"
+          transform="rotate(-10 43 54)"
+        />
+        <rect
+          class="mini"
+          x="44"
+          y="42"
+          width="26"
+          height="36"
+          rx="4"
+          transform="rotate(8 57 60)"
+        />
+      </g>
+      <text class="value" x="50" y="112" text-anchor="middle" font-size="26">+2</text>
+    }
+    @case ('wild') {
+      <ng-container *ngTemplateOutlet="ring" />
+    }
+    @case ('wildDrawFour') {
+      <g transform="translate(50 56) scale(0.7) translate(-50 -70)">
+        <ng-container *ngTemplateOutlet="ring" />
+      </g>
+      <text class="value" x="50" y="112" text-anchor="middle" font-size="26">+4</text>
+    }
+    @default {
+      <text class="value" x="50" y="90" text-anchor="middle" font-size="58">{{ card().rank }}</text>
+    }
+  }
+</svg>
+
+<ng-template #ring>
+  <svg:g class="ring">
+    <svg:path class="q-red" d="M50 40 A30 30 0 0 1 80 70 L68 70 A18 18 0 0 0 50 52Z" />
+    <svg:path class="q-yellow" d="M80 70 A30 30 0 0 1 50 100 L50 88 A18 18 0 0 0 68 70Z" />
+    <svg:path class="q-green" d="M50 100 A30 30 0 0 1 20 70 L32 70 A18 18 0 0 0 50 88Z" />
+    <svg:path class="q-blue" d="M20 70 A30 30 0 0 1 50 40 L50 52 A18 18 0 0 0 32 70Z" />
+  </svg:g>
+  @let chosen = chosenColor();
+  @if (chosen) {
+    <svg:circle [class]="'chosen tint-' + chosen" cx="50" cy="70" r="15" />
+    <svg:g class="chosen-shape" transform="translate(41 61) scale(0.75)">
+      <ng-container *ngTemplateOutlet="shape; context: { $implicit: chosen }" />
+    </svg:g>
+  }
+</ng-template>
+
+<ng-template #shape let-c>
+  @switch (c) {
+    @case ('red') {
+      <svg:polygon points="12,3 22,21 2,21" />
+    }
+    @case ('yellow') {
+      <svg:circle cx="12" cy="12" r="9.5" />
+    }
+    @case ('green') {
+      <svg:rect x="3.5" y="3.5" width="17" height="17" rx="1.5" />
+    }
+    @case ('blue') {
+      <svg:polygon points="12,1.5 22.5,12 12,22.5 1.5,12" />
+    }
+  }
+</ng-template>
