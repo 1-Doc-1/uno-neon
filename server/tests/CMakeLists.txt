@@ -9,6 +9,7 @@ add_executable(uno_tests
     application_lifecycle_test.cpp
     application_match_test.cpp
     application_rooms_test.cpp
+    application_uno_test.cpp
     client_event_test.cpp
     codec_test.cpp
     crypto_random_source_test.cpp

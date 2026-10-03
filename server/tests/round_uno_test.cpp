@@ -359,3 +359,30 @@ TEST_CASE("A lost challenge closes the window: the offender no longer holds one 
     REQUIRE(handOf(round, player(0)).size() == 5);
     requireRoundInvariants(round);
 }
+
+// G1 (bug): the window used to die as soon as the next player played or drew, so only the very next player could
+// ever catch the offender, and only before acting. Anybody must be able to, while the window lives (ADR 0018).
+TEST_CASE("The offender can still be caught after the next player has played", "[core][round][uno][window]")
+{
+    SeededRandomSource random{kSeed};
+    auto round = roundWithTwoCardsLeft(random);
+    leaveFirstPlayerWithOneCard(round, random);
+    play(round, random, kPlayerOneRedFiveId); // player-1 acts; it is player-0's turn again
+
+    const auto events = round.apply(player(1), CatchUno{.target = player(0)}, random);
+
+    REQUIRE(events.has_value());
+    REQUIRE(handOf(round, player(0)).size() == 3);
+    requireRoundInvariants(round);
+}
+
+TEST_CASE("The offender can still be caught after the next player has drawn", "[core][round][uno][window]")
+{
+    SeededRandomSource random{kSeed};
+    auto round = roundWithTwoCardsLeft(random);
+    leaveFirstPlayerWithOneCard(round, random);
+    REQUIRE(round.apply(player(1), DrawCard{}, random).has_value());
+
+    REQUIRE(round.unoWindow() == player(0));
+    REQUIRE(round.apply(player(1), CatchUno{.target = player(0)}, random).has_value());
+}
