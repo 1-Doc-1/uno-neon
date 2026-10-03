@@ -9,8 +9,8 @@
     "test": "ng test --watch=false",
     "test:watch": "ng test",
     "lint": "ng lint",
-    "format": "prettier --write . && prettier --config .prettierrc --write ../protocol",
-    "format:check": "prettier --check . && prettier --config .prettierrc --check ../protocol",
+    "format": "prettier --write . && prettier --config .prettierrc --write ../protocol ../e2e",
+    "format:check": "prettier --check . && prettier --config .prettierrc --check ../protocol ../e2e",
     "protocol:gen": "node scripts/generate-protocol-types.mjs",
     "test:bundle": "ng build && node scripts/check-prod-bundle.mjs"
   },
