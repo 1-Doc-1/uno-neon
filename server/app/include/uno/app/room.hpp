@@ -25,6 +25,16 @@ struct UnoWindowTiming {
     TimerHandle expiryTimer;
 };
 
+// What identifies one turn for its clock (ADR 0020): a broadcast that changes none of this (a counter-UNO, an
+// announcement, a UNO window that ran out) does not give the player on turn a fresh clock.
+struct TurnKey {
+    std::uint32_t round{};
+    core::PlayerId player;
+    std::size_t phase{}; // index of the TurnPhase alternative
+
+    [[nodiscard]] bool operator==(const TurnKey&) const = default;
+};
+
 struct Member {
     core::PlayerId id;
     std::string nickname;
@@ -69,6 +79,8 @@ public:
     // Pending timers (see application_lifecycle.cpp). Cancelled when the room goes away.
     TimerHandle expiryTimer;
     TimerHandle turnTimer;
+    std::optional<TurnKey> turnKey; // the turn the running turn timer was armed for
+    std::uint64_t turnEpoch{0};     // bumped each time a turn timer is armed: an older one does nothing
     TimerHandle nextRoundTimer;
     TimerHandle forcedActionTimer; // plays the move a player has no choice about (guided draw)
     std::unordered_map<std::string, TimerHandle> graceTimers; // by player id: disconnected, waiting to come back

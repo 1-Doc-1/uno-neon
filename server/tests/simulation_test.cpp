@@ -93,11 +93,21 @@ constexpr std::uint32_t kColorCount = 4;
     return seed % 2 == 0 ? DrawRule::Guided : DrawRule::Official;
 }
 
+// The "declare UNO to win" house rule is on for half of the matches, independently of the draw rule.
+[[nodiscard]] bool declareUnoToWinFor(std::uint64_t seed)
+{
+    return (seed / 2) % 2 == 1;
+}
+
 [[nodiscard]] Match startMatch(std::uint64_t seed, SeededRandomSource& random)
 {
-    auto started =
-        Match::start(players(playerCountFor(seed)),
-                     MatchSettings{.matchLength = matchLengthFor(seed), .drawRule = drawRuleFor(seed)}, random);
+    auto started = Match::start(players(playerCountFor(seed)),
+                                MatchSettings{
+                                    .matchLength = matchLengthFor(seed),
+                                    .drawRule = drawRuleFor(seed),
+                                    .declareUnoToWin = declareUnoToWinFor(seed),
+                                },
+                                random);
     REQUIRE(started.has_value());
     return std::move(started->match);
 }
@@ -242,6 +252,8 @@ private:
     {
         const auto forced = round.forcedAction();
         REQUIRE((!forced.has_value() || round.drawRule() == DrawRule::Guided));
+        // A card held back only by the missing announcement is never a reason to move on for the player (ADR 0019).
+        REQUIRE((!round.mustDeclareUno(round.currentPlayer()) || !forced.has_value()));
         if (forced.has_value()) {
             auto copy = round;
             SeededRandomSource scratch{1};

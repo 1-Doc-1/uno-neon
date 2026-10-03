@@ -46,7 +46,8 @@ enum class IllegalMoveReason : std::uint8_t {
     JumpInTooLate,
     CannotStack,
     CannotChallenge,
-    MustPlay, // guided draw: play a card instead of drawing, or play the drawn one (ADR 0017)
+    MustPlay,       // guided draw: play a card instead of drawing, or play the drawn one (ADR 0017)
+    MustDeclareUno, // house rule: announce UNO before the last card (ADR 0019)
 };
 
 } // namespace uno::app

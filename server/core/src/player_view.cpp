@@ -65,6 +65,7 @@ namespace {
         me.playableCardIds = playableCardIds(round, hand);
         me.canDraw = round.canDraw(viewer);
         me.canKeepDrawnCard = round.canKeepDrawnCard(viewer);
+        me.mustDeclareUno = round.mustDeclareUno(viewer);
         me.canChooseColor = std::holds_alternative<AwaitingColorChoice>(phase);
         if (std::holds_alternative<AwaitingPenaltyResponse>(phase)) {
             me.penaltyResponse =

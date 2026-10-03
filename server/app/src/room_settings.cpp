@@ -31,6 +31,9 @@ RoomSettings applyPatch(RoomSettings settings, const RoomSettingsPatch& patch) n
     if (patch.drawRule) {
         settings.drawRule = *patch.drawRule;
     }
+    if (patch.declareUnoToWin) {
+        settings.declareUnoToWin = *patch.declareUnoToWin;
+    }
     return settings;
 }
 

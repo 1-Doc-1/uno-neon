@@ -44,7 +44,12 @@ std::vector<core::PlayerAction> legalActionsOfCurrentPlayer(const core::Round& r
 {
     std::vector<core::PlayerAction> actions;
     if (std::holds_alternative<core::AwaitingPlay>(round.phase())) {
-        addPlayableCards(round, actions);
+        if (round.mustDeclareUno(round.currentPlayer())) {
+            // The last card is refused until UNO is announced: announcing is the move.
+            actions.emplace_back(core::CallUno{});
+        } else {
+            addPlayableCards(round, actions);
+        }
         if (round.canDraw(round.currentPlayer())) {
             actions.emplace_back(core::DrawCard{});
         }

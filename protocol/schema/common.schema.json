@@ -183,6 +183,10 @@
         },
         "drawRule": {
           "$ref": "#/$defs/DrawRule"
+        },
+        "declareUnoToWin": {
+          "description": "House rule (ADR 0019): the last card cannot be played before UNO is announced.",
+          "type": "boolean"
         }
       },
       "required": [
@@ -194,7 +198,8 @@
         "turnTimerSeconds",
         "matchLength",
         "maxPlayers",
-        "drawRule"
+        "drawRule",
+        "declareUnoToWin"
       ],
       "additionalProperties": false
     },
@@ -229,6 +234,10 @@
         },
         "drawRule": {
           "$ref": "#/$defs/DrawRule"
+        },
+        "declareUnoToWin": {
+          "description": "House rule (ADR 0019): the last card cannot be played before UNO is announced.",
+          "type": "boolean"
         }
       },
       "minProperties": 1,
@@ -281,7 +290,8 @@
         "JUMP_IN_TOO_LATE",
         "CANNOT_STACK",
         "CANNOT_CHALLENGE",
-        "MUST_PLAY"
+        "MUST_PLAY",
+        "MUST_DECLARE_UNO"
       ]
     },
     "EmptyPayload": {

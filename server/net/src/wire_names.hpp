@@ -197,6 +197,7 @@ struct WireNames<app::IllegalMoveReason> {
         WireName{.value = app::IllegalMoveReason::CannotStack, .name = "CANNOT_STACK"},
         WireName{.value = app::IllegalMoveReason::CannotChallenge, .name = "CANNOT_CHALLENGE"},
         WireName{.value = app::IllegalMoveReason::MustPlay, .name = "MUST_PLAY"},
+        WireName{.value = app::IllegalMoveReason::MustDeclareUno, .name = "MUST_DECLARE_UNO"},
     };
 };
 

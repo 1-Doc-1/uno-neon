@@ -219,3 +219,19 @@ TEST_CASE("The first catch wins and the second one is told the window is closed"
     }
     FAIL("no seed produced a UNO window");
 }
+
+// ADR 0020: a broadcast that does not change the turn (here, a UNO window running out) keeps the turn clock running.
+TEST_CASE("A window running out does not give the player on turn a fresh clock", "[app][uno][window][turn]")
+{
+    auto window = tableWithOpenWindow();
+    Table& table = *window.table;
+    const auto deadline = table.room().turnDeadline;
+    const auto current = table.room().match->round().currentPlayer();
+    REQUIRE(deadline.has_value());
+
+    table.harness.scheduler.advance(15s);
+
+    REQUIRE(table.room().match->round().unoWindows().empty());
+    REQUIRE(table.room().turnDeadline == deadline);
+    REQUIRE(table.room().match->round().currentPlayer() == current);
+}

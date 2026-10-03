@@ -111,6 +111,7 @@ std::expected<RoundStart, DomainError> Round::start(RoundSetup setup, RandomSour
     Round round{*std::move(turnOrder), std::move(setup.dealer), std::move(hands), std::move(drawPile),
                 DiscardPile{*flipped}};
     round.drawRule_ = setup.drawRule;
+    round.declareUnoToWin_ = setup.declareUnoToWin;
 
     std::vector<DomainEvent> events{RoundStarted{.dealer = dealer, .firstCard = *flipped}};
     if (flipped->rank == Rank::Wild) {
@@ -134,6 +135,16 @@ bool Round::hasCalledUno(const PlayerId& player) const
 {
     const auto seat = turnOrder_.seatOf(player);
     return seat.has_value() && unoCalled_.at(*seat);
+}
+
+bool Round::mustDeclareUno(const PlayerId& player) const
+{
+    if (!declareUnoToWin_ || player != turnOrder_.current() || !std::holds_alternative<AwaitingPlay>(phase_)) {
+        return false;
+    }
+    const auto& hand = hands_.at(turnOrder_.currentSeat());
+    return hand.size() == 1 && !unoCalled_.at(turnOrder_.currentSeat()) &&
+           isPlayable(hand.front(), discardPile_.top(), currentColor_);
 }
 
 bool Round::canDraw(const PlayerId& player) const
@@ -243,6 +254,10 @@ std::expected<std::vector<DomainEvent>, DomainError> Round::applyPlayCard(const 
 
     if (!isPlayable(card, discardPile_.top(), currentColor_)) {
         return std::unexpected{DomainError::ColorMismatch};
+    }
+    // House rule (ADR 0019): checked after the legality of the card, so that an unplayable card says why.
+    if (declareUnoToWin_ && hand.size() == 1 && !unoCalled_.at(actorSeat)) {
+        return std::unexpected{DomainError::MustDeclareUno};
     }
 
     const auto previousColor = currentColor_;

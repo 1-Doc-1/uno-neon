@@ -27,6 +27,8 @@ enum class DomainError : std::uint8_t {
     CannotCatchSelf,
     // ADR 0017: guided draw.
     MustPlay, // ILLEGAL_MOVE / MUST_PLAY: the player has to play a card instead of drawing, or to play the drawn one
+    // ADR 0019: declare UNO to win.
+    MustDeclareUno, // ILLEGAL_MOVE / MUST_DECLARE_UNO: the last card cannot be played before UNO is announced
 };
 
 } // namespace uno::core

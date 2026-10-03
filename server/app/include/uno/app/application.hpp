@@ -140,7 +140,7 @@ private:
     // Cancels the timers of a room, forgets it and frees its members; `reason` tells them why, if given.
     void destroyRoom(Room& room, std::optional<response::RoomClosedReason> reason);
     void onRoomExpired(const RoomCode& code);
-    void onTurnExpired(const RoomCode& code, std::uint64_t stateVersion);
+    void onTurnExpired(const RoomCode& code, std::uint64_t turnEpoch);
     void onForcedActionDue(const RoomCode& code, std::uint64_t stateVersion);
     void onNextRoundDue(const RoomCode& code, std::uint64_t stateVersion);
     void onGraceExpired(const RoomCode& code, const core::PlayerId& player);

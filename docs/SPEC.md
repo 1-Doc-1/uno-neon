@@ -115,6 +115,7 @@ Chaque option est une **politique injectable** dans le moteur (voir §7, Strateg
 | `drawUntilPlayable` | bool | `false` | Quand on pioche, on continue jusqu'à obtenir une carte jouable (qu'on peut alors jouer). |
 | `wildDrawFourMode` | `officialChallenge`, `strict` | `officialChallenge` | `strict` : le serveur refuse un +4 illégal, pas de contestation. |
 | `drawRule` | `guided`, `official` | `guided` | **Pioche guidée** (ADR 0017). Cartes « spéciales » : +2, Joker, +4 (Passe et Inversion sont normales). Aucune carte jouable → pioche automatique après ~700 ms. Des cartes jouables mais aucune spéciale → piocher est refusé (`ILLEGAL_MOVE` / `MUST_PLAY`), il faut jouer. Au moins une spéciale jouable → le joueur choisit : poser, ou piocher en cliquant sur le paquet. Carte piochée non jouable → fin du tour ; jouable et normale → posée automatiquement après ~700 ms ; jouable et spéciale → posée (clic sur la carte) ou gardée (clic sur le paquet). `official` : règle du §3. |
+| `declareUnoToWin` | bool | `false` | **UNO obligatoire pour gagner** (ADR 0019) : on ne peut pas poser sa dernière carte sans avoir annoncé UNO ; le serveur refuse avec `ILLEGAL_MOVE` / `MUST_DECLARE_UNO`. La vue expose `me.mustDeclareUno` (calculé par le serveur) et le client met en avant le bouton UNO. Une carte jouable bloquée par l'annonce manquante ne déclenche jamais la pioche automatique de la pioche guidée. |
 | `turnTimerSeconds` | `0` (off), 15, 30, 60 | 30 | À l'expiration : pénalité en attente acceptée, sinon pioche 1 + passe (en pioche guidée : le joueur qui doit jouer joue sa première carte jouable) ; choix de couleur en attente → couleur tirée au hasard. |
 | `scoreTarget` | 250, 500, `singleRound` | 500 | |
 | `maxPlayers` | 2–10 | 6 | |
@@ -135,6 +136,9 @@ Interactions à gérer explicitement (et à tester) :
 - Contre-UNO sur un joueur qui s'est déconnecté : autorisé.
 - Deux contre-UNO simultanés : le premier traité gagne, le second reçoit `UNO_WINDOW_CLOSED`. Un contre-UNO pendant la grâce de 2 s reçoit `UNO_GRACE_PERIOD`. Plusieurs joueurs peuvent avoir une fenêtre ouverte en même temps.
 - Revanche : même salon, mêmes joueurs connectés, scores remis à zéro.
+- Un joueur part entre deux manches : les points de la manche terminée restent acquis (ils sont comptés quand elle se termine) ; il emporte sa main et son score ; la manche suivante se joue sans lui (forfait s'ils étaient deux).
+- `declareUnoToWin` : un joueur à 1 carte jouable qui n'a pas annoncé UNO reçoit `MUST_DECLARE_UNO` s'il tente de la poser. Si le minuteur de tour expire dans cet état et qu'il ne peut pas piocher (pioche guidée, carte normale), le serveur annonce UNO puis pose la carte à sa place.
+- Le minuteur de tour n'est pas relancé par un événement qui ne change pas le tour (contre-UNO, annonce, fin d'une fenêtre de contre-UNO) : ADR 0020.
 
 ## 6. Architecture globale
 
@@ -266,7 +270,7 @@ interface PlayerView {
   phase: "awaitingPlay" | "awaitingDrawnCardDecision" | "awaitingPenaltyResponse" | "roundOver" | "matchOver";
   me: {
     playerId: string; hand: Card[]; playableCardIds: number[];
-    canDraw: boolean; canKeepDrawnCard: boolean; canCallUno: boolean; // calculés par le serveur (ADR 0017)
+    canDraw: boolean; canKeepDrawnCard: boolean; canCallUno: boolean; mustDeclareUno: boolean; // calculés par le serveur (ADR 0017)
     penaltyResponse: { amount: number; canChallenge: boolean; canStack: boolean } | null;
   };
   players: Array<{ playerId: string; nickname: string; seat: number; cardCount: number; score: number;
@@ -282,7 +286,7 @@ interface PlayerView {
 `ClientEvent` (union discriminée par `kind`) : `cardPlayed`, `cardsDrawn` (`cards` présent seulement pour celui qui pioche, sinon `count`), `turnChanged`, `playerSkipped`, `directionChanged`, `colorChosen`, `penaltyStacked`, `challengeResolved`, `unoCalled`, `unoCaught`, `handsSwapped`, `handsRotated`, `deckReshuffled`, `roundEnded`, `matchEnded`, `playerDisconnected`, `playerReconnected`, `hostChanged`.
 
 ### 8.6 Codes d'erreur
-`MALFORMED_MESSAGE`, `UNKNOWN_TYPE`, `UNSUPPORTED_VERSION`, `MESSAGE_TOO_LARGE`, `RATE_LIMITED`, `SESSION_REQUIRED`, `SESSION_EXPIRED`, `NICKNAME_INVALID`, `NICKNAME_TAKEN`, `ROOM_NOT_FOUND`, `ROOM_FULL`, `MATCH_IN_PROGRESS`, `NOT_HOST`, `NOT_ENOUGH_PLAYERS`, `PLAYERS_NOT_READY`, `NOT_YOUR_TURN`, `INVALID_PHASE`, `CARD_NOT_IN_HAND`, `ILLEGAL_MOVE` (avec `details.reason` : `COLOR_MISMATCH`, `WILD_DRAW_FOUR_ILLEGAL`, `COLOR_REQUIRED`, `SWAP_TARGET_REQUIRED`, `JUMP_IN_TOO_LATE`, `CANNOT_STACK`, `MUST_PLAY`…), `UNO_WINDOW_CLOSED`, `UNO_GRACE_PERIOD`.
+`MALFORMED_MESSAGE`, `UNKNOWN_TYPE`, `UNSUPPORTED_VERSION`, `MESSAGE_TOO_LARGE`, `RATE_LIMITED`, `SESSION_REQUIRED`, `SESSION_EXPIRED`, `NICKNAME_INVALID`, `NICKNAME_TAKEN`, `ROOM_NOT_FOUND`, `ROOM_FULL`, `MATCH_IN_PROGRESS`, `NOT_HOST`, `NOT_ENOUGH_PLAYERS`, `PLAYERS_NOT_READY`, `NOT_YOUR_TURN`, `INVALID_PHASE`, `CARD_NOT_IN_HAND`, `ILLEGAL_MOVE` (avec `details.reason` : `COLOR_MISMATCH`, `WILD_DRAW_FOUR_ILLEGAL`, `COLOR_REQUIRED`, `SWAP_TARGET_REQUIRED`, `JUMP_IN_TOO_LATE`, `CANNOT_STACK`, `MUST_PLAY`, `MUST_DECLARE_UNO`…), `UNO_WINDOW_CLOSED`, `UNO_GRACE_PERIOD`.
 Les messages d'erreur sont en anglais technique ; **le client traduit chaque code en message français clair**.
 
 ## 9. Serveur réseau (C++)

@@ -102,6 +102,10 @@
           "items": { "$ref": "common.schema.json#/$defs/CardId" }
         },
         "canDraw": { "type": "boolean" },
+        "mustDeclareUno": {
+          "description": "House rule declareUnoToWin (ADR 0019): the viewer holds one playable card and cannot play it until they announce UNO (game.callUno). Computed by the server.",
+          "type": "boolean"
+        },
         "canKeepDrawnCard": {
           "description": "Pass: keep the card just drawn instead of playing it. Computed by the server from the draw rule (ADR 0017).",
           "type": "boolean"
@@ -118,6 +122,7 @@
         "playableCardIds",
         "canDraw",
         "canKeepDrawnCard",
+        "mustDeclareUno",
         "canCallUno",
         "canChooseColor",
         "penaltyResponse"

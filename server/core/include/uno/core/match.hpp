@@ -35,6 +35,7 @@ enum class MatchLength : std::uint8_t { SingleRound, To250, To500 };
 struct MatchSettings {
     MatchLength matchLength{MatchLength::To500};
     DrawRule drawRule{DrawRule::Official};
+    bool declareUnoToWin{false}; // ADR 0019
 
     [[nodiscard]] bool operator==(const MatchSettings&) const = default;
 };
