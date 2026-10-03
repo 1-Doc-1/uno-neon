@@ -1,16 +1,16 @@
 :host {
-  display: grid;
-  justify-items: center;
-  gap: var(--space-3);
+  display: block;
 }
 
 .piles {
   display: flex;
   align-items: flex-start;
-  gap: var(--space-5);
+  justify-content: center;
+  gap: var(--space-6);
 }
 
-.pile {
+.deck-wrap,
+.discard-wrap {
   --card-w: 84px;
   position: relative;
   display: grid;
@@ -18,38 +18,24 @@
   gap: var(--space-2);
 }
 
-// Anneau de lumière de la couleur courante autour de la défausse
-.discard app-card {
-  border-radius: var(--radius-card);
-  box-shadow: var(--glow-lg);
-}
-
-// La pioche est un bouton : elle ne s'éclaire que lorsque le serveur dit qu'on peut piocher ou garder la carte.
 .deck {
   padding: 0;
   border: 0;
   background: transparent;
-  color: inherit;
   cursor: default;
-  font: inherit;
+  border-radius: 12px;
+  transition: transform var(--dur-fast) var(--ease-out);
+
+  // Le paquet n'est vivant que lorsque le serveur dit qu'on peut piocher ou garder la carte
+  &:disabled {
+    opacity: 0.8;
+  }
 
   &.usable {
     cursor: pointer;
-    border-radius: var(--radius-card);
-    color: var(--neon-cyan);
+    animation: breathe 1.8s ease-in-out infinite;
 
-    app-card-back {
-      box-shadow: var(--glow-md);
-      border-radius: var(--radius-card);
-      animation: breathe 1.6s ease-in-out infinite;
-    }
-
-    .label {
-      color: var(--text-primary);
-      font-weight: 700;
-    }
-
-    &:hover app-card-back {
+    &:hover {
       transform: translateY(-4px);
     }
   }
@@ -57,43 +43,67 @@
 
 @keyframes breathe {
   50% {
-    box-shadow: var(--glow-sm);
+    transform: translateY(-3px);
   }
 }
 
-.label {
-  margin: 0;
-  color: var(--text-secondary);
+.tip {
+  position: absolute;
+  top: -34px;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--text);
+  color: var(--text-on-neon);
   font-size: var(--fs-sm);
   font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.count {
+  color: var(--text-dim);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+// La couleur active, en anneau autour de la défausse : indispensable après un Joker
+.ring {
+  padding: 7px;
+  border-radius: 18px;
+  background: currentColor;
+  line-height: 0;
+
+  &.neutral {
+    background: var(--panel);
+  }
+
+  app-card {
+    border-radius: 12px;
+  }
 }
 
 .penalty {
   position: absolute;
   top: -14px;
   right: -22px;
-  margin: 0;
-  padding: 2px var(--space-3);
-  border: 2px solid var(--neon-red);
+  padding: 0 var(--space-3);
   border-radius: var(--radius-pill);
-  background: var(--neon-red);
+  background: var(--danger);
   color: var(--text-on-neon);
   font-family: var(--font-display);
   font-size: var(--fs-lg);
-  font-weight: 900;
+  font-weight: 700;
+  box-shadow: var(--glow-edge);
 }
 
 .status {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
-  margin: 0;
-  padding: var(--space-1) var(--space-4);
-  border: 1px solid var(--surface-border);
-  border-radius: var(--radius-pill);
-  background: var(--surface-glass-strong);
+  gap: var(--space-3);
+  min-height: 28px;
   font-family: var(--font-display);
-  font-weight: 700;
+  font-weight: 600;
+  font-size: var(--fs-sm);
 }
 
 .color {
@@ -103,16 +113,16 @@
 }
 
 .color-name {
-  color: var(--text-primary);
+  color: var(--text);
 }
 
 .direction {
-  font-size: var(--fs-lg);
-  color: var(--text-primary);
+  color: var(--text-dim);
 }
 
 @media (min-width: 768px) {
-  .pile {
-    --card-w: 128px;
+  .deck-wrap,
+  .discard-wrap {
+    --card-w: 110px;
   }
 }

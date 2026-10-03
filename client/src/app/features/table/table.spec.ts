@@ -8,7 +8,7 @@ import { Table } from './table';
 const seat = (playerId: string, nickname: string, cardCount: number): SeatView => ({
   playerId,
   nickname,
-  seat: 0,
+  seat: ['me', 'max', 'lea'].indexOf(playerId),
   cardCount,
   score: 0,
   isConnected: true,
@@ -121,12 +121,48 @@ describe('Table', () => {
     });
   });
 
-  it('does not offer the counter-UNO during the grace period, on myself, or once the window ran out', () => {
+  it('greys the counter-UNO out during the grace period: still there, but a click does nothing', () => {
+    const now = Date.now();
+    const { button } = render(viewWith({ unoWindows: [window('max', now + 1_500, now + 14_500)] }));
+
+    const catchButton = button('.catch');
+
+    expect(catchButton?.getAttribute('aria-disabled')).toBe('true');
+    expect(catchButton?.textContent).toMatch(/dans (1|2) s/);
+    expect(catchButton?.disabled).toBe(false); // atténué, pas désactivé : il reste focalisable
+
+    catchButton?.click();
+
+    expect(transport.sent.some((m) => m.type === 'game.catchUno')).toBe(false);
+  });
+
+  it('offers one counter-UNO per target, each with its own countdown', () => {
+    const now = Date.now();
+    const { host } = render(
+      viewWith({
+        players: [seat('me', 'Moi', 5), seat('max', 'Max', 1), seat('lea', 'Léa', 1)],
+        unoWindows: [
+          window('max', now - 500, now + 9_500),
+          window('lea', now + 1_000, now + 14_000),
+        ],
+      }),
+    );
+
+    const labels = Array.from(host.querySelectorAll('.catch')).map((b) =>
+      b.textContent?.replace(/\s+/g, ' ').trim(),
+    );
+
+    expect(labels).toHaveLength(2);
+    expect(labels[0]).toContain('Max');
+    expect(labels[1]).toContain('Léa');
+    expect(labels[1]).toContain('dans');
+  });
+
+  it('shows no counter-UNO on myself, nor once the window ran out', () => {
     const now = Date.now();
     const { button } = render(
       viewWith({
         unoWindows: [
-          window('max', now + 1_500, now + 14_500),
           window('me', now - 500, now + 9_500),
           window('lea', now - 20_000, now - 5_000),
         ],
@@ -134,6 +170,13 @@ describe('Table', () => {
     );
 
     expect(button('.catch')).toBeNull();
+  });
+
+  it('flags the player who forgot UNO on their seat while their window is open', () => {
+    const now = Date.now();
+    const { host } = render(viewWith({ unoWindows: [window('max', now - 500, now + 9_500)] }));
+
+    expect(host.textContent).toContain('UNO oublié !');
   });
 
   it('has no draw or pass button: the deck draws when the server allows it', () => {

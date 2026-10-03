@@ -1,0 +1,225 @@
+:host {
+  display: block;
+  width: 100%;
+  overflow-x: clip;
+}
+
+.table {
+  position: relative;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  height: 100dvh;
+  max-width: 1240px;
+  margin: 0 auto;
+}
+
+// Zone de jeu : l'arc des adversaires en haut, le centre de la table dessous
+.stage {
+  position: relative;
+  display: grid;
+  grid-template-rows: 214px 1fr;
+  min-height: 0;
+}
+
+.arc {
+  position: relative;
+  grid-row: 1;
+}
+
+.place {
+  position: absolute;
+  left: calc(var(--x) * 1);
+  top: calc(var(--y) * 1);
+  transform: translate(-50%, -50%);
+}
+
+.center {
+  grid-row: 2;
+  align-self: center;
+  justify-self: center;
+  padding-bottom: var(--space-6);
+}
+
+// Annonces : le bouton UNO et, empilés au même endroit, un « Contre-UNO ! » par cible
+.actions {
+  position: absolute;
+  left: 50%;
+  bottom: var(--space-2);
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  gap: var(--space-2);
+  transform: translateX(-50%);
+  z-index: 3;
+}
+
+.uno {
+  width: 84px;
+  height: 84px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--uno);
+  color: var(--text-on-neon);
+  font-family: var(--font-display);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  box-shadow: var(--glow-edge);
+  cursor: pointer;
+
+  // Mis en avant : la dernière carte attend l'annonce
+  &.must {
+    width: 104px;
+    height: 104px;
+    font-size: 1.6rem;
+    box-shadow: var(--glow-strong);
+    animation: pulse 0.8s ease-in-out infinite;
+  }
+}
+
+.uno-hint {
+  order: 2;
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  text-shadow: 0 1px 4px rgb(0 0 0 / 0.7);
+}
+
+.catch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--danger);
+  color: var(--text-on-neon);
+  font-family: var(--font-display);
+  font-weight: 700;
+  box-shadow: var(--glow-edge);
+  cursor: pointer;
+
+  // Pendant la grâce : grisé (mais atténué, pas désactivé : il reste focalisable et lisible)
+  &.waiting {
+    background: var(--field);
+    color: var(--text-dim);
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+}
+
+.count {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+@keyframes pulse {
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+.journal {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  z-index: 2;
+  display: grid;
+  gap: 2px;
+  max-width: min(280px, 44vw);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--text-dim);
+  font-size: var(--fs-xs);
+  text-align: right;
+
+  li:last-child {
+    color: var(--text);
+    font-weight: 600;
+  }
+}
+
+.banner {
+  position: absolute;
+  top: var(--space-3);
+  left: 50%;
+  z-index: 4;
+  padding: var(--space-2) var(--space-5);
+  border-radius: var(--radius-pill);
+  background: var(--text);
+  color: var(--text-on-neon);
+  font-weight: 700;
+  transform: translateX(-50%);
+  box-shadow: var(--elevation);
+}
+
+.mine {
+  min-width: 0;
+}
+
+.turn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  color: var(--text-dim);
+  font-family: var(--font-display);
+  font-weight: 600;
+
+  &.mine-turn {
+    color: var(--text);
+    font-size: var(--fs-lg);
+  }
+}
+
+.pill {
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--panel);
+  color: var(--text);
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+}
+
+// Étroit : les adversaires passent en bande défilante au-dessus du centre
+@media (max-width: 639px) {
+  .stage {
+    grid-template-rows: auto 1fr;
+  }
+
+  .arc {
+    display: flex;
+    gap: var(--space-3);
+    padding: var(--space-6) var(--space-3) var(--space-2);
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+  }
+
+  .place {
+    position: static;
+    transform: none;
+    scroll-snap-align: start;
+  }
+
+  // Les extrémités de la bande restent atteignables même avec peu de joueurs
+  .arc::before,
+  .arc::after {
+    content: '';
+    margin: auto;
+  }
+
+  .journal {
+    top: var(--space-1);
+    left: var(--space-3);
+    max-width: none;
+    text-align: left;
+  }
+
+  .center {
+    padding-bottom: 96px;
+  }
+
+  .actions {
+    bottom: var(--space-1);
+  }
+}

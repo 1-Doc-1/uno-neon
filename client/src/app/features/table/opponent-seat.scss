@@ -1,101 +1,119 @@
 :host {
   display: block;
-  flex: none;
+  width: 168px;
 }
 
 .seat {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-1);
+}
+
+// Éventail de dos : chaque carte tourne autour d'un pivot placé bien en dessous de l'éventail
+.fan {
+  position: relative;
+  width: 100%;
+  height: 58px;
+}
+
+.back {
+  --card-w: 34px;
+  position: absolute;
+  left: calc(50% - 17px);
+  top: 0;
+  transform-origin: 50% 190%;
+  transform: rotate(calc((var(--i) - (var(--count) - 1) / 2) * var(--step)));
+}
+
+.more {
+  position: absolute;
+  right: 0;
+  top: 6px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--panel);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--fs-sm);
+}
+
+.pill {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  min-width: 190px;
-  padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius-md);
-  transition:
-    border-color var(--dur-base),
-    box-shadow var(--dur-base);
+  gap: var(--space-2);
+  max-width: 100%;
+  padding: var(--space-1) var(--space-3) var(--space-1) var(--space-1);
+  border-radius: var(--radius-pill);
+  background: var(--panel);
+  box-shadow: var(--elevation);
+  transition: box-shadow var(--dur-base);
+}
 
-  &.current {
-    border-color: var(--neon-cyan);
-    color: var(--neon-cyan);
-    box-shadow: var(--glow-md);
-  }
+// C'est son tour : un anneau clair autour de la pastille
+.current .pill {
+  box-shadow:
+    0 0 0 3px var(--text),
+    0 0 16px rgb(255 255 255 / 0.45);
+}
 
-  &.offline {
-    opacity: 0.7;
-  }
+.offline {
+  opacity: 0.6;
 }
 
 .info {
-  display: grid;
-  gap: 2px;
   min-width: 0;
-  color: var(--text-primary);
-}
-
-p {
-  margin: 0;
+  line-height: 1.2;
 }
 
 .name {
-  font-weight: 700;
+  font-weight: 600;
+  font-size: var(--fs-sm);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  max-width: 88px;
 }
 
 .meta {
   display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  color: var(--text-secondary);
-  font-size: var(--fs-sm);
-}
-
-.count {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  font-family: var(--font-display);
-  font-weight: 700;
-}
-
-.mini {
-  --card-w: 20px;
-}
-
-.flags {
-  display: flex;
-  flex-wrap: wrap;
   gap: var(--space-2);
+  color: var(--text-dim);
   font-size: var(--fs-xs);
-  font-weight: 700;
-  empty-cells: hide;
-}
-
-.uno {
-  color: var(--neon-yellow);
-  animation: blink 1.6s ease-in-out infinite;
 }
 
 .off {
-  color: var(--text-secondary);
+  font-style: italic;
 }
 
-.turn {
-  color: var(--neon-cyan);
+// « UNO oublié ! » reste sur le siège tant que la fenêtre de contre-UNO de ce joueur est ouverte
+.forgot {
+  position: absolute;
+  top: -12px;
+  right: -6px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--danger);
+  color: var(--text-on-neon);
+  font-family: var(--font-display);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  box-shadow: var(--glow-edge);
+  white-space: nowrap;
 }
 
-.to-catch {
-  color: var(--text-primary);
-  animation: blink 1s ease-in-out infinite;
-}
+@media (max-width: 639px) {
+  :host {
+    width: 138px;
+    flex: none;
+  }
 
-.seat.catchable {
-  border-color: var(--neon-red);
-}
+  .fan {
+    height: 48px;
+  }
 
-@keyframes blink {
-  50% {
-    opacity: 0.55;
+  .back {
+    --card-w: 28px;
+    left: calc(50% - 14px);
   }
 }

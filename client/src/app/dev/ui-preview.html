@@ -1,7 +1,22 @@
 <main class="page">
-  <h1>Composants</h1>
+  <app-logo [size]="56" />
 
-  <section class="glass panel" aria-labelledby="h-cards">
+  <section class="panel box" aria-labelledby="h-theme">
+    <h2 id="h-theme">Thème</h2>
+    <div class="row">
+      @for (t of themes; track t.name) {
+        <button
+          appButton
+          [kind]="theme.theme() === t.name ? 'primary' : 'neutral'"
+          (click)="theme.set(t.name)"
+        >
+          {{ t.label }}
+        </button>
+      }
+    </div>
+  </section>
+
+  <section class="panel box" aria-labelledby="h-cards">
     <h2 id="h-cards">Cartes</h2>
     @for (row of rows; track row.color) {
       <div class="row">
@@ -18,40 +33,32 @@
         <app-card [card]="wilds[0]" [chosenColor]="color" class="small" />
       }
       <app-card-back class="small" />
+      <app-card [card]="rows[0].cards[7]" state="playable" class="small" />
+      <app-card [card]="rows[3].cards[3]" state="unplayable" class="small" />
+      <app-card [card]="rows[1].cards[5]" [top]="true" class="small" />
     </div>
   </section>
 
-  <section class="glass panel" aria-labelledby="h-states">
-    <h2 id="h-states">États</h2>
-    <div class="row states">
-      <figure>
-        <app-card [card]="rows[0].cards[7]" state="playable" />
-        <figcaption>Jouable</figcaption>
-      </figure>
-      <figure>
-        <app-card [card]="rows[3].cards[3]" state="unplayable" />
-        <figcaption>Non jouable</figcaption>
-      </figure>
-      <figure>
-        <app-card [card]="rows[1].cards[11]" />
-        <figcaption>Neutre</figcaption>
-      </figure>
-    </div>
-  </section>
-
-  <section class="glass panel" aria-labelledby="h-ui">
-    <h2 id="h-ui">Boutons et formes</h2>
+  <section class="panel box" aria-labelledby="h-ui">
+    <h2 id="h-ui">Boutons, formes et icônes</h2>
     <div class="row">
-      <button appNeonButton>Créer un salon</button>
-      <button appNeonButton variant="outline">Rejoindre</button>
-      <button appNeonButton variant="ghost">Quitter</button>
-      <button appNeonButton tone="pink" disabled>Désactivé</button>
+      <button appButton kind="primary">Créer un salon</button>
+      <button appButton kind="danger"><app-icon name="door" /> Quitter</button>
+      <button appButton kind="uno">UNO !</button>
+      <button appButton kind="neutral">Rejoindre</button>
+      <button appButton kind="ghost">Annuler</button>
+      <button appButton kind="primary" aria-disabled="true">Atténué</button>
     </div>
     <div class="row names">
       @for (color of colors; track color) {
         <span [class]="'tint-' + color"
           ><app-color-symbol [color]="color" /> {{ colorName[color] }}</span
         >
+      }
+    </div>
+    <div class="row icons">
+      @for (name of icons; track name) {
+        <app-icon [name]="name" />
       }
     </div>
   </section>

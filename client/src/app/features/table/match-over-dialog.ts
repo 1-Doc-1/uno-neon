@@ -1,12 +1,12 @@
 import { Component, computed, input, output } from '@angular/core';
 import type { SeatView } from '../../protocol/generated/protocol';
 import { Modal } from '../../ui/modal';
-import { NeonButton } from '../../ui/neon-button';
+import { Button } from '../../ui/button';
 
 /** Fin de partie : vainqueur et classement. (La revanche viendra après le MVP, étape 4.3b.) */
 @Component({
   selector: 'app-match-over-dialog',
-  imports: [Modal, NeonButton],
+  imports: [Modal, Button],
   template: `
     <app-modal label="Fin de la partie">
       <div class="body">
@@ -19,7 +19,7 @@ import { NeonButton } from '../../ui/neon-button';
             </li>
           }
         </ol>
-        <button appNeonButton (click)="left.emit()">Quitter</button>
+        <button appButton kind="primary" (click)="left.emit()">Quitter</button>
       </div>
     </app-modal>
   `,
@@ -32,8 +32,7 @@ import { NeonButton } from '../../ui/neon-button';
     }
     h2 {
       font-size: var(--fs-xl);
-      color: var(--neon-yellow);
-      text-shadow: var(--text-glow);
+      color: var(--text);
     }
     .ranking {
       display: grid;
@@ -46,7 +45,7 @@ import { NeonButton } from '../../ui/neon-button';
     }
     li {
       padding: var(--space-2) var(--space-3);
-      border: 1px solid var(--surface-border);
+      background: var(--field);
       border-radius: var(--radius-md);
     }
     .name {

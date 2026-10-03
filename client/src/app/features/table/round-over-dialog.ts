@@ -2,12 +2,12 @@ import { Component, computed, input, output } from '@angular/core';
 import type { Card, RoundResult, SeatView } from '../../protocol/generated/protocol';
 import { CardFace } from '../../ui/card';
 import { Modal } from '../../ui/modal';
-import { NeonButton } from '../../ui/neon-button';
+import { Button } from '../../ui/button';
 
 /** Fin de manche : vainqueur, points, mains révélées, scores ; chacun valide pour enchaîner (SPEC §12.3). */
 @Component({
   selector: 'app-round-over-dialog',
-  imports: [Modal, CardFace, NeonButton],
+  imports: [Modal, CardFace, Button],
   template: `
     <app-modal label="Fin de la manche">
       <div class="body">
@@ -33,7 +33,7 @@ import { NeonButton } from '../../ui/neon-button';
           }
         </ul>
 
-        <button appNeonButton tone="green" [disabled]="meReady()" (click)="next.emit()">
+        <button appButton kind="primary" [disabled]="meReady()" (click)="next.emit()">
           {{ meReady() ? 'En attente des autres…' : 'Manche suivante' }}
         </button>
         @if (secondsLeft() !== null) {
@@ -51,7 +51,7 @@ import { NeonButton } from '../../ui/neon-button';
     }
     h2 {
       font-size: var(--fs-lg);
-      color: var(--neon-yellow);
+      color: var(--text);
     }
     p {
       margin: 0;
@@ -60,7 +60,7 @@ import { NeonButton } from '../../ui/neon-button';
       font-family: var(--font-display);
       font-size: var(--fs-xl);
       font-weight: 900;
-      color: var(--neon-green);
+      color: var(--game-green);
     }
     .players {
       display: grid;
@@ -77,7 +77,7 @@ import { NeonButton } from '../../ui/neon-button';
       align-items: center;
       gap: var(--space-2) var(--space-3);
       padding: var(--space-2) var(--space-3);
-      border: 1px solid var(--surface-border);
+      background: var(--field);
       border-radius: var(--radius-md);
     }
     .name {
@@ -85,7 +85,7 @@ import { NeonButton } from '../../ui/neon-button';
       font-weight: 700;
     }
     .ready {
-      color: var(--neon-green);
+      color: var(--game-green);
       font-size: var(--fs-xs);
     }
     .score {
@@ -100,7 +100,7 @@ import { NeonButton } from '../../ui/neon-button';
       --card-w: 36px;
     }
     .muted {
-      color: var(--text-secondary);
+      color: var(--text-dim);
     }
   `,
 })

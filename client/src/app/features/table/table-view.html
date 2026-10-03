@@ -1,0 +1,123 @@
+<div class="table">
+  @if (banner(); as text) {
+    <p class="banner" role="status">{{ text }}</p>
+  }
+
+  <ul class="journal" aria-live="polite" aria-label="Journal de la partie">
+    @for (line of lastLines(); track $index) {
+      <li>{{ line }}</li>
+    }
+  </ul>
+
+  <div class="stage">
+    <section class="arc" aria-label="Adversaires">
+      @for (seat of opponents(); track seat.playerId; let index = $index) {
+        <div class="place" [style.--x.%]="slots()[index].x" [style.--y.%]="slots()[index].y">
+          <app-opponent-seat
+            [seat]="seat"
+            [isCurrent]="seat.playerId === view().currentPlayerId"
+            [forgotUno]="forgotten().has(seat.playerId)"
+          />
+        </div>
+      }
+    </section>
+
+    <section class="center" aria-label="Table">
+      <app-piles
+        [drawPileCount]="view().drawPileCount"
+        [discardTop]="view().discardTop"
+        [currentColor]="view().currentColor"
+        [direction]="view().direction"
+        [pendingDraw]="view().pendingDraw"
+        [canDraw]="view().me.canDraw"
+        [canKeepDrawnCard]="view().me.canKeepDrawnCard"
+        (deckClicked)="deckClicked.emit()"
+      />
+    </section>
+
+    @if (catchButtons().length > 0 || view().me.canCallUno) {
+      <div class="actions" role="group" aria-label="Annonces UNO">
+        @for (button of catchButtons(); track button.playerId) {
+          <button
+            type="button"
+            class="catch"
+            [class.waiting]="button.inGrace"
+            [attr.aria-disabled]="button.inGrace"
+            (click)="tryCatch(button)"
+          >
+            Contre-UNO ! {{ button.nickname }}
+            <span class="count">{{ button.inGrace ? 'dans ' : '' }}{{ button.secondsLeft }} s</span>
+          </button>
+        }
+        @if (view().me.canCallUno) {
+          <button
+            type="button"
+            class="uno"
+            [class.must]="view().me.mustDeclareUno"
+            (click)="unoCalled.emit()"
+          >
+            UNO !
+          </button>
+        }
+        @if (view().me.mustDeclareUno) {
+          <p class="uno-hint" role="status">Annonce UNO pour poser ta dernière carte.</p>
+        }
+      </div>
+    }
+  </div>
+
+  <section class="mine" aria-label="Ma main">
+    <p class="turn" [class.mine-turn]="myTurn()" role="status">
+      @if (myTurn()) {
+        À toi de jouer
+      } @else {
+        Tour de {{ currentName() }}
+      }
+      @if (turnSeconds(); as seconds) {
+        <span class="pill">{{ seconds }} s</span>
+      }
+      @if (mySeat(); as seat) {
+        <span class="pill">{{ seat.score }} pts</span>
+      }
+    </p>
+
+    <app-hand
+      [cards]="view().me.hand"
+      [playableIds]="view().me.playableCardIds"
+      [myTurn]="myTurn()"
+      (played)="play($event)"
+    />
+  </section>
+</div>
+
+@if (view().me.penaltyResponse; as penalty) {
+  <app-challenge-dialog
+    [card]="view().discardTop"
+    [color]="view().currentColor"
+    [options]="penalty"
+    (accepted)="penaltyAnswered.emit('accept')"
+    (challenged)="penaltyAnswered.emit('challenge')"
+  />
+}
+@if (pendingWild() !== null) {
+  <app-color-picker (picked)="playWild($event)" (cancelled)="pendingWild.set(null)" />
+}
+@if (view().me.canChooseColor) {
+  <app-color-picker [cancellable]="false" (picked)="colorChosen.emit($event)" />
+}
+@if (view().phase === 'roundOver' && view().roundResult; as result) {
+  <app-round-over-dialog
+    [result]="result"
+    [players]="view().players"
+    [meReady]="mySeat()?.isReadyForNextRound ?? false"
+    [secondsLeft]="nextRoundSeconds()"
+    (next)="nextRoundAsked.emit()"
+  />
+}
+@if (view().phase === 'matchOver') {
+  <app-match-over-dialog
+    [players]="view().players"
+    [winnerId]="view().matchWinnerId"
+    (left)="left.emit()"
+  />
+}

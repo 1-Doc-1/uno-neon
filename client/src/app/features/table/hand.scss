@@ -1,31 +1,31 @@
 :host {
+  --card-w: 72px;
+  --max-step: calc(var(--card-w) * 0.66);
+  --min-step: 13px;
   display: block;
   min-width: 0;
 }
 
 .hand {
-  --card-w: 68px;
-  display: flex;
+  display: grid;
+  justify-content: center;
   margin: 0;
-  padding: 24px var(--space-4) var(--space-3);
+  // De la place pour la surélévation des cartes jouables, sans rogner l'éventail
+  padding: 34px var(--space-4) var(--space-3);
   list-style: none;
-  overflow-x: auto;
-  scroll-snap-type: x proximity;
-  // Centre la main quand elle tient, sans empêcher le défilement quand elle déborde
-  &::before,
-  &::after {
-    content: '';
-    margin: auto;
-  }
 
   li {
-    flex: none;
-    scroll-snap-align: center;
-    margin-left: var(--hand-gap, 8px);
+    position: relative;
+    min-width: 0;
+    // Éventail : chaque carte tourne autour d'un pivot sous la main et suit une légère courbe
+    transform-origin: 50% 160%;
+    transform: translateY(calc(var(--d) * var(--d) * 0.7px)) rotate(calc(var(--d) * var(--rot)));
+    transition: transform var(--dur-base) var(--ease-out);
   }
 
-  li:first-child {
-    margin-left: 0;
+  li:hover,
+  li:focus-within {
+    z-index: 5;
   }
 }
 
@@ -33,25 +33,24 @@
   display: block;
   padding: 0;
   border: 0;
-  border-radius: var(--radius-card);
+  border-radius: 12px;
   background: transparent;
-  cursor: pointer;
+  cursor: default;
   transition: transform var(--dur-base) var(--ease-out);
 
-  &:disabled {
-    cursor: default;
-  }
-
-  &:not(:disabled):hover,
-  &:not(:disabled):focus-visible {
+  &.playable {
+    cursor: pointer;
     transform: translateY(-16px);
-    position: relative;
-    z-index: 1;
+
+    &:hover,
+    &:focus-visible {
+      transform: translateY(-26px);
+    }
   }
 }
 
 @media (min-width: 768px) {
-  .hand {
+  :host {
     --card-w: 104px;
   }
 }
