@@ -5,7 +5,6 @@ describe('seatLayout', () => {
     const [seat] = seatLayout(1);
 
     expect(seat.x).toBeCloseTo(50);
-    expect(seat.rotation).toBe(0);
     expect(seat.y).toBeLessThan(20);
   });
 
@@ -48,15 +47,6 @@ describe('seatLayout', () => {
       }
       expect(seats.map((s) => s.x)).toEqual([...seats.map((s) => s.x)].sort((a, b) => a - b));
     }
-  });
-
-  it('tilts the fans toward the centre of the table on the sides, never past 52 degrees', () => {
-    const [left, top, right] = seatLayout(3);
-
-    expect(top.rotation).toBe(0);
-    expect(left.rotation).toBeGreaterThan(0);
-    expect(right.rotation).toBeLessThan(0);
-    expect(Math.abs(left.rotation)).toBeLessThanOrEqual(52);
   });
 
   it('makes the seats compact from six opponents on', () => {

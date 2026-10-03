@@ -1,0 +1,76 @@
+:host {
+  display: block;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.uno {
+  width: 84px;
+  height: 84px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--uno);
+  color: var(--text-on-neon);
+  font-family: var(--font-display);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  box-shadow: var(--glow-edge);
+  cursor: pointer;
+
+  // Mis en avant : la dernière carte attend l'annonce
+  &.must {
+    width: 104px;
+    height: 104px;
+    font-size: 1.6rem;
+    box-shadow: var(--glow-strong);
+    animation: pulse 0.8s ease-in-out infinite;
+  }
+}
+
+.hint {
+  order: 2;
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  text-shadow: 0 1px 4px rgb(0 0 0 / 0.7);
+}
+
+.catch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  white-space: nowrap;
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--danger);
+  color: var(--text-on-neon);
+  font-family: var(--font-display);
+  font-weight: 700;
+  box-shadow: var(--glow-edge);
+  cursor: pointer;
+
+  // Pendant la grâce : grisé (mais atténué, pas désactivé : il reste focalisable et lisible)
+  &.waiting {
+    background: var(--panel-solid);
+    color: var(--text-dim);
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+}
+
+.count {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+@keyframes pulse {
+  50% {
+    transform: scale(1.08);
+  }
+}

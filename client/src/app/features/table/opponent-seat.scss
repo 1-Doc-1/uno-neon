@@ -1,48 +1,21 @@
 :host {
-  --back-w: 40px;
-  --portrait: 52px;
+  // Tailles proportionnelles à la hauteur de l'écran : la table occupe la place disponible
+  --bw: clamp(36px, 5.8vh, 60px);
+  --pw: clamp(48px, 7.4vh, 70px);
   display: block;
 }
 
 .seat {
+  --back-w: var(--bw);
+  --portrait: var(--pw);
   display: grid;
   justify-items: center;
   gap: var(--space-1);
 }
 
 .seat.compact {
-  --back-w: 30px;
-  --portrait: 40px;
-}
-
-// Éventail de dos : chaque carte tourne autour d'un pivot bas ; l'ensemble se penche vers l'extérieur sur les côtés
-.fan {
-  position: relative;
-  width: calc(var(--back-w) * 3.4);
-  height: calc(var(--back-w) * 1.6);
-  transform: rotate(var(--tilt, 0deg));
-  transform-origin: 50% 100%;
-}
-
-.back {
-  --card-w: var(--back-w);
-  position: absolute;
-  left: calc(50% - var(--back-w) / 2);
-  bottom: 0;
-  transform-origin: 50% 180%;
-  transform: rotate(calc((var(--i) - (var(--count) - 1) / 2) * var(--step)));
-}
-
-.more {
-  position: absolute;
-  right: 0;
-  top: 4px;
-  padding: 0 var(--space-2);
-  border-radius: var(--radius-pill);
-  background: var(--panel-solid);
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: var(--fs-sm);
+  --back-w: calc(var(--bw) * 0.78);
+  --portrait: calc(var(--pw) * 0.8);
 }
 
 .pill {
@@ -102,12 +75,13 @@
   }
 }
 
-// Le nombre de cartes : un badge sur l'avatar
+// Le nombre de cartes : un badge sur l'avatar, au-dessus de l'anneau du minuteur
 .count {
   position: absolute;
-  right: -8px;
-  bottom: -6px;
-  min-width: 24px;
+  z-index: 2;
+  right: -12px;
+  bottom: -10px;
+  min-width: 26px;
   padding: 0 6px;
   border-radius: var(--radius-pill);
   background: var(--text);
@@ -115,8 +89,9 @@
   font-family: var(--font-display);
   font-size: var(--fs-sm);
   font-weight: 700;
-  line-height: 22px;
+  line-height: 24px;
   text-align: center;
+  box-shadow: 0 0 0 2px var(--panel-solid);
 }
 
 .ribbon {
@@ -125,7 +100,7 @@
 }
 
 .name {
-  max-width: 110px;
+  max-width: 120px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

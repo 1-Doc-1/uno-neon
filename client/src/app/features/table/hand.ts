@@ -18,6 +18,7 @@ const TOTAL_FAN_DEGREES = 36;
       class="hand"
       aria-label="Ta main"
       [style.grid-template-columns]="columns()"
+      [style.--n]="cards().length"
       [style.--rot.deg]="rotationStep()"
     >
       @for (card of cards(); track card.id; let index = $index) {
@@ -26,6 +27,7 @@ const TOTAL_FAN_DEGREES = 36;
             type="button"
             class="slot"
             [class.playable]="isPlayable(card)"
+            [class.unplayable]="stateOf(card) === 'unplayable'"
             [disabled]="!isPlayable(card)"
             [attr.aria-label]="describe(card)"
             (click)="played.emit(card.id)"
@@ -44,15 +46,10 @@ export class Hand {
   readonly myTurn = input.required<boolean>();
   readonly played = output<number>();
 
-  /**
-   * Chaque carte occupe une colonne qui rétrécit quand la main grossit (jusqu'à un minimum), sauf la dernière qui
-   * garde sa largeur entière : les cartes se chevauchent d'autant plus qu'il y en a.
-   */
+  /** Chaque carte occupe une colonne d'un pas `--step` (calculé en CSS d'après la largeur), sauf la dernière qui garde sa largeur entière. */
   protected readonly columns = computed(() => {
     const count = this.cards().length;
-    return count <= 1
-      ? 'var(--card-w)'
-      : `repeat(${count - 1}, minmax(var(--min-step), var(--max-step))) var(--card-w)`;
+    return count <= 1 ? 'var(--card-w)' : `repeat(${count - 1}, var(--step)) var(--card-w)`;
   });
   protected readonly rotationStep = computed(() =>
     Math.min(MAX_ROTATION_STEP_DEGREES, TOTAL_FAN_DEGREES / Math.max(1, this.cards().length)),

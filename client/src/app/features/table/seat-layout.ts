@@ -5,8 +5,6 @@ export interface SeatPlacement {
   readonly y: number;
   /** Angle du siège autour de la table, en degrés : 0 = en haut, négatif = à gauche, positif = à droite. */
   readonly angle: number;
-  /** Inclinaison de l'éventail de dos, en degrés : il est orienté vers le centre de la table (incliné sur les côtés). */
-  readonly rotation: number;
   /** Au-delà de cinq adversaires, les sièges sont compacts. */
   readonly compact: boolean;
 }
@@ -31,8 +29,6 @@ const ELLIPSES: Record<TableShape, Ellipse> = {
 };
 
 const SPREAD_DEGREES = 82;
-const SIDE_ROTATION_FACTOR = 0.6;
-const MAX_ROTATION = 52;
 
 /** Les angles des sièges, du plus à gauche au plus à droite, selon le nombre d'adversaires. */
 function anglesFor(count: number): readonly number[] {
@@ -71,7 +67,6 @@ export function seatLayout(count: number, shape: TableShape = 'table'): readonly
       x: cx + rx * Math.sin(radians),
       y: cy - ry * Math.cos(radians),
       angle,
-      rotation: Math.max(-MAX_ROTATION, Math.min(MAX_ROTATION, -angle * SIDE_ROTATION_FACTOR)) || 0, // jamais -0
       compact: count >= COMPACT_FROM,
     };
   });

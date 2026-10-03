@@ -9,7 +9,10 @@ export type ScenarioName =
   | 'players-2'
   | 'players-3'
   | 'players-4'
-  | 'players-6';
+  | 'players-6'
+  | 'my-turn-2'
+  | 'my-turn-3'
+  | 'my-turn-6';
 
 export const SCENARIOS: readonly ScenarioName[] = [
   'uno-window',
@@ -21,6 +24,9 @@ export const SCENARIOS: readonly ScenarioName[] = [
   'players-3',
   'players-4',
   'players-6',
+  'my-turn-2',
+  'my-turn-3',
+  'my-turn-6',
 ];
 
 const card = (id: number, color: Card['color'], rank: Card['rank']): Card => ({ id, color, rank });
@@ -154,21 +160,25 @@ export function scenarioView(name: ScenarioName, now: number): PlayerView {
     case 'players-2':
     case 'players-3':
     case 'players-4':
-    case 'players-6': {
-      // N joueurs autour de la table (moi compris) : N - 1 adversaires, l'un d'eux joue
-      const total = Number(name.slice('players-'.length));
+    case 'players-6':
+    case 'my-turn-2':
+    case 'my-turn-3':
+    case 'my-turn-6': {
+      // N joueurs autour de la table (moi compris) : N - 1 adversaires ; l'un d'eux joue, ou moi (`my-turn-N`)
+      const total = Number(name.slice(-1));
+      const mine = name.startsWith('my-turn-');
       const names = ['Loïc', 'Zoé', 'Camille', 'Max', 'Inès', 'Noa'];
       const counts = [4, 7, 2, 11, 5, 9];
       const others = Array.from({ length: total - 1 }, (_, index) =>
         seat(`o${index}`, names[index] ?? 'Joueur', index + 1, counts[index] ?? 5, {
-          isConnected: name !== 'players-6' || index !== 3,
+          isConnected: total !== 6 || index !== 3,
         }),
       );
       return {
         ...base,
         players: [me, ...(others as [SeatView, ...SeatView[]])],
-        currentPlayerId: others[Math.min(1, others.length - 1)].playerId,
-        me: { ...base.me, canDraw: false, playableCardIds: [] },
+        currentPlayerId: mine ? 'me' : others[Math.min(1, others.length - 1)].playerId,
+        me: mine ? base.me : { ...base.me, canDraw: false, playableCardIds: [] },
         turnDeadline: now + 17_000,
       };
     }

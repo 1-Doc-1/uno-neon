@@ -37,4 +37,12 @@ describe('Hand', () => {
 
     expect(buttons.every((b) => b.disabled)).toBe(true);
   });
+
+  it('lowers the cards I cannot play on my turn, and keeps a neutral hand otherwise', () => {
+    const mine = render(true).buttons.map((b) => b.classList.contains('unplayable'));
+    const theirs = render(false).buttons.map((b) => b.classList.contains('unplayable'));
+
+    expect(mine).toEqual([false, true]);
+    expect(theirs).toEqual([false, false]);
+  });
 });

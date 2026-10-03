@@ -26,7 +26,6 @@
             [seat]="seat"
             [isCurrent]="seat.playerId === view().currentPlayerId"
             [forgotUno]="forgotten().has(seat.playerId)"
-            [rotation]="strip() ? 0 : placements()[index].rotation"
             [compact]="placements()[index].compact"
             [maxBacks]="maxBacks()"
             [timerFraction]="seat.playerId === view().currentPlayerId ? turnFraction() : null"
@@ -36,72 +35,41 @@
     </section>
 
     <section class="center" aria-label="Table">
-      <app-piles
-        [drawPileCount]="view().drawPileCount"
-        [discardTop]="view().discardTop"
-        [currentColor]="view().currentColor"
-        [direction]="view().direction"
-        [pendingDraw]="view().pendingDraw"
-        [canDraw]="view().me.canDraw"
-        [canKeepDrawnCard]="view().me.canKeepDrawnCard"
-        (deckClicked)="deckClicked.emit()"
-      />
+      <app-table-center [currentColor]="view().currentColor" [direction]="view().direction">
+        <app-piles
+          [drawPileCount]="view().drawPileCount"
+          [discardTop]="view().discardTop"
+          [currentColor]="view().currentColor"
+          [direction]="view().direction"
+          [pendingDraw]="view().pendingDraw"
+          [canDraw]="view().me.canDraw"
+          [canKeepDrawnCard]="view().me.canKeepDrawnCard"
+          (deckClicked)="deckClicked.emit()"
+        />
+      </app-table-center>
     </section>
 
     @if (catchButtons().length > 0 || view().me.canCallUno) {
-      <div class="actions" role="group" aria-label="Annonces UNO">
-        @for (button of catchButtons(); track button.playerId) {
-          <button
-            type="button"
-            class="catch"
-            [class.waiting]="button.inGrace"
-            [attr.aria-disabled]="button.inGrace"
-            (click)="tryCatch(button)"
-          >
-            Contre-UNO ! {{ button.nickname }}
-            <span class="count">{{ button.inGrace ? 'dans ' : '' }}{{ button.secondsLeft }} s</span>
-          </button>
-        }
-        @if (view().me.canCallUno) {
-          <button
-            type="button"
-            class="uno"
-            [class.must]="view().me.mustDeclareUno"
-            (click)="unoCalled.emit()"
-          >
-            UNO !
-          </button>
-        }
-        @if (view().me.mustDeclareUno) {
-          <p class="uno-hint" role="status">Annonce UNO pour poser ta dernière carte.</p>
-        }
-      </div>
+      <app-uno-actions
+        class="actions"
+        [catchButtons]="catchButtons()"
+        [canCallUno]="view().me.canCallUno"
+        [mustDeclareUno]="view().me.mustDeclareUno"
+        (unoCalled)="unoCalled.emit()"
+        (caught)="caught.emit($event)"
+      />
     }
   </div>
 
   <section class="mine" aria-label="Ma main">
     @if (mySeat(); as seat) {
-      <div class="me" [class.current]="myTurn()">
-        <div
-          class="portrait"
-          [class.timed]="myTurn() && turnFraction() !== null"
-          [style.--f]="turnFraction() ?? 0"
-        >
-          <app-avatar [playerId]="seat.playerId" [nickname]="seat.nickname" />
-          <span class="count-badge" [attr.aria-label]="seat.cardCount + ' cartes'">{{
-            seat.cardCount
-          }}</span>
-        </div>
-        <div class="me-info">
-          <p class="me-name">{{ seat.nickname }}</p>
-          <p class="me-meta">
-            {{ seat.score }} pts
-            @if (myTurn() && turnSeconds() !== null) {
-              · <span class="timer">{{ turnSeconds() }} s</span>
-            }
-          </p>
-        </div>
-      </div>
+      <app-my-badge
+        class="me"
+        [seat]="seat"
+        [myTurn]="myTurn()"
+        [timerFraction]="myTurn() ? turnFraction() : null"
+        [timerSeconds]="myTurn() ? turnSeconds() : null"
+      />
     }
 
     <p class="turn" [class.mine-turn]="myTurn()" role="status">
