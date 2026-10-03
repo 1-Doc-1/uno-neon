@@ -1,0 +1,98 @@
+// Design tokens « Néon Crépuscule » (SPEC §11.2). Aucune valeur de couleur ailleurs que dans ce fichier.
+:root {
+  // Fond
+  --bg-sky-top: #2e2272;
+  --bg-sky-mid: #5b2c8f;
+  --bg-horizon: #c2448f;
+  --bg-sun: #ff8a5c;
+  --bg-floor: #3a1d6e;
+  --grid-line: rgb(0 245 255 / 0.22);
+
+  // Surfaces (verre teinté)
+  --surface-glass: rgb(28 20 70 / 0.55);
+  --surface-glass-strong: rgb(28 20 70 / 0.72);
+  --surface-border: rgb(255 255 255 / 0.22);
+  --surface-highlight: linear-gradient(180deg, rgb(255 255 255 / 0.14), transparent 40%);
+  --surface-card-body: #1c1446;
+
+  // Texte
+  --text-primary: #ffffff;
+  --text-secondary: #ede7ff;
+  --text-muted: #cfc4f5;
+  --text-on-neon: #120b30;
+
+  // Néons
+  --neon-red: #ff3b6b;
+  --neon-yellow: #ffd23f;
+  --neon-green: #2ef2a0;
+  --neon-blue: #33c8ff;
+  --neon-cyan: #00f5ff;
+  --neon-violet: #b36bff;
+  --neon-pink: #ff5fd2;
+  --focus-ring: var(--neon-cyan);
+  --danger: var(--neon-red);
+  --success: var(--neon-green);
+  --warning: var(--neon-yellow);
+  --info: var(--neon-cyan);
+
+  // Halos (basés sur currentColor)
+  --glow-sm: 0 0 2px currentColor, 0 0 8px color-mix(in oklab, currentColor 60%, transparent);
+  --glow-md:
+    0 0 3px currentColor, 0 0 14px color-mix(in oklab, currentColor 55%, transparent),
+    0 0 32px color-mix(in oklab, currentColor 30%, transparent);
+  --glow-lg:
+    0 0 4px currentColor, 0 0 22px color-mix(in oklab, currentColor 60%, transparent),
+    0 0 60px color-mix(in oklab, currentColor 35%, transparent);
+  --text-glow:
+    0 0 6px color-mix(in oklab, currentColor 70%, transparent),
+    0 0 20px color-mix(in oklab, currentColor 40%, transparent);
+
+  // Forme, espace, profondeur
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --radius-card: 12px;
+  --radius-pill: 999px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+  --z-bg: 0;
+  --z-table: 10;
+  --z-hand: 20;
+  --z-overlay: 100;
+  --z-modal: 200;
+  --z-toast: 300;
+
+  // Typographie
+  --font-display: 'Orbitron', 'Exo 2 Variable', sans-serif;
+  --font-ui: 'Exo 2 Variable', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.875rem;
+  --fs-base: 1rem;
+  --fs-lg: 1.25rem;
+  --fs-xl: clamp(1.5rem, 1rem + 2vw, 2rem);
+  --fs-2xl: clamp(2rem, 1rem + 4vw, 3.5rem);
+  --fs-logo: clamp(2.75rem, 1rem + 8vw, 6.5rem);
+
+  // Mouvement
+  --dur-fast: 120ms;
+  --dur-base: 220ms;
+  --dur-slow: 400ms;
+  --dur-deal: 550ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  :root {
+    --surface-glass: rgb(40 28 100 / 0.92);
+    --surface-glass-strong: rgb(40 28 100 / 0.96);
+  }
+}
