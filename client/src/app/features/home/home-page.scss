@@ -1,6 +1,4 @@
 .page {
-  position: relative;
-  z-index: var(--z-table);
   display: grid;
   align-content: center;
   justify-items: center;
@@ -10,27 +8,13 @@
 }
 
 .logo {
-  display: grid;
-  justify-items: center;
   margin: 0;
-  font-size: var(--fs-logo);
-  font-weight: 900;
-  line-height: 0.95;
-  text-align: center;
+  line-height: 0;
 }
 
-.uno {
-  color: var(--neon-cyan);
-  text-shadow: var(--text-glow);
-}
-
-.neon {
-  color: var(--neon-yellow);
-  text-shadow: var(--text-glow);
-}
-
-.panel {
+.box {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-4);
   width: min(100%, 420px);
   padding: var(--space-5);
@@ -39,32 +23,50 @@
 .field {
   display: grid;
   gap: var(--space-2);
-  color: var(--text-secondary);
+  color: var(--text-dim);
   font-weight: 600;
+  font-size: var(--fs-sm);
+
+  min-width: 0;
 
   input {
+    width: 100%;
+    min-width: 0;
     min-height: 48px;
     padding: 0 var(--space-4);
-    border: 2px solid var(--surface-border);
+    border: 2px solid transparent;
     border-radius: var(--radius-md);
-    background: var(--surface-glass-strong);
-    color: var(--text-primary);
+    background: var(--field);
+    color: var(--text);
+    font-size: var(--fs-base);
 
     &::placeholder {
-      color: var(--text-muted);
-      opacity: 0.7;
+      color: var(--text-dim);
+      opacity: 0.6;
     }
 
     &:focus-visible {
       border-color: var(--focus-ring);
+      outline: none;
     }
   }
 
   .code {
     font-family: var(--font-mono);
     font-weight: 600;
-    letter-spacing: 0.3em;
+    letter-spacing: 0.2em;
     text-transform: uppercase;
+  }
+}
+
+.join {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-3);
+
+  .grow {
+    flex: 1;
+    min-width: 0;
   }
 }
 
@@ -72,18 +74,20 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  color: var(--text-secondary);
+  color: var(--text-dim);
+  font-size: var(--fs-sm);
 
   &::before,
   &::after {
     content: '';
     flex: 1;
     height: 1px;
-    background: var(--surface-border);
+    background: rgb(255 255 255 / 0.1);
   }
 }
 
 .hint {
-  color: var(--text-secondary);
+  color: var(--text-dim);
   text-align: center;
+  font-size: var(--fs-sm);
 }

@@ -1,11 +1,23 @@
 :host {
+  --fill: var(--card-body);
   display: block;
   width: var(--card-w, 104px);
   aspect-ratio: 5 / 7;
-  transition:
-    transform var(--dur-base) var(--ease-out),
-    filter var(--dur-base),
-    opacity var(--dur-base);
+  transition: filter var(--dur-base);
+}
+
+// Fond plein de la couleur de la carte (le bord néon, lui, vient de `currentColor`)
+:host(.tint-red) {
+  --fill: var(--card-red);
+}
+:host(.tint-yellow) {
+  --fill: var(--card-yellow);
+}
+:host(.tint-green) {
+  --fill: var(--card-green);
+}
+:host(.tint-blue) {
+  --fill: var(--card-blue);
 }
 
 svg {
@@ -16,92 +28,102 @@ svg {
 }
 
 .body {
-  // Verre sombre teinté de 20 % de la couleur de la carte
-  fill: color-mix(in oklab, var(--surface-card-body) 80%, currentColor);
+  fill: var(--fill);
+}
+
+// Ovale incliné : un peu plus sombre que le fond, pour que le chiffre blanc ressorte
+.oval {
+  fill: color-mix(in oklab, var(--fill) 72%, black);
 }
 
 .shine {
-  fill: rgb(255 255 255 / 0.07);
+  fill: rgb(255 255 255 / 0.1);
 }
 
+// Le bord néon, toujours de la couleur de la carte ; il ne brille fort que pour une carte jouable ou le dessus de la défausse
 .edge {
   fill: none;
   stroke: currentColor;
-  stroke-width: 2.5;
+  stroke-width: 3;
+  filter: drop-shadow(0 0 2px currentColor);
 }
 
-:host(.playable) .edge {
-  filter: drop-shadow(0 0 6px currentColor) drop-shadow(0 0 14px currentColor);
+:host(.playable) .edge,
+:host(.top) .edge {
+  filter: drop-shadow(0 0 3px currentColor) drop-shadow(0 0 12px currentColor);
 }
 
-:host(.playable) {
-  transform: translateY(-8px);
-}
-
+// Non jouable : atténuée par la luminosité et la saturation, jamais par l'opacité (la carte reste opaque)
 :host(.unplayable) {
-  filter: saturate(0.45);
-  opacity: 0.6;
+  filter: brightness(0.6) saturate(0.7);
 }
 
 .corner,
 .value {
   font-family: var(--font-display);
-  font-weight: 900;
-  fill: var(--text-primary);
+  font-weight: 700;
+  fill: #ffffff;
+  stroke: var(--card-ink);
+  paint-order: stroke;
+  stroke-linejoin: round;
 }
 
 .corner {
-  font-size: 15px;
+  font-size: 16px;
+  stroke-width: 0.2em;
 }
 
 .value {
-  filter: drop-shadow(0 0 5px currentColor);
+  stroke-width: 0.1em;
 }
 
+// Symbole de forme : blanc cerné de sombre, lisible sur n'importe quel fond de couleur
 .mark {
-  fill: currentColor;
+  fill: #ffffff;
+  stroke: var(--card-ink);
+  stroke-width: 2px;
+  paint-order: stroke;
 }
 
 .icon {
   fill: none;
-  stroke: var(--text-primary);
-  stroke-width: 5;
+  stroke: #ffffff;
+  stroke-width: 6;
   stroke-linecap: round;
   stroke-linejoin: round;
-  filter: drop-shadow(0 0 5px currentColor);
+  filter: drop-shadow(0 0 1px var(--card-ink)) drop-shadow(0 1px 1px var(--card-ink));
 
   .fill {
-    fill: var(--text-primary);
+    fill: #ffffff;
     stroke-width: 1;
   }
 
   .mini {
-    fill: color-mix(in oklab, var(--surface-card-body) 70%, currentColor);
+    fill: color-mix(in oklab, var(--fill) 60%, black);
     stroke-width: 3;
   }
 }
 
 .ring path {
-  stroke: var(--surface-card-body);
+  stroke: var(--card-body);
   stroke-width: 1;
 }
 
 .q-red {
-  fill: var(--neon-red);
+  fill: var(--game-red);
 }
 .q-yellow {
-  fill: var(--neon-yellow);
+  fill: var(--game-yellow);
 }
 .q-green {
-  fill: var(--neon-green);
+  fill: var(--game-green);
 }
 .q-blue {
-  fill: var(--neon-blue);
+  fill: var(--game-blue);
 }
 
 .chosen {
   fill: currentColor;
-  filter: drop-shadow(0 0 5px currentColor);
 }
 
 .chosen-shape {

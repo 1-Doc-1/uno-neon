@@ -1,6 +1,7 @@
 #include "uno/app/client_message.hpp"
 #include "uno/app/error_code.hpp"
 #include "uno/app/server_message.hpp"
+#include "uno/core/draw_rule.hpp"
 
 #include "support/app_harness.hpp"
 #include "support/require.hpp"
@@ -498,4 +499,37 @@ TEST_CASE("Bots are not available yet", "[app][room]")
     host.send(request::AddBot{.strategy = request::BotStrategy::Random});
 
     REQUIRE(refusal(host.received()) == ErrorCode::UnknownType);
+}
+
+// Lot H: the lobby shows settings and the kick button to the host only, and the server must not rely on that.
+TEST_CASE("A player who is not the host changes nothing: settings and members stay as they were", "[app][room]")
+{
+    AppHarness harness;
+    auto host = harness.helloPlayer();
+    const auto code = createRoom(host);
+    auto guest = harness.helloPlayer();
+    join(guest, code, "Max");
+    auto other = harness.helloPlayer();
+    join(other, code, "Zoé");
+    const auto settingsBefore = host.room().settings;
+    const auto membersBefore = host.room().players.size();
+    static_cast<void>(host.received());
+    static_cast<void>(guest.received());
+    static_cast<void>(other.received());
+
+    guest.send(request::UpdateSettings{
+        .settings = patchOf([](RoomSettingsPatch& patch) {
+            patch.maxPlayers = 10;
+            patch.drawRule = uno::core::DrawRule::Official;
+        }),
+    });
+    guest.send(request::Kick{.playerId = other.id()});
+
+    const auto replies = guest.received();
+    REQUIRE(ofType<response::Error>(replies).size() == 2);
+    REQUIRE(refusal(replies) == ErrorCode::NotHost);
+    REQUIRE(host.received().empty());
+    REQUIRE(other.received().empty());
+    REQUIRE(host.room().settings == settingsBefore);
+    REQUIRE(host.room().players.size() == membersBefore);
 }

@@ -191,5 +191,8 @@ jobs:
       - name: Production build
         run: npm run build
 
+      - name: No development page in the production bundle
+        run: node scripts/check-prod-bundle.mjs
+
       - name: Audit dependencies
         run: npm audit --audit-level=high

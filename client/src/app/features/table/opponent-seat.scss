@@ -1,101 +1,176 @@
 :host {
+  --back-w: 40px;
+  --portrait: 52px;
   display: block;
-  flex: none;
 }
 
 .seat {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  min-width: 190px;
-  padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius-md);
-  transition:
-    border-color var(--dur-base),
-    box-shadow var(--dur-base);
-
-  &.current {
-    border-color: var(--neon-cyan);
-    color: var(--neon-cyan);
-    box-shadow: var(--glow-md);
-  }
-
-  &.offline {
-    opacity: 0.7;
-  }
-}
-
-.info {
   display: grid;
-  gap: 2px;
-  min-width: 0;
-  color: var(--text-primary);
+  justify-items: center;
+  gap: var(--space-1);
 }
 
-p {
-  margin: 0;
+.seat.compact {
+  --back-w: 30px;
+  --portrait: 40px;
 }
 
-.name {
+// Éventail de dos : chaque carte tourne autour d'un pivot bas ; l'ensemble se penche vers l'extérieur sur les côtés
+.fan {
+  position: relative;
+  width: calc(var(--back-w) * 3.4);
+  height: calc(var(--back-w) * 1.6);
+  transform: rotate(var(--tilt, 0deg));
+  transform-origin: 50% 100%;
+}
+
+.back {
+  --card-w: var(--back-w);
+  position: absolute;
+  left: calc(50% - var(--back-w) / 2);
+  bottom: 0;
+  transform-origin: 50% 180%;
+  transform: rotate(calc((var(--i) - (var(--count) - 1) / 2) * var(--step)));
+}
+
+.more {
+  position: absolute;
+  right: 0;
+  top: 4px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--panel-solid);
+  font-family: var(--font-display);
   font-weight: 700;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.meta {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  color: var(--text-secondary);
   font-size: var(--fs-sm);
 }
 
-.count {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  font-family: var(--font-display);
-  font-weight: 700;
-}
-
-.mini {
-  --card-w: 20px;
-}
-
-.flags {
+.pill {
+  position: relative;
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  max-width: 100%;
+  padding: var(--space-1) var(--space-4) var(--space-1) var(--space-1);
+  border-radius: var(--radius-pill);
+  background: var(--panel-solid);
+  box-shadow: var(--elevation);
+  transition: box-shadow var(--dur-base);
+}
+
+.compact .pill {
   gap: var(--space-2);
+  padding-right: var(--space-3);
+}
+
+// C'est son tour : une lueur claire autour de la pastille
+.current .pill {
+  box-shadow:
+    0 0 0 2px rgb(255 255 255 / 0.85),
+    0 0 20px rgb(255 255 255 / 0.4);
+}
+
+// Hors ligne : éventail et avatar passés en gris, mais le texte garde son contraste (jamais d'opacité)
+.offline .fan,
+.offline .portrait app-avatar {
+  filter: grayscale(1) brightness(0.8);
+}
+
+.portrait {
+  position: relative;
+  flex: none;
+  font-size: calc(var(--portrait) / 2.5);
+
+  app-avatar {
+    width: var(--portrait);
+    height: var(--portrait);
+  }
+
+  // Anneau de minuteur : un arc clair qui se vide avec le temps qu'il reste
+  &.timed::before {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    border-radius: 50%;
+    background: conic-gradient(var(--text) calc(var(--f) * 1turn), rgb(255 255 255 / 0.14) 0);
+    -webkit-mask: radial-gradient(
+      farthest-side,
+      transparent calc(100% - 4px),
+      #000 calc(100% - 3px)
+    );
+    mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+  }
+}
+
+// Le nombre de cartes : un badge sur l'avatar
+.count {
+  position: absolute;
+  right: -8px;
+  bottom: -6px;
+  min-width: 24px;
+  padding: 0 6px;
+  border-radius: var(--radius-pill);
+  background: var(--text);
+  color: var(--text-on-neon);
+  font-family: var(--font-display);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  line-height: 22px;
+  text-align: center;
+}
+
+.ribbon {
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.name {
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-size: var(--fs-base);
+  font-weight: 600;
+}
+
+.compact .name {
+  max-width: 84px;
+  font-size: var(--fs-sm);
+}
+
+.state {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-dim);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--game-green);
+
+  &.off {
+    background: var(--text-dim);
+  }
+}
+
+// « UNO oublié ! » reste sur le siège tant que la fenêtre de contre-UNO de ce joueur est ouverte
+.forgot {
+  position: absolute;
+  top: -12px;
+  right: -6px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--danger);
+  color: var(--text-on-neon);
+  font-family: var(--font-display);
   font-size: var(--fs-xs);
   font-weight: 700;
-  empty-cells: hide;
-}
-
-.uno {
-  color: var(--neon-yellow);
-  animation: blink 1.6s ease-in-out infinite;
-}
-
-.off {
-  color: var(--text-secondary);
-}
-
-.turn {
-  color: var(--neon-cyan);
-}
-
-.to-catch {
-  color: var(--text-primary);
-  animation: blink 1s ease-in-out infinite;
-}
-
-.seat.catchable {
-  border-color: var(--neon-red);
-}
-
-@keyframes blink {
-  50% {
-    opacity: 0.55;
-  }
+  box-shadow: var(--glow-edge);
+  white-space: nowrap;
 }

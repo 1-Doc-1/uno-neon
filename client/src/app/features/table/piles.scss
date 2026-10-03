@@ -1,55 +1,86 @@
 :host {
+  display: block;
+}
+
+// La zone de table : une ellipse discrète avec, autour, l'anneau de flèches du sens du jeu
+.zone {
+  position: relative;
   display: grid;
-  justify-items: center;
-  gap: var(--space-3);
+  place-items: center;
+  width: var(--zone-w, min(560px, 94vw));
+  aspect-ratio: 400 / 260;
+}
+
+.felt {
+  position: absolute;
+  inset: 4% 1%;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse at center,
+    rgb(255 255 255 / 0.06),
+    rgb(255 255 255 / 0.015) 70%,
+    transparent 71%
+  );
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.06);
+}
+
+.flow {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.track {
+  fill: none;
+  stroke: rgb(255 255 255 / 0.1);
+  stroke-width: 1.5;
+  stroke-dasharray: 2 7;
+}
+
+.arrow {
+  fill: none;
+  stroke: rgb(255 255 255 / 0.5);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .piles {
+  position: relative;
   display: flex;
   align-items: flex-start;
+  justify-content: center;
   gap: var(--space-5);
 }
 
-.pile {
-  --card-w: 84px;
+.deck-wrap,
+.discard-wrap {
+  --card-w: 80px;
   position: relative;
   display: grid;
   justify-items: center;
   gap: var(--space-2);
 }
 
-// Anneau de lumière de la couleur courante autour de la défausse
-.discard app-card {
-  border-radius: var(--radius-card);
-  box-shadow: var(--glow-lg);
-}
-
-// La pioche est un bouton : elle ne s'éclaire que lorsque le serveur dit qu'on peut piocher ou garder la carte.
 .deck {
   padding: 0;
   border: 0;
   background: transparent;
-  color: inherit;
   cursor: default;
-  font: inherit;
+  border-radius: 12px;
+  transition: transform var(--dur-fast) var(--ease-out);
+
+  // Le paquet n'est vivant que lorsque le serveur dit qu'on peut piocher ou garder la carte
+  &:disabled {
+    opacity: 0.85;
+  }
 
   &.usable {
     cursor: pointer;
-    border-radius: var(--radius-card);
-    color: var(--neon-cyan);
+    animation: breathe 1.8s ease-in-out infinite;
 
-    app-card-back {
-      box-shadow: var(--glow-md);
-      border-radius: var(--radius-card);
-      animation: breathe 1.6s ease-in-out infinite;
-    }
-
-    .label {
-      color: var(--text-primary);
-      font-weight: 700;
-    }
-
-    &:hover app-card-back {
+    &:hover {
       transform: translateY(-4px);
     }
   }
@@ -57,43 +88,67 @@
 
 @keyframes breathe {
   50% {
-    box-shadow: var(--glow-sm);
+    transform: translateY(-3px);
   }
 }
 
-.label {
-  margin: 0;
-  color: var(--text-secondary);
+.tip {
+  position: absolute;
+  top: -34px;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--text);
+  color: var(--text-on-neon);
   font-size: var(--fs-sm);
   font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.count {
+  color: var(--text-dim);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+// La couleur active, en anneau autour de la défausse : indispensable après un Joker
+.ring {
+  padding: 6px;
+  border-radius: 17px;
+  background: currentColor;
+  line-height: 0;
+
+  &.neutral {
+    background: var(--panel-solid);
+  }
+
+  app-card {
+    border-radius: 12px;
+  }
 }
 
 .penalty {
   position: absolute;
   top: -14px;
   right: -22px;
-  margin: 0;
-  padding: 2px var(--space-3);
-  border: 2px solid var(--neon-red);
+  padding: 0 var(--space-3);
   border-radius: var(--radius-pill);
-  background: var(--neon-red);
+  background: var(--danger);
   color: var(--text-on-neon);
   font-family: var(--font-display);
   font-size: var(--fs-lg);
-  font-weight: 900;
+  font-weight: 700;
+  box-shadow: var(--glow-edge);
 }
 
 .status {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
-  margin: 0;
-  padding: var(--space-1) var(--space-4);
-  border: 1px solid var(--surface-border);
-  border-radius: var(--radius-pill);
-  background: var(--surface-glass-strong);
+  gap: var(--space-3);
+  min-height: 24px;
   font-family: var(--font-display);
-  font-weight: 700;
+  font-weight: 600;
+  font-size: var(--fs-sm);
 }
 
 .color {
@@ -103,16 +158,19 @@
 }
 
 .color-name {
-  color: var(--text-primary);
+  color: var(--text);
 }
 
-.direction {
-  font-size: var(--fs-lg);
-  color: var(--text-primary);
+@media (max-width: 639px) {
+  .deck-wrap,
+  .discard-wrap {
+    --card-w: 70px;
+  }
 }
 
 @media (min-width: 768px) {
-  .pile {
-    --card-w: 128px;
+  .deck-wrap,
+  .discard-wrap {
+    --card-w: 108px;
   }
 }

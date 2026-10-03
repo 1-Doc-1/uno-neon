@@ -3,17 +3,29 @@ import type { Card } from '../../protocol/generated/protocol';
 import { CardFace } from '../../ui/card';
 import { cardLabel } from '../../ui/color-meta';
 
-/** Ma main : les cartes jouables s'illuminent, les autres s'éteignent ; rien ne réagit hors de mon tour. */
+const MAX_ROTATION_STEP_DEGREES = 3.2;
+const TOTAL_FAN_DEGREES = 36;
+
+/**
+ * Ma main, en éventail : les cartes jouables sont surélevées et brillent, les autres sont légèrement atténuées mais
+ * restent lisibles ; rien ne réagit hors de mon tour. Le chevauchement se resserre quand la main grossit.
+ */
 @Component({
   selector: 'app-hand',
   imports: [CardFace],
   template: `
-    <ul class="hand" [style.--hand-gap]="gap()" aria-label="Ta main">
-      @for (card of cards(); track card.id) {
-        <li>
+    <ul
+      class="hand"
+      aria-label="Ta main"
+      [style.grid-template-columns]="columns()"
+      [style.--rot.deg]="rotationStep()"
+    >
+      @for (card of cards(); track card.id; let index = $index) {
+        <li [style.--d]="index - (cards().length - 1) / 2">
           <button
             type="button"
             class="slot"
+            [class.playable]="isPlayable(card)"
             [disabled]="!isPlayable(card)"
             [attr.aria-label]="describe(card)"
             (click)="played.emit(card.id)"
@@ -32,8 +44,19 @@ export class Hand {
   readonly myTurn = input.required<boolean>();
   readonly played = output<number>();
 
-  /** Au-delà de 8 cartes elles se chevauchent pour tenir sur l'écran. */
-  protected readonly gap = computed(() => (this.cards().length > 8 ? '-22px' : '8px'));
+  /**
+   * Chaque carte occupe une colonne qui rétrécit quand la main grossit (jusqu'à un minimum), sauf la dernière qui
+   * garde sa largeur entière : les cartes se chevauchent d'autant plus qu'il y en a.
+   */
+  protected readonly columns = computed(() => {
+    const count = this.cards().length;
+    return count <= 1
+      ? 'var(--card-w)'
+      : `repeat(${count - 1}, minmax(var(--min-step), var(--max-step))) var(--card-w)`;
+  });
+  protected readonly rotationStep = computed(() =>
+    Math.min(MAX_ROTATION_STEP_DEGREES, TOTAL_FAN_DEGREES / Math.max(1, this.cards().length)),
+  );
 
   protected isPlayable(card: Card): boolean {
     return this.myTurn() && this.playableIds().includes(card.id);

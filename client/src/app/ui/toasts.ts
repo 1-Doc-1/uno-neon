@@ -7,7 +7,7 @@ import { GameStore } from '../state/game-store';
   template: `
     <div class="stack" role="status" aria-live="polite">
       @for (notice of store.notices(); track notice.id) {
-        <button type="button" class="glass strong toast" (click)="store.dismissNotice(notice.id)">
+        <button type="button" class="panel toast" (click)="store.dismissNotice(notice.id)">
           {{ notice.text }}
         </button>
       }
@@ -26,8 +26,8 @@ import { GameStore } from '../state/game-store';
     }
     .toast {
       padding: var(--space-3) var(--space-4);
-      border-color: var(--neon-pink);
-      color: var(--text-primary);
+      border: 0;
+      color: var(--text);
       text-align: left;
       cursor: pointer;
       animation: toast-in var(--dur-base) var(--ease-out);

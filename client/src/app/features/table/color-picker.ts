@@ -3,12 +3,12 @@ import type { Color } from '../../protocol/generated/protocol';
 import { COLOR_NAME, COLORS } from '../../ui/color-meta';
 import { ColorSymbol } from '../../ui/color-symbol';
 import { Modal } from '../../ui/modal';
-import { NeonButton } from '../../ui/neon-button';
+import { Button } from '../../ui/button';
 
 /** Choix de la couleur d'un joker : quatre grandes tuiles, raccourcis clavier 1 à 4 (SPEC §12.3). */
 @Component({
   selector: 'app-color-picker',
-  imports: [Modal, ColorSymbol, NeonButton],
+  imports: [Modal, ColorSymbol, Button],
   host: { '(document:keydown)': 'onKey($event)' },
   template: `
     <app-modal
@@ -28,7 +28,7 @@ import { NeonButton } from '../../ui/neon-button';
           }
         </div>
         @if (cancellable()) {
-          <button appNeonButton variant="ghost" (click)="cancelled.emit()">Annuler</button>
+          <button appButton kind="ghost" (click)="cancelled.emit()">Annuler</button>
         }
       </div>
     </app-modal>
@@ -56,7 +56,7 @@ import { NeonButton } from '../../ui/neon-button';
       padding: var(--space-3);
       border: 2px solid currentColor;
       border-radius: var(--radius-md);
-      background: color-mix(in oklab, var(--surface-card-body) 80%, currentColor);
+      background: color-mix(in oklab, var(--card-body) 66%, currentColor);
       box-shadow: var(--glow-sm);
       font-family: var(--font-display);
       font-weight: 700;
@@ -72,10 +72,10 @@ import { NeonButton } from '../../ui/neon-button';
       font-size: 2rem;
     }
     .tile span {
-      color: var(--text-primary);
+      color: var(--text);
     }
     kbd {
-      color: var(--text-secondary);
+      color: var(--text-dim);
       font-family: var(--font-mono);
       font-size: var(--fs-xs);
     }

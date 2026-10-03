@@ -8,7 +8,9 @@ import type {
 } from '../../protocol/generated/protocol';
 import { GameStore } from '../../state/game-store';
 import { Avatar } from '../../ui/avatar';
-import { NeonButton } from '../../ui/neon-button';
+import { Button } from '../../ui/button';
+import { Icon } from '../../ui/icon';
+import { Logo } from '../../ui/logo';
 import { SegmentOption, Segmented } from '../../ui/segmented';
 
 const MATCH_LENGTHS: readonly SegmentOption<MatchLength>[] = [
@@ -16,6 +18,11 @@ const MATCH_LENGTHS: readonly SegmentOption<MatchLength>[] = [
   { value: 'to250', label: '250 points' },
   { value: 'to500', label: '500 points' },
 ];
+const MATCH_LENGTH_SUMMARY: Record<MatchLength, string> = {
+  singleRound: 'Manche unique',
+  to250: 'Partie en 250 points',
+  to500: 'Partie en 500 points',
+};
 
 const TURN_TIMERS: readonly SegmentOption<TurnTimerSeconds>[] = [
   { value: 0, label: 'Sans' },
@@ -41,10 +48,12 @@ const MAX_PLAYERS: readonly SegmentOption<number>[] = [2, 3, 4, 5, 6, 7, 8, 9, 1
   label: String(n),
 }));
 
-/** Salon avant la partie : code à partager, joueurs, réglages de l'hôte, prêt / lancer. */
+const COPIED_FEEDBACK_MS = 2000;
+
+/** Salon avant la partie : joueurs à gauche, réglages à droite, un grand bouton en bas (SPEC §12.2). */
 @Component({
   selector: 'app-lobby',
-  imports: [Avatar, NeonButton, Segmented],
+  imports: [Avatar, Button, Icon, Logo, Segmented],
   templateUrl: './lobby.html',
   styleUrl: './lobby.scss',
 })
@@ -60,16 +69,10 @@ export class Lobby {
   protected readonly drawRules = DRAW_RULES;
   protected readonly lastCardRules = LAST_CARD_RULES;
 
-  protected lastCardRule(): LastCardRule {
-    return this.room().settings.declareUnoToWin ? 'declare' : 'free';
-  }
-
-  protected setLastCardRule(rule: LastCardRule): void {
-    void this.store.updateSettings({ declareUnoToWin: rule === 'declare' });
-  }
-
   /** Joueur dont l'exclusion attend une confirmation. */
   protected readonly kickCandidate = signal<string | null>(null);
+  protected readonly copied = signal(false);
+  protected readonly hintShown = signal(false);
 
   protected readonly me = computed(() =>
     this.room().players.find((p) => p.playerId === this.store.playerId()),
@@ -80,31 +83,53 @@ export class Lobby {
   protected readonly startBlocker = computed(() => {
     const players = this.room().players;
     if (players.length < 2) {
-      return 'Il faut au moins 2 joueurs pour commencer.';
+      return 'Il faut au moins 2 joueurs';
     }
     const waiting = players.filter((p) => !p.isReady && !p.isHost).map((p) => p.nickname);
-    return waiting.length > 0 ? `En attente de ${waiting.join(', ')}.` : null;
+    return waiting.length > 0 ? `En attente de : ${waiting.join(', ')}` : null;
   });
 
-  protected async copy(text: string, confirmation: string): Promise<void> {
+  /** Résumé en lecture seule des réglages, pour ceux qui ne sont pas l'hôte. */
+  protected readonly summary = computed(() => {
+    const s = this.room().settings;
+    const timer = s.turnTimerSeconds === 0 ? 'sans minuteur' : `minuteur ${s.turnTimerSeconds} s`;
+    return {
+      first: `${MATCH_LENGTH_SUMMARY[s.matchLength]} · ${timer} · ${s.maxPlayers} joueurs max`,
+      second: `Pioche ${s.drawRule === 'guided' ? 'guidée' : 'officielle'} · ${
+        s.declareUnoToWin ? 'UNO obligatoire pour gagner' : 'dernière carte libre'
+      }`,
+    };
+  });
+
+  protected lastCardRule(): LastCardRule {
+    return this.room().settings.declareUnoToWin ? 'declare' : 'free';
+  }
+
+  protected setLastCardRule(rule: LastCardRule): void {
+    void this.store.updateSettings({ declareUnoToWin: rule === 'declare' });
+  }
+
+  protected async copyCode(): Promise<void> {
     try {
-      await navigator.clipboard.writeText(text);
-      this.store.notify(confirmation);
+      await navigator.clipboard.writeText(`${location.origin}/r/${this.room().code}`);
+      this.copied.set(true);
+      setTimeout(() => this.copied.set(false), COPIED_FEEDBACK_MS);
     } catch {
       this.store.notify('Impossible de copier : fais-le à la main.');
     }
   }
 
-  protected copyCode(): Promise<void> {
-    return this.copy(this.room().code, 'Code copié');
-  }
-
-  protected copyLink(): Promise<void> {
-    return this.copy(`${location.origin}/r/${this.room().code}`, 'Lien copié');
-  }
-
   protected toggleReady(): void {
     void this.store.setReady(!this.me()?.isReady);
+  }
+
+  /** « Lancer » atténué (aria-disabled) reste cliquable : le clic explique pourquoi au lieu de ne rien faire. */
+  protected start(): void {
+    if (this.startBlocker() !== null) {
+      this.hintShown.set(true);
+      return;
+    }
+    void this.store.startMatch();
   }
 
   protected askKick(playerId: string): void {
