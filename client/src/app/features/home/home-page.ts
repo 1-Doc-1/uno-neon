@@ -3,18 +3,22 @@ import { form, FormField, pattern, required } from '@angular/forms/signals';
 import { Router } from '@angular/router';
 import { SessionService } from '../../core/session.service';
 import { GameStore } from '../../state/game-store';
-import { NeonButton } from '../../ui/neon-button';
+import { ThemeService } from '../../core/theme.service';
+import { Button } from '../../ui/button';
+import { Icon } from '../../ui/icon';
+import { Logo } from '../../ui/logo';
 import { isRoomCode, NICKNAME_PATTERN } from '../../core/validation';
 
 /** Accueil : choisir un pseudo, puis créer un salon ou rejoindre celui d'un ami par son code. */
 @Component({
   selector: 'app-home-page',
-  imports: [FormField, NeonButton],
+  imports: [FormField, Button, Icon, Logo],
   templateUrl: './home-page.html',
   styleUrl: './home-page.scss',
 })
 export class HomePage {
   protected readonly store = inject(GameStore);
+  protected readonly theme = inject(ThemeService);
   private readonly router = inject(Router);
 
   protected readonly model = signal({ nickname: inject(SessionService).nickname(), code: '' });

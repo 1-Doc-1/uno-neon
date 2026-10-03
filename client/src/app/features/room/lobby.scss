@@ -1,51 +1,69 @@
 .lobby {
   display: grid;
-  gap: var(--space-4);
-  width: min(100%, 640px);
+  grid-template-rows: auto 1fr auto;
+  gap: var(--space-5);
+  width: min(100%, 980px);
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding: var(--space-4);
 }
 
-.head,
-.block,
-.foot {
-  padding: var(--space-4) var(--space-5);
-}
-
-.head {
+.bar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
-.caption {
-  color: var(--text-secondary);
-  font-size: var(--fs-sm);
-}
-
-.code {
-  font-family: var(--font-mono);
-  font-size: var(--fs-2xl);
-  font-weight: 600;
-  letter-spacing: 0.25em;
-  color: var(--neon-cyan);
-  text-shadow: var(--text-glow);
-}
-
-.actions,
-.foot {
+.bar-end {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-3);
 }
 
+// Le code du salon : une pastille mono, avec son bouton copier à côté
+.code-pill {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-4);
+  border-radius: var(--radius-pill);
+  background: var(--panel);
+}
+
+.code {
+  font-family: var(--font-mono);
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  letter-spacing: 0.18em;
+}
+
+.copy {
+  min-height: 36px;
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--fs-sm);
+}
+
+.cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.players,
+.settings {
+  padding: var(--space-5);
+}
+
 h2 {
-  margin-bottom: var(--space-3);
+  margin-bottom: var(--space-4);
   font-size: var(--fs-lg);
 }
 
-.players {
+.list {
   display: grid;
   gap: var(--space-2);
   margin: 0;
@@ -58,12 +76,11 @@ h2 {
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--surface-border);
   border-radius: var(--radius-md);
-  background: var(--surface-glass);
+  background: var(--field);
 
   &.offline {
-    opacity: 0.7;
+    opacity: 0.65;
   }
 }
 
@@ -74,37 +91,108 @@ h2 {
   overflow-wrap: anywhere;
 }
 
-.tag {
-  margin-left: var(--space-1);
-  padding: 2px var(--space-2);
-  border-radius: var(--radius-pill);
-  background: var(--surface-glass-strong);
-  color: var(--text-secondary);
+.you {
+  margin-left: var(--space-2);
+  color: var(--text-dim);
   font-size: var(--fs-xs);
-  font-weight: 600;
+  font-weight: 500;
 }
 
-.host {
-  color: var(--neon-yellow);
+.crown {
+  color: var(--game-yellow);
 }
 
 .ready {
-  color: var(--neon-green);
-  font-weight: 700;
-  text-shadow: var(--text-glow);
+  color: var(--game-green);
+}
+
+.small {
+  min-height: 36px;
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--fs-sm);
 }
 
 .setting {
   display: grid;
   gap: var(--space-2);
-  margin-bottom: var(--space-3);
+  margin-bottom: var(--space-4);
 }
 
 .setting-label {
-  color: var(--text-secondary);
+  color: var(--text-dim);
+  font-size: var(--fs-sm);
   font-weight: 600;
 }
 
-.muted {
-  color: var(--text-secondary);
+.summary {
+  margin-bottom: var(--space-2);
+}
+
+.hint {
+  color: var(--text-dim);
+  font-size: var(--fs-sm);
+}
+
+.cta {
+  display: flex;
+  justify-content: center;
+  padding-bottom: var(--space-2);
+}
+
+.cta-wrap {
+  position: relative;
+  display: grid;
+  justify-items: center;
+}
+
+.big {
+  min-width: 260px;
+  min-height: 60px;
+  font-size: var(--fs-lg);
+}
+
+// Info-bulle de « Lancer » : au survol, au focus (clavier) et au toucher (clic)
+.tooltip {
+  position: absolute;
+  bottom: calc(100% + var(--space-2));
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--text);
+  color: var(--text-on-neon);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-base);
+}
+
+.cta-wrap:hover .tooltip,
+.cta-wrap:focus-within .tooltip,
+.tooltip.shown {
+  opacity: 1;
+}
+
+@media (max-width: 720px) {
+  .cols {
+    grid-template-columns: 1fr;
+  }
+
+  // Le bouton principal reste collé en bas de l'écran
+  .cta {
+    position: sticky;
+    bottom: 0;
+    margin: 0 calc(-1 * var(--space-4));
+    padding: var(--space-3) var(--space-4);
+    background: linear-gradient(to top, rgb(0 0 0 / 0.55), transparent);
+  }
+
+  .big {
+    width: 100%;
+  }
+
+  .tooltip {
+    white-space: normal;
+    text-align: center;
+  }
 }

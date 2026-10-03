@@ -1,8 +1,8 @@
 <main class="page" [class.playing]="inGame()">
   @if (store.loading()) {
-    <p class="glass notice">Connexion au serveur…</p>
+    <p class="panel notice">Connexion au serveur…</p>
   } @else if (store.closedReason(); as reason) {
-    <section class="glass notice" aria-labelledby="closed-title">
+    <section class="panel notice" aria-labelledby="closed-title">
       <h1 id="closed-title">Salon fermé</h1>
       @switch (reason) {
         @case ('kicked') {
@@ -15,7 +15,7 @@
           <p>L’hôte a fermé le salon.</p>
         }
       }
-      <button appNeonButton (click)="goHome()">Retour à l’accueil</button>
+      <button appButton kind="primary" (click)="goHome()">Retour à l’accueil</button>
     </section>
   } @else if (store.room(); as room) {
     @if (store.view(); as view) {
@@ -28,14 +28,14 @@
       <app-lobby [room]="room" />
     }
   } @else {
-    <section class="glass notice" aria-labelledby="join-title">
+    <section class="panel notice" aria-labelledby="join-title">
       <h1 id="join-title">Rejoindre le salon {{ code().toUpperCase() }}</h1>
       <label class="field">
         <span>Ton pseudo</span>
         <input type="text" autocomplete="nickname" [formField]="form.nickname" />
       </label>
-      <button appNeonButton (click)="join()" [disabled]="!canJoin()">Rejoindre</button>
-      <button appNeonButton variant="ghost" (click)="goHome()">Accueil</button>
+      <button appButton kind="primary" (click)="join()" [disabled]="!canJoin()">Rejoindre</button>
+      <button appButton kind="ghost" (click)="goHome()">Accueil</button>
     </section>
   }
 </main>

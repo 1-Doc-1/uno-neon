@@ -1,160 +1,172 @@
 <div class="lobby">
-  <header class="glass head">
-    <div>
-      <p class="caption">Code du salon</p>
-      <p class="code" aria-label="Code du salon">{{ room().code }}</p>
-    </div>
-    <div class="actions">
-      <button appNeonButton variant="outline" (click)="copyCode()">Copier le code</button>
-      <button appNeonButton variant="outline" tone="pink" (click)="copyLink()">
-        Copier le lien
-      </button>
+  <header class="bar">
+    <app-logo [size]="40" />
+    <div class="bar-end">
+      <div class="code-pill">
+        <span class="code" aria-label="Code du salon">{{ room().code }}</span>
+        <button
+          appButton
+          kind="neutral"
+          class="copy"
+          (click)="copyCode()"
+          aria-label="Copier le lien du salon"
+        >
+          <app-icon [name]="copied() ? 'check' : 'copy'" />
+          <span aria-live="polite">{{ copied() ? 'Copié' : 'Copier' }}</span>
+        </button>
+      </div>
+      <button appButton kind="danger" (click)="leave()"><app-icon name="door" /> Quitter</button>
     </div>
   </header>
 
-  <section class="glass block" aria-labelledby="players-title">
-    <h2 id="players-title">
-      Joueurs ({{ room().players.length }}/{{ room().settings.maxPlayers }})
-    </h2>
-    <ul class="players">
-      @for (player of room().players; track player.playerId) {
-        <li class="player" [class.offline]="!player.isConnected">
-          <app-avatar [playerId]="player.playerId" [nickname]="player.nickname" />
-          <span class="name">
-            {{ player.nickname }}
-            @if (player.playerId === store.playerId()) {
-              <span class="tag">toi</span>
-            }
+  <div class="cols">
+    <section class="panel players" aria-labelledby="players-title">
+      <h2 id="players-title">
+        Joueurs ({{ room().players.length }}/{{ room().settings.maxPlayers }})
+      </h2>
+      <ul class="list">
+        @for (player of room().players; track player.playerId) {
+          <li class="player" [class.offline]="!player.isConnected">
+            <app-avatar [playerId]="player.playerId" [nickname]="player.nickname" />
+            <span class="name">
+              {{ player.nickname }}
+              @if (player.playerId === store.playerId()) {
+                <span class="you">toi</span>
+              }
+              @if (!player.isConnected) {
+                <span class="you">déconnecté</span>
+              }
+            </span>
             @if (player.isHost) {
-              <span class="tag host">hôte</span>
+              <span class="crown" role="img" aria-label="Hôte"><app-icon name="crown" /></span>
             }
-            @if (!player.isConnected) {
-              <span class="tag off">déconnecté</span>
+            @if (player.isReady || player.isHost) {
+              <span class="ready" role="img" aria-label="Prêt"><app-icon name="check" /></span>
             }
-          </span>
-          @if (player.isReady || player.isHost) {
-            <span class="ready">Prêt</span>
-          }
-          @if (isHost() && !player.isHost) {
-            @if (kickCandidate() === player.playerId) {
-              <button
-                appNeonButton
-                tone="red"
-                variant="outline"
-                (click)="confirmKick(player.playerId)"
-              >
-                Confirmer
-              </button>
+            @if (isHost() && !player.isHost) {
+              @if (kickCandidate() === player.playerId) {
+                <button
+                  appButton
+                  kind="danger"
+                  class="small"
+                  (click)="confirmKick(player.playerId)"
+                >
+                  Confirmer
+                </button>
+              } @else {
+                <button
+                  appButton
+                  kind="danger"
+                  class="small"
+                  [attr.aria-label]="'Exclure ' + player.nickname"
+                  (click)="askKick(player.playerId)"
+                >
+                  Exclure
+                </button>
+              }
+            }
+          </li>
+        }
+      </ul>
+    </section>
+
+    <section class="panel settings" aria-labelledby="settings-title">
+      <h2 id="settings-title">Réglages</h2>
+      @if (isHost()) {
+        <div class="setting">
+          <span class="setting-label">Durée de la partie</span>
+          <app-segmented
+            label="Durée de la partie"
+            [options]="matchLengths"
+            [value]="room().settings.matchLength"
+            (selected)="store.updateSettings({ matchLength: $event })"
+          />
+        </div>
+        <div class="setting">
+          <span class="setting-label">Minuteur par tour</span>
+          <app-segmented
+            label="Minuteur par tour"
+            [options]="turnTimers"
+            [value]="room().settings.turnTimerSeconds"
+            (selected)="store.updateSettings({ turnTimerSeconds: $event })"
+          />
+        </div>
+        <div class="setting">
+          <span class="setting-label">Joueurs maximum</span>
+          <app-segmented
+            label="Joueurs maximum"
+            [options]="maxPlayers"
+            [value]="room().settings.maxPlayers"
+            (selected)="store.updateSettings({ maxPlayers: $event })"
+          />
+        </div>
+        <div class="setting">
+          <span class="setting-label">Règle de pioche</span>
+          <app-segmented
+            label="Règle de pioche"
+            [options]="drawRules"
+            [value]="room().settings.drawRule"
+            (selected)="store.updateSettings({ drawRule: $event })"
+          />
+          <p class="hint">
+            @if (room().settings.drawRule === 'guided') {
+              Guidée : on pioche quand on ne peut pas jouer, ou pour garder un +2 ou un Joker.
             } @else {
-              <button
-                appNeonButton
-                variant="ghost"
-                [attr.aria-label]="'Exclure ' + player.nickname"
-                (click)="askKick(player.playerId)"
-              >
-                Exclure
-              </button>
+              Officielle : on peut toujours piocher au lieu de jouer.
             }
-          }
-        </li>
+          </p>
+        </div>
+        <div class="setting">
+          <span class="setting-label">Dernière carte</span>
+          <app-segmented
+            label="Dernière carte"
+            [options]="lastCardRules"
+            [value]="lastCardRule()"
+            (selected)="setLastCardRule($event)"
+          />
+        </div>
+      } @else {
+        <p class="summary">{{ summary().first }}</p>
+        <p class="summary">{{ summary().second }}</p>
+        <p class="hint">Seul l’hôte modifie les réglages.</p>
       }
-    </ul>
-  </section>
+    </section>
+  </div>
 
-  <section class="glass block" aria-labelledby="settings-title">
-    <h2 id="settings-title">Réglages</h2>
-    <div class="setting">
-      <span class="setting-label">Durée de la partie</span>
-      <app-segmented
-        label="Durée de la partie"
-        [options]="matchLengths"
-        [value]="room().settings.matchLength"
-        [disabled]="!isHost()"
-        (selected)="store.updateSettings({ matchLength: $event })"
-      />
-    </div>
-    <div class="setting">
-      <span class="setting-label">Minuteur par tour</span>
-      <app-segmented
-        label="Minuteur par tour"
-        [options]="turnTimers"
-        [value]="room().settings.turnTimerSeconds"
-        [disabled]="!isHost()"
-        (selected)="store.updateSettings({ turnTimerSeconds: $event })"
-      />
-    </div>
-    <div class="setting">
-      <span class="setting-label">Joueurs maximum</span>
-      <app-segmented
-        label="Joueurs maximum"
-        [options]="maxPlayers"
-        [value]="room().settings.maxPlayers"
-        [disabled]="!isHost()"
-        (selected)="store.updateSettings({ maxPlayers: $event })"
-      />
-    </div>
-    <div class="setting">
-      <span class="setting-label">Règle de pioche</span>
-      <app-segmented
-        label="Règle de pioche"
-        [options]="drawRules"
-        [value]="room().settings.drawRule"
-        [disabled]="!isHost()"
-        (selected)="store.updateSettings({ drawRule: $event })"
-      />
-      <p class="muted hint">
-        @if (room().settings.drawRule === 'guided') {
-          Guidée : on pioche seulement quand on ne peut pas jouer, ou pour garder un +2 ou un Joker.
-        } @else {
-          Officielle : on peut toujours piocher une carte au lieu de jouer.
-        }
-      </p>
-    </div>
-    <div class="setting">
-      <span class="setting-label">Dernière carte</span>
-      <app-segmented
-        label="Dernière carte"
-        [options]="lastCardRules"
-        [value]="lastCardRule()"
-        [disabled]="!isHost()"
-        (selected)="setLastCardRule($event)"
-      />
-      <p class="muted hint">
-        @if (room().settings.declareUnoToWin) {
-          Il faut annoncer UNO avant de poser sa dernière carte.
-        } @else {
-          On peut poser sa dernière carte sans annoncer UNO (mais on risque un contre-UNO).
-        }
-      </p>
-    </div>
-    @if (!isHost()) {
-      <p class="muted">Seul l’hôte peut modifier les réglages.</p>
-    }
-  </section>
-
-  <footer class="glass foot">
+  <footer class="cta">
     @if (isHost()) {
-      <button
-        appNeonButton
-        tone="green"
-        (click)="store.startMatch()"
-        [disabled]="startBlocker() !== null"
-      >
-        Lancer la partie
-      </button>
-      @if (startBlocker(); as blocker) {
-        <p class="muted" role="status">{{ blocker }}</p>
-      }
+      <div class="cta-wrap">
+        <button
+          appButton
+          kind="primary"
+          class="big"
+          [attr.aria-disabled]="startBlocker() !== null"
+          [attr.aria-describedby]="startBlocker() !== null ? 'start-hint' : null"
+          (click)="start()"
+          (blur)="hintShown.set(false)"
+        >
+          Lancer la partie
+        </button>
+        @if (startBlocker(); as blocker) {
+          <span id="start-hint" role="tooltip" class="tooltip" [class.shown]="hintShown()">{{
+            blocker
+          }}</span>
+        }
+      </div>
     } @else {
       <button
-        appNeonButton
-        tone="green"
-        [variant]="me()?.isReady ? 'outline' : 'solid'"
+        appButton
+        kind="primary"
+        class="big"
+        [attr.aria-pressed]="me()?.isReady ?? false"
+        [class.on]="me()?.isReady"
         (click)="toggleReady()"
       >
-        {{ me()?.isReady ? 'Je ne suis plus prêt' : 'Je suis prêt' }}
+        @if (me()?.isReady) {
+          <app-icon name="check" />
+        }
+        Prêt
       </button>
     }
-    <button appNeonButton variant="ghost" (click)="leave()">Quitter</button>
   </footer>
 </div>

@@ -4,14 +4,14 @@ import { Router } from '@angular/router';
 import { NICKNAME_PATTERN } from '../../core/validation';
 import { SessionService } from '../../core/session.service';
 import { GameStore } from '../../state/game-store';
-import { NeonButton } from '../../ui/neon-button';
+import { Button } from '../../ui/button';
 import { Table } from '../table/table';
 import { Lobby } from './lobby';
 
 /** Page `/r/:code` : salon (lobby) ou table de jeu selon l'état, et entrée par lien partagé. */
 @Component({
   selector: 'app-room-page',
-  imports: [FormField, NeonButton, Lobby, Table],
+  imports: [FormField, Button, Lobby, Table],
   templateUrl: './room-page.html',
   styleUrl: './room-page.scss',
 })
