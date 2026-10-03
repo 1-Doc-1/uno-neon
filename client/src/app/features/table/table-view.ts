@@ -1,7 +1,20 @@
-import { Component, computed, effect, input, output, signal } from '@angular/core';
-import type { Color, PlayerView } from '../../protocol/generated/protocol';
+import {
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  output,
+  signal,
+  untracked,
+  viewChild,
+} from '@angular/core';
+import type { Card, Color, PlayerView } from '../../protocol/generated/protocol';
+import type { EventBatch } from '../../state/game-store';
 import { ChallengeDialog } from './challenge-dialog';
 import { ColorPicker } from './color-picker';
+import { AnimationDirector } from './fx/animation-director';
+import { EffectsLayer } from './fx/effects-layer';
 import { Hand } from './hand';
 import { MatchOverDialog } from './match-over-dialog';
 import { MyBadge } from './my-badge';
@@ -37,11 +50,13 @@ export interface CardPlay {
     TableCenter,
     UnoActions,
     Hand,
+    EffectsLayer,
     ChallengeDialog,
     ColorPicker,
     RoundOverDialog,
     MatchOverDialog,
   ],
+  providers: [AnimationDirector],
   templateUrl: './table-view.html',
   styleUrl: './table-view.scss',
 })
@@ -53,6 +68,12 @@ export class TableView {
   readonly clockOffset = input(0);
   /** Résultat d'une contestation, affiché en bandeau un instant. */
   readonly banner = input<string | null>(null);
+  /** Les événements de la dernière mise à jour : ils pilotent les animations (jamais une comparaison de vues). */
+  readonly batch = input<EventBatch | null>(null);
+  /** Les cartes posées depuis le début de la manche, pour la pile désordonnée de la défausse. */
+  readonly played = input<readonly Card[]>([]);
+  /** Vitesse des animations (1 = normale) : la démo de développement la fait varier. */
+  readonly animationSpeed = input(1);
 
   readonly cardPlayed = output<CardPlay>();
   readonly colorChosen = output<Color>();
@@ -62,6 +83,13 @@ export class TableView {
   readonly penaltyAnswered = output<'accept' | 'challenge'>();
   readonly nextRoundAsked = output<void>();
   readonly left = output<void>();
+
+  protected readonly director = inject(AnimationDirector);
+  private readonly hand = viewChild(Hand);
+  /** Où était une carte de ma main : les effets en ont besoin même quand elle vient de la quitter. */
+  protected readonly handRect = (cardId: number): DOMRect | null =>
+    this.hand()?.lastRect(cardId) ?? null;
+  private previousColor: Color | null = null;
 
   /** Joker choisi dans la main, en attente de sa couleur. */
   protected readonly pendingWild = signal<number | null>(null);
@@ -100,6 +128,18 @@ export class TableView {
     }
     return Math.max(0, Math.min(1, (deadline - this.serverNow()) / total));
   });
+  /** La couleur à montrer : celle de la vue, sauf pendant la roue d'un Joker qui retient l'ancienne. */
+  protected readonly shownColor = computed(
+    () => this.director.heldColor() ?? this.view().currentColor,
+  );
+  protected readonly burst = computed(() => {
+    const reverse = [...this.director.active()]
+      .reverse()
+      .find((effect) => effect.spec.kind === 'reverse');
+    return reverse
+      ? { id: reverse.id, durationMs: reverse.durationMs, reduced: reverse.reduced }
+      : null;
+  });
   protected readonly currentName = computed(() => this.nameOf(this.view().currentPlayerId));
   protected readonly turnSeconds = computed(() => this.secondsUntil(this.view().turnDeadline));
   protected readonly nextRoundSeconds = computed(() =>
@@ -131,6 +171,23 @@ export class TableView {
   );
 
   constructor() {
+    // Le lot d'événements pilote les effets ; la couleur d'avant la mise à jour est retenue le temps d'une roue
+    effect(() => {
+      const batch = this.batch();
+      if (batch) {
+        untracked(() =>
+          this.director.enqueue(batch.events, {
+            resync: batch.resync,
+            previousColor: this.previousColor,
+          }),
+        );
+      }
+    });
+    effect(() => this.director.speed.set(this.animationSpeed()));
+    effect(() => {
+      const color = this.view().currentColor;
+      untracked(() => (this.previousColor = color));
+    });
     effect((onCleanup) => {
       const timer = setInterval(() => this.now.set(Date.now()), CLOCK_TICK_MS);
       onCleanup(() => clearInterval(timer));

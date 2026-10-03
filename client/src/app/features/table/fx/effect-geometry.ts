@@ -1,0 +1,201 @@
+import type { Card, Color } from '../../../protocol/generated/protocol';
+import type { ActiveEffect } from './animation-director';
+import { scatterOf } from './discard-pile';
+import { flyingCards } from './effect-plan';
+
+/** Une boîte sur l'écran, par son centre, en pixels relatifs à la couche d'effets. */
+export interface Box {
+  readonly cx: number;
+  readonly cy: number;
+  readonly w: number;
+  readonly h: number;
+}
+
+/** Comment une carte en vol se montre : de face, de dos puis retournée en arrivant, ou de dos. */
+export type FlightLook = 'face' | 'back-to-face' | 'back';
+
+export interface Flight {
+  readonly from: Box;
+  readonly to: Box;
+  readonly fromTilt: number;
+  readonly toTilt: number;
+  readonly delayMs: number;
+  readonly durationMs: number;
+  readonly card: Card | null;
+  readonly look: FlightLook;
+}
+
+interface Base {
+  readonly id: number;
+  readonly durationMs: number;
+  readonly reduced: boolean;
+}
+
+export type LabelVariant = 'uno' | 'caught' | 'challenge';
+
+export type Placed =
+  | (Base & { readonly kind: 'flights'; readonly flights: readonly Flight[] })
+  | (Base & { readonly kind: 'bigText'; readonly text: string; readonly at: Box })
+  | (Base & {
+      readonly kind: 'label';
+      readonly variant: LabelVariant;
+      readonly text: string;
+      readonly at: Box;
+    })
+  | (Base & { readonly kind: 'skip'; readonly at: Box })
+  | (Base & { readonly kind: 'wheel'; readonly color: Color; readonly at: Box })
+  | (Base & { readonly kind: 'orb'; readonly from: Box; readonly to: Box })
+  | (Base & { readonly kind: 'spotlight'; readonly at: Box });
+
+/** Ce que la géométrie demande à l'écran : des boîtes repérées par des ancres, relatives à la couche. */
+export interface Anchors {
+  readonly meId: string;
+  readonly box: (anchor: string) => Box | null;
+  /** La dernière position connue d'une carte de ma main, même si elle vient de la quitter. */
+  readonly handCard: (cardId: number) => Box | null;
+  readonly layer: Box;
+}
+
+export const DRAW_STAGGER_MS = 90;
+/** Une carte qui part d'un siège ou y arrive est dessinée à cette échelle de la défausse. */
+const SEAT_CARD_RATIO = 0.4;
+const HAND_FALLBACK_RATIO = 0.8;
+
+const seatOf = (anchors: Anchors, playerId: string): Box | null => anchors.box(`seat:${playerId}`);
+
+/** Une carte de la taille de `model`, centrée sur `where`. */
+function sizedLike(where: Box, model: Box, ratio: number): Box {
+  return { cx: where.cx, cy: where.cy, w: model.w * ratio, h: model.h * ratio };
+}
+
+function placePlay(
+  effect: ActiveEffect,
+  card: Card,
+  playerId: string,
+  anchors: Anchors,
+): Placed | null {
+  const discard = anchors.box('discard');
+  if (!discard) {
+    return null;
+  }
+  const mine = playerId === anchors.meId;
+  const { layer } = anchors;
+  const source = mine
+    ? (anchors.handCard(card.id) ??
+      sizedLike(
+        { cx: layer.cx, cy: layer.cy + layer.h / 2 - discard.h / 2, w: 0, h: 0 },
+        discard,
+        HAND_FALLBACK_RATIO,
+      ))
+    : sizedLike(seatOf(anchors, playerId) ?? discard, discard, SEAT_CARD_RATIO);
+  const { rotation: tilt, dx, dy } = scatterOf(card.id);
+  return {
+    id: effect.id,
+    durationMs: effect.durationMs,
+    reduced: effect.reduced,
+    kind: 'flights',
+    flights: [
+      {
+        from: source,
+        to: { ...discard, cx: discard.cx + dx, cy: discard.cy + dy },
+        fromTilt: -tilt,
+        toTilt: tilt,
+        delayMs: 0,
+        durationMs: effect.durationMs * 0.9,
+        card,
+        look: mine ? 'face' : 'back-to-face',
+      },
+    ],
+  };
+}
+
+function placeDraw(
+  effect: ActiveEffect,
+  spec: Extract<ActiveEffect['spec'], { kind: 'draw' }>,
+  anchors: Anchors,
+): Placed | null {
+  const deck = anchors.box('deck');
+  if (!deck) {
+    return null;
+  }
+  const mine = spec.playerId === anchors.meId;
+  const seat = seatOf(anchors, spec.playerId);
+  const count = flyingCards(spec.count);
+  const stagger = DRAW_STAGGER_MS / effect.speed;
+  const flightMs = Math.max(120, effect.durationMs - (count - 1) * stagger);
+  const flights: Flight[] = [];
+  for (let index = 0; index < count; index++) {
+    const card = mine ? (spec.cards?.[index] ?? null) : null;
+    const landing = mine
+      ? ((card ? anchors.handCard(card.id) : null) ?? anchors.box('hand') ?? deck)
+      : sizedLike(seat ?? deck, deck, SEAT_CARD_RATIO);
+    flights.push({
+      from: deck,
+      to: landing,
+      fromTilt: 0,
+      toTilt: 0,
+      delayMs: index * stagger,
+      durationMs: flightMs,
+      card,
+      look: card ? 'back-to-face' : 'back',
+    });
+  }
+  return {
+    id: effect.id,
+    durationMs: effect.durationMs,
+    reduced: effect.reduced,
+    kind: 'flights',
+    flights,
+  };
+}
+
+/** Traduit un effet en positions d'écran ; `null` si ce qu'il vise n'est pas à l'écran (alors on ne montre rien). */
+export function placeEffect(effect: ActiveEffect, anchors: Anchors): Placed | null {
+  const { spec } = effect;
+  const base = { id: effect.id, durationMs: effect.durationMs, reduced: effect.reduced };
+  const at = (anchor: string): Box | null => anchors.box(anchor);
+
+  switch (spec.kind) {
+    case 'play':
+      return placePlay(effect, spec.card, spec.playerId, anchors);
+    case 'draw':
+      return placeDraw(effect, spec, anchors);
+    case 'bigText': {
+      const table = at('table');
+      return table && { ...base, kind: 'bigText', text: spec.text, at: table };
+    }
+    case 'wheel': {
+      const table = at('table');
+      return table && { ...base, kind: 'wheel', color: spec.color, at: table };
+    }
+    case 'challenge': {
+      const table = at('table');
+      const text = spec.succeeded ? 'Contestation réussie !' : 'Contestation ratée…';
+      return table && { ...base, kind: 'label', variant: 'challenge', text, at: table };
+    }
+    case 'skip': {
+      const seat = seatOf(anchors, spec.playerId);
+      return seat && { ...base, kind: 'skip', at: seat };
+    }
+    case 'uno': {
+      const seat = seatOf(anchors, spec.playerId);
+      return seat && { ...base, kind: 'label', variant: 'uno', text: 'UNO !', at: seat };
+    }
+    case 'caught': {
+      const seat = seatOf(anchors, spec.targetId);
+      return seat && { ...base, kind: 'label', variant: 'caught', text: 'Contre-UNO !', at: seat };
+    }
+    case 'turn': {
+      const to = seatOf(anchors, spec.to);
+      const from = spec.from === null ? to : seatOf(anchors, spec.from);
+      return to && from && { ...base, kind: 'orb', from, to };
+    }
+    case 'spotlight': {
+      const seat = seatOf(anchors, spec.playerId);
+      return seat && { ...base, kind: 'spotlight', at: seat };
+    }
+    case 'reverse':
+      // L'impulsion tourne dans le tapis lui-même (`TableCenter`), pas dans la couche
+      return null;
+  }
+}

@@ -7,7 +7,7 @@ import { Avatar } from '../../ui/avatar';
   selector: 'app-my-badge',
   imports: [Avatar],
   template: `
-    <div class="me" [class.current]="myTurn()">
+    <div class="me" [class.current]="myTurn()" [attr.data-anchor]="'seat:' + seat().playerId">
       <div
         class="portrait"
         [class.timed]="timerFraction() !== null"

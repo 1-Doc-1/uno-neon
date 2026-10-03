@@ -32,6 +32,11 @@
   }
 
   // La carte survolée, touchée ou focalisée passe devant ses voisines
+  // Une carte encore en vol vers ma main n'apparaît qu'à son arrivée (sa place reste réservée)
+  li.flying {
+    visibility: hidden;
+  }
+
   li:hover,
   li:focus-within,
   li:active {

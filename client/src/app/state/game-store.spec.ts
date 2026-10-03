@@ -1,7 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { GAME_TRANSPORT } from '../core/game-transport';
 import { FakeTransport } from '../testing/fake-transport';
-import type { ServerMessage } from '../protocol/generated/protocol';
+import type { ClientEvent, ServerMessage } from '../protocol/generated/protocol';
+import { scenarioView } from '../dev/fixtures';
 import { GameStore } from './game-store';
 
 const welcome = (resumedRoomCode?: string): ServerMessage => ({
@@ -125,5 +126,51 @@ describe('GameStore', () => {
 
     expect(store.room()).toBeNull();
     expect(store.closedReason()).toBe('kicked');
+  });
+
+  describe('event batches for the animations', () => {
+    const update = (stateVersion: number, events: ClientEvent[] = []): ServerMessage => ({
+      v: 1,
+      type: 'game.update',
+      payload: {
+        serverTime: Date.now(),
+        events,
+        view: { ...scenarioView('players-3', 0), stateVersion },
+      },
+    });
+    const turn: ClientEvent = { kind: 'turnChanged', playerId: 'o0' };
+
+    it('replays consecutive updates and calls the first view, a gap or a reconnection a full view', async () => {
+      await connect();
+
+      transport.receive(update(10, [turn]));
+      expect(store.eventBatch()).toMatchObject({ resync: true, events: [turn] });
+
+      transport.receive(update(11, [turn]));
+      expect(store.eventBatch()).toMatchObject({ resync: false });
+
+      transport.receive(update(14, [turn]));
+      expect(store.eventBatch()).toMatchObject({ resync: true });
+
+      transport.receive(update(15, [turn]));
+      expect(store.eventBatch()).toMatchObject({ resync: false });
+
+      transport.statusState.set('closed');
+      TestBed.tick();
+      transport.statusState.set('open');
+      TestBed.tick();
+      transport.receive(update(16, [turn]));
+      expect(store.eventBatch()).toMatchObject({ resync: true });
+    });
+
+    it('does not offer a batch again for a view it already showed', async () => {
+      await connect();
+      transport.receive(update(10));
+      const first = store.eventBatch();
+
+      transport.receive(update(10, [turn]));
+
+      expect(store.eventBatch()).toBe(first);
+    });
   });
 });

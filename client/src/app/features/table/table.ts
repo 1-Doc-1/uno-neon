@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import type { ClientEvent, Color, PlayerView } from '../../protocol/generated/protocol';
 import { GameStore } from '../../state/game-store';
 import { describeEvent } from './describe-event';
+import { playedCards } from './fx/discard-pile';
 import { CardPlay, TableView } from './table-view';
 
 const JOURNAL_LINES = 4;
@@ -18,6 +19,8 @@ const BANNER_MS = 5000;
       [journal]="journal()"
       [clockOffset]="store.serverClockOffset()"
       [banner]="banner()"
+      [batch]="store.eventBatch()"
+      [played]="played()"
       (cardPlayed)="play($event)"
       (colorChosen)="chooseColor($event)"
       (deckClicked)="onDeck()"
@@ -45,6 +48,8 @@ export class Table {
       .filter((line): line is string => line !== null)
       .slice(-JOURNAL_LINES),
   );
+
+  protected readonly played = computed(() => playedCards(this.store.recentEvents()));
 
   constructor() {
     // Le verdict d'une contestation s'affiche un instant en bandeau

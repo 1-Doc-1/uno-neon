@@ -1,0 +1,108 @@
+@for (item of placed(); track item.id) {
+  @switch (item.kind) {
+    @case ('flights') {
+      @for (flight of item.flights; track $index) {
+        <div
+          class="flight"
+          appFlightMotion
+          [flight]="flight"
+          [reduced]="item.reduced"
+          [class.swap]="flight.look === 'back-to-face' && !item.reduced"
+          [style.width.px]="flight.to.w"
+          [style.height.px]="flight.to.h"
+          [style.--card-w.px]="flight.to.w"
+          [style.--delay]="flight.delayMs"
+          [style.--dur]="flight.durationMs"
+        >
+          @if (flight.look !== 'face' && !(item.reduced && flight.card)) {
+            <app-card-back class="back" />
+          }
+          @if (flight.card; as card) {
+            @if (flight.look !== 'back') {
+              <app-card class="front" [card]="card" />
+            }
+          }
+        </div>
+      }
+    }
+    @case ('bigText') {
+      <p
+        class="big"
+        [class.reduced]="item.reduced"
+        [style.left.px]="item.at.cx"
+        [style.top.px]="item.at.cy"
+        [style.--dur]="item.durationMs"
+      >
+        {{ item.text }}
+      </p>
+    }
+    @case ('label') {
+      <p
+        [class]="'label ' + item.variant"
+        [class.reduced]="item.reduced"
+        [style.left.px]="item.at.cx"
+        [style.top.px]="item.variant === 'challenge' ? item.at.cy : item.at.cy - item.at.h * 0.75"
+        [style.--dur]="item.durationMs"
+      >
+        @if (item.variant === 'uno') {
+          <svg class="star" viewBox="-50 -50 100 100"><polygon [attr.points]="star" /></svg>
+        }
+        <span class="text">{{ item.text }}</span>
+      </p>
+    }
+    @case ('skip') {
+      <svg
+        class="skip"
+        viewBox="-50 -50 100 100"
+        [class.reduced]="item.reduced"
+        [style.left.px]="item.at.cx"
+        [style.top.px]="item.at.cy"
+        [style.width.px]="item.at.h * 1.5"
+        [style.--dur]="item.durationMs"
+      >
+        <circle r="38" />
+        <line x1="-27" y1="-27" x2="27" y2="27" />
+      </svg>
+    }
+    @case ('wheel') {
+      <svg
+        class="wheel"
+        viewBox="-52 -52 104 104"
+        [class.reduced]="item.reduced"
+        [style.left.px]="item.at.cx"
+        [style.top.px]="item.at.cy"
+        [style.width.px]="wheelSize(item.at)"
+        [style.--dur]="item.durationMs"
+      >
+        @for (quarter of quarters; track quarter.color) {
+          <path
+            [class]="'quarter q-' + quarter.color"
+            [class.chosen]="quarter.color === item.color"
+            [attr.d]="quarter.path"
+          />
+        }
+        <circle class="hub" r="12" />
+      </svg>
+    }
+    @case ('orb') {
+      <span
+        class="orb"
+        [class.reduced]="item.reduced"
+        [style.--x0.px]="item.from.cx"
+        [style.--y0.px]="item.from.cy"
+        [style.--x1.px]="item.to.cx"
+        [style.--y1.px]="item.to.cy"
+        [style.--dur]="item.durationMs"
+      ></span>
+    }
+    @case ('spotlight') {
+      <div
+        class="spot"
+        [class.reduced]="item.reduced"
+        [style.--x.px]="item.at.cx"
+        [style.--y.px]="item.at.cy"
+        [style.--dur]="item.durationMs"
+      ></div>
+    }
+  }
+}

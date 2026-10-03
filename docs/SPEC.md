@@ -443,27 +443,27 @@ Toutes les cartes (108 faces + dos) et tous les composants dans tous leurs état
 ## 13. Animations et son
 
 ### 13.1 Principes
+- **Les événements du serveur pilotent les effets**, jamais une comparaison de vues (ADR 0022). Un `AnimationDirector` les consomme dans l'ordre (file) ; l'état affiché vient toujours de la dernière vue. Purement cosmétique : aucune animation ne retarde l'envoi d'une action ni ne bloque la saisie (la couche d'effets ne reçoit aucun clic). Si la file prend du retard (plus de 2,5 s en attente, onglet en arrière-plan) ou si une vue complète arrive (première vue, saut de `stateVersion`, reconnexion), on la vide et on montre l'état final.
 - Seules `transform` et `opacity` sont animées (pas de `top/left/width`, pas de `box-shadow` animé : pour faire varier un halo, on anime l'`opacity` d'un pseudo-élément qui porte l'ombre).
-- Technique **FLIP** pour les déplacements de cartes (main → défausse, pioche → main, main → main lors d'un échange) : mesurer la position de départ et d'arrivée, animer l'écart en `transform`.
-- `animate.enter` / `animate.leave` d'Angular pour les apparitions et disparitions ; View Transitions API pour le passage lobby → table si disponible.
-- Durées courtes (120-400 ms) ; une animation ne bloque jamais une action : si un nouvel `game.update` arrive, la file accélère ou saute.
-- **`prefers-reduced-motion: reduce`** (et le réglage « animations réduites ») : déplacements remplacés par des fondus de 120 ms, aucune rotation continue, aucune pulsation, pas de confettis, pas de parallaxe.
+- Technique **FLIP** avec l'API Web Animations pour les déplacements de cartes (main ou siège → défausse, pioche → main ou siège) : mesurer la position de départ et d'arrivée, animer l'écart en `transform`. Aucune dépendance.
+- Durées de 200 à 600 ms, courbes d'accélération naturelles, **jamais plus d'un effet plein écran à la fois** (les petits effets sur un siège se chevauchent).
+- **`prefers-reduced-motion: reduce`** : chaque effet est remplacé par un fondu de 160 ms ; aucune rotation continue (la lueur du sens du jeu est coupée), aucune pulsation.
 
 ### 13.2 Catalogue
-| Événement | Animation |
+| Événement | Effet |
 |---|---|
-| Distribution | cartes qui volent de la pioche vers chaque siège en éventail (`--dur-deal`, décalage de 40 ms) |
-| Carte posée | vol vers la défausse avec légère rotation aléatoire (±8°), onde de lumière de la couleur de la carte sur la table |
-| Pioche | carte qui glisse de la pioche vers la main (face cachée pour les autres) |
-| `Skip` | icône barrée qui s'allume puis s'estompe sur le siège sauté |
-| `Reverse` | les flèches en orbite freinent, puis repartent dans l'autre sens |
-| +2 / +4 | badge de pénalité qui rebondit (`--ease-spring`) ; en cas de cumul, le nombre grossit |
-| Joker | l'anneau de couleur courante se remplit de la nouvelle couleur en balayage conique |
-| UNO annoncé | le badge UNO du joueur s'illumine avec un flash unique |
-| Contre-UNO | éclair néon rouge du chasseur vers la cible, +2 cartes qui arrivent |
-| Mon tour | bannière lumineuse + léger zoom de ma main |
-| Échange de mains (7/0) | les éventails glissent d'un siège à l'autre |
-| Fin de manche | cartes révélées une par une, points qui s'additionnent en compteur |
+| `cardPlayed` | la carte vole de la main (ou du siège, face cachée puis retournée) jusqu'à la défausse, avec une légère rotation à l'arrivée ; la défausse montre les 5 dernières cartes en pile désordonnée (rotation dérivée de l'identifiant) |
+| `cardsDrawn` | les cartes (6 au plus) volent une à une de la pioche vers le siège (face cachée pour un adversaire, retournée en arrivant dans ma main) ; pioche infligée : le siège tremble et clignote |
+| +2 / +4 | « +2 » / « +4 » en grand au centre, puis les cartes de pénalité |
+| `playerSkipped` | symbole « interdit » qui s'imprime en grand sur le siège sauté |
+| `directionChanged` | une impulsion lumineuse fait le tour de l'ellipse, puis la lueur du liseré repart dans l'autre sens |
+| Joker, +4 (`colorChosen`) | une roue des quatre couleurs au centre, le quart choisi grossit, puis le liseré et la lueur de la défausse prennent la nouvelle couleur |
+| `turnChanged` | le siège actif s'illumine et grossit légèrement ; un éclat glisse du siège précédent au suivant |
+| `unoCalled` | éclat « UNO ! » sur le siège |
+| `unoCaught` | tampon « Contre-UNO ! » sur la cible, puis ses cartes de pénalité |
+| `challengeResolved` | verdict (réussie / ratée) au centre, puis cartes de pénalité vers le perdant |
+| `roundEnded` | projecteur sur le gagnant (la modale de fin de manche attend sa fin) |
+| Échange de mains (7/0) | les éventails glissent d'un siège à l'autre (avec les options maison, étape 1.6) |
 
 ### 13.3 Son (phase 5)
 Effets courts et originaux ou sous licence libre (licence notée dans `client/src/assets/sounds/LICENSES.md`) : poser, piocher, mon tour, UNO, contre-UNO, victoire. **Coupé par défaut** jusqu'à ce que le joueur l'active (politique d'autoplay des navigateurs + respect de l'utilisateur). Volume et état mémorisés en `localStorage`.
