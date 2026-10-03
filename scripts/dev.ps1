@@ -51,16 +51,46 @@ if (-not (Test-Path (Join-Path $clientDir 'node_modules'))) {
     }
 }
 
-$server = Start-Process -FilePath $serverExe -WorkingDirectory $serverDir -NoNewWindow -PassThru
-Write-Host "Serveur lancé (PID $($server.Id)) sur le port 9001. Client : http://localhost:4200"
+function Assert-PortFree([int]$Port, [string]$What) {
+    $listener = Get-NetTCPConnection -State Listen -LocalPort $Port -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($listener) {
+        $owner = Get-Process -Id $listener.OwningProcess -ErrorAction SilentlyContinue
+        $name = if ($owner) { $owner.ProcessName } else { 'processus inconnu' }
+        throw "Le port $Port ($What) est déjà utilisé par $name (PID $($listener.OwningProcess)). Arrête-le puis relance le script."
+    }
+}
 
-Push-Location $clientDir
+Assert-PortFree 9001 'serveur'
+Assert-PortFree 4200 'client'
+
+$server = $null
 try {
-    npm start
+    $server = Start-Process -FilePath $serverExe -WorkingDirectory $serverDir -NoNewWindow -PassThru
+
+    # Le serveur n'est « lancé » que s'il écoute vraiment sur le port 9001
+    $deadline = (Get-Date).AddSeconds(10)
+    while (-not (Get-NetTCPConnection -State Listen -LocalPort 9001 -OwningProcess $server.Id -ErrorAction SilentlyContinue)) {
+        if ($server.HasExited) {
+            throw "Le serveur s'est arrêté au démarrage (code $($server.ExitCode))."
+        }
+        if ((Get-Date) -gt $deadline) {
+            throw "Le serveur n'écoute pas sur le port 9001 après 10 s."
+        }
+        Start-Sleep -Milliseconds 200
+    }
+    Write-Host "Serveur lancé (PID $($server.Id)) sur le port 9001. Client : http://localhost:4200"
+
+    Push-Location $clientDir
+    try {
+        # Port explicite : ng serve échoue au lieu de basculer sur un autre port (l'Origin serait refusée)
+        npm start -- --port 4200
+    }
+    finally {
+        Pop-Location
+    }
 }
 finally {
-    Pop-Location
-    if (-not $server.HasExited) {
+    if ($server -and -not $server.HasExited) {
         Stop-Process -Id $server.Id -Force
     }
 }
