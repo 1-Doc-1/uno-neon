@@ -76,7 +76,8 @@ TEST_CASE("The last card is refused as MUST_DECLARE_UNO, and the view says so", 
 {
     auto table = tableWhereBlocked(core::DrawRule::Official);
     auto& current = table->currentPlayer();
-    const auto& hand = *table->room().match->round().hand(current.id());
+    const auto hand =
+        *table->room().match->round().hand(current.id()); // a span: copied, not a reference to a temporary
     REQUIRE(hand.size() == 1);
     REQUIRE(current.last<response::GameUpdate>()->view.game.me.mustDeclareUno);
     table->clearInboxes();
