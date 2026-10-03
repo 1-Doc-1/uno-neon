@@ -149,7 +149,7 @@ std::optional<request::Body> decide(const response::GameView& view)
     if (me.canDraw) {
         return request::DrawCard{};
     }
-    if (me.canPass) {
+    if (me.canKeepDrawnCard) {
         return request::Pass{};
     }
     return std::nullopt;

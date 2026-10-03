@@ -110,6 +110,7 @@ std::expected<RoundStart, DomainError> Round::start(RoundSetup setup, RandomSour
     const PlayerId dealer = setup.dealer;
     Round round{*std::move(turnOrder), std::move(setup.dealer), std::move(hands), std::move(drawPile),
                 DiscardPile{*flipped}};
+    round.drawRule_ = setup.drawRule;
 
     std::vector<DomainEvent> events{RoundStarted{.dealer = dealer, .firstCard = *flipped}};
     if (flipped->rank == Rank::Wild) {
@@ -133,6 +134,53 @@ bool Round::hasCalledUno(const PlayerId& player) const
 {
     const auto seat = turnOrder_.seatOf(player);
     return seat.has_value() && unoCalled_.at(*seat);
+}
+
+bool Round::canDraw(const PlayerId& player) const
+{
+    if (player != turnOrder_.current() || !std::holds_alternative<AwaitingPlay>(phase_)) {
+        return false;
+    }
+    if (drawRule_ == DrawRule::Official) {
+        return true;
+    }
+    // Guided: drawing is for those who cannot play, or who prefer to keep a special card (ADR 0017).
+    const auto& hand = hands_.at(turnOrder_.currentSeat());
+    const auto playable = [&](const Card& card) { return isPlayable(card, discardPile_.top(), currentColor_); };
+    return std::ranges::none_of(hand, playable) ||
+           std::ranges::any_of(hand, [&](const Card& card) { return isSpecialCard(card) && playable(card); });
+}
+
+bool Round::canKeepDrawnCard(const PlayerId& player) const
+{
+    const auto* drawn = std::get_if<AwaitingDrawnCardDecision>(&phase_);
+    if (drawn == nullptr || player != turnOrder_.current()) {
+        return false;
+    }
+    if (drawRule_ == DrawRule::Official) {
+        return true;
+    }
+    const auto& hand = hands_.at(turnOrder_.currentSeat());
+    const auto card = std::ranges::find(hand, drawn->drawnCard, &Card::id);
+    return card != hand.end() && isSpecialCard(*card);
+}
+
+std::optional<PlayerAction> Round::forcedAction() const
+{
+    if (drawRule_ != DrawRule::Guided) {
+        return std::nullopt;
+    }
+    const auto& hand = hands_.at(turnOrder_.currentSeat());
+    if (std::holds_alternative<AwaitingPlay>(phase_)) {
+        const bool nothingPlayable = std::ranges::none_of(
+            hand, [&](const Card& card) { return isPlayable(card, discardPile_.top(), currentColor_); });
+        return nothingPlayable ? std::optional<PlayerAction>{DrawCard{}} : std::nullopt;
+    }
+    const auto* drawn = std::get_if<AwaitingDrawnCardDecision>(&phase_);
+    if (drawn != nullptr && !canKeepDrawnCard(turnOrder_.current())) {
+        return PlayCard{.cardId = drawn->drawnCard, .chosenColor = std::nullopt};
+    }
+    return std::nullopt;
 }
 
 std::expected<std::span<const Card>, DomainError> Round::hand(const PlayerId& player) const
@@ -248,6 +296,10 @@ std::expected<std::vector<DomainEvent>, DomainError> Round::applyDrawCard(const 
     if (!std::holds_alternative<AwaitingPlay>(phase_)) {
         return std::unexpected{DomainError::InvalidPhase};
     }
+    if (!canDraw(actor)) {
+        return std::unexpected{DomainError::MustPlay};
+    }
+
     auto drawn = drawCards(drawPile_, discardPile_, 1, random);
     giveCards(turnOrder_.currentSeat(), drawn.cards);
 
@@ -278,6 +330,9 @@ std::expected<std::vector<DomainEvent>, DomainError> Round::applyPass(const Play
     }
     if (!std::holds_alternative<AwaitingDrawnCardDecision>(phase_)) {
         return std::unexpected{DomainError::InvalidPhase};
+    }
+    if (!canKeepDrawnCard(actor)) {
+        return std::unexpected{DomainError::MustPlay};
     }
 
     unoCalled_.at(turnOrder_.currentSeat()) = false; // An announcement only holds for one play.

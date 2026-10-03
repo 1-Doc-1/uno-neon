@@ -225,7 +225,7 @@ TEST_CASE("A session nobody uses is forgotten after 10 minutes", "[app][lifecycl
 
 TEST_CASE("The turn deadline is shown, and a turn that times out draws a card and passes", "[app][lifecycle][turn]")
 {
-    Table table(3);
+    Table table(3, 7, core::MatchLength::SingleRound, core::DrawRule::Official);
     table.start();
     auto& current = table.currentPlayer();
     const auto first = require(lastUpdate(current));
@@ -307,7 +307,7 @@ TEST_CASE("A card drawn at timeout is not played: the turn passes", "[app][lifec
 {
     bool seen = false;
     for (std::uint64_t seed = 1; seed <= 40 && !seen; ++seed) {
-        Table table(3, seed);
+        Table table(3, seed, core::MatchLength::SingleRound, core::DrawRule::Official);
         table.start();
         const auto deciding = [](const core::Round& round) {
             return std::holds_alternative<core::AwaitingDrawnCardDecision>(round.phase());

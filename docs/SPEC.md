@@ -79,7 +79,7 @@ Objectifs de qualité, par ordre de priorité :
 
 **Tour de jeu**
 - Une carte est jouable si elle a la même couleur que la couleur courante, ou la même valeur/symbole que la carte du dessus, ou si c'est un `Wild`/`WildDrawFour`.
-- Un joueur peut toujours choisir de ne pas jouer : il pioche alors 1 carte. Si cette carte est jouable, il **peut** la jouer immédiatement (et seulement celle-là), sinon son tour se termine (action « Passer »).
+- **Pioche** (règle `drawRule`, §4). Règle officielle (`official`) : un joueur peut toujours choisir de ne pas jouer : il pioche alors 1 carte. Si cette carte est jouable, il **peut** la jouer immédiatement (et seulement celle-là), sinon son tour se termine (action « Passer »). Règle **guidée** (`guided`, défaut des salons, ADR 0017) : on ne propose un choix que s'il y en a un (voir §4).
 - `Skip` : le joueur suivant passe son tour.
 - `Reverse` : le sens de jeu s'inverse. **À 2 joueurs, `Reverse` agit comme `Skip`.**
 - `DrawTwo` : le joueur suivant pioche 2 cartes et passe son tour.
@@ -114,7 +114,8 @@ Chaque option est une **politique injectable** dans le moteur (voir §7, Strateg
 | `sevenZero` | bool | `false` | Poser un 7 : échange de main avec un joueur choisi. Poser un 0 : toutes les mains tournent d'un joueur dans le sens du jeu. |
 | `drawUntilPlayable` | bool | `false` | Quand on pioche, on continue jusqu'à obtenir une carte jouable (qu'on peut alors jouer). |
 | `wildDrawFourMode` | `officialChallenge`, `strict` | `officialChallenge` | `strict` : le serveur refuse un +4 illégal, pas de contestation. |
-| `turnTimerSeconds` | `0` (off), 15, 30, 60 | 30 | À l'expiration : pénalité en attente acceptée, sinon pioche 1 + passe ; choix de couleur en attente → couleur tirée au hasard. |
+| `drawRule` | `guided`, `official` | `guided` | **Pioche guidée** (ADR 0017). Cartes « spéciales » : +2, Joker, +4 (Passe et Inversion sont normales). Aucune carte jouable → pioche automatique après ~700 ms. Des cartes jouables mais aucune spéciale → piocher est refusé (`ILLEGAL_MOVE` / `MUST_PLAY`), il faut jouer. Au moins une spéciale jouable → le joueur choisit : poser, ou piocher en cliquant sur le paquet. Carte piochée non jouable → fin du tour ; jouable et normale → posée automatiquement après ~700 ms ; jouable et spéciale → posée (clic sur la carte) ou gardée (clic sur le paquet). `official` : règle du §3. |
+| `turnTimerSeconds` | `0` (off), 15, 30, 60 | 30 | À l'expiration : pénalité en attente acceptée, sinon pioche 1 + passe (en pioche guidée : le joueur qui doit jouer joue sa première carte jouable) ; choix de couleur en attente → couleur tirée au hasard. |
 | `scoreTarget` | 250, 500, `singleRound` | 500 | |
 | `maxPlayers` | 2–10 | 6 | |
 
@@ -233,8 +234,8 @@ Serveur → client : réponses `{ "v": 1, "type": "ack", "replyTo": "c-42" }` ou
 | `match.start` | `{}` | hôte, ≥ 2 joueurs, tous prêts |
 | `match.rematch` | `{}` | hôte, partie terminée |
 | `game.playCard` | `{ cardId, chosenColor?, swapTargetId? }` | son tour, ou interception si `jumpIn` |
-| `game.drawCard` | `{}` | son tour, phase `AwaitingPlay` |
-| `game.pass` | `{}` | phase `AwaitingDrawnCardDecision` |
+| `game.drawCard` | `{}` | son tour, phase `AwaitingPlay`, et si la règle de pioche l'autorise (`me.canDraw`) |
+| `game.pass` | `{}` | phase `AwaitingDrawnCardDecision` (« garder la carte » : interdit en pioche guidée si la carte piochée est normale) |
 | `game.respondPenalty` | `{ response: "accept" \| "challenge" }` | visé par une pénalité (empiler = `game.playCard`) |
 | `game.callUno` | `{}` | 2 cartes et son tour, ou 1 carte dans la fenêtre UNO |
 | `game.catchUno` | `{ targetId }` | fenêtre UNO ouverte sur la cible |
@@ -265,7 +266,7 @@ interface PlayerView {
   phase: "awaitingPlay" | "awaitingDrawnCardDecision" | "awaitingPenaltyResponse" | "roundOver" | "matchOver";
   me: {
     playerId: string; hand: Card[]; playableCardIds: number[];
-    canDraw: boolean; canPass: boolean; canCallUno: boolean;
+    canDraw: boolean; canKeepDrawnCard: boolean; canCallUno: boolean; // calculés par le serveur (ADR 0017)
     penaltyResponse: { amount: number; canChallenge: boolean; canStack: boolean } | null;
   };
   players: Array<{ playerId: string; nickname: string; seat: number; cardCount: number; score: number;
@@ -281,7 +282,7 @@ interface PlayerView {
 `ClientEvent` (union discriminée par `kind`) : `cardPlayed`, `cardsDrawn` (`cards` présent seulement pour celui qui pioche, sinon `count`), `turnChanged`, `playerSkipped`, `directionChanged`, `colorChosen`, `penaltyStacked`, `challengeResolved`, `unoCalled`, `unoCaught`, `handsSwapped`, `handsRotated`, `deckReshuffled`, `roundEnded`, `matchEnded`, `playerDisconnected`, `playerReconnected`, `hostChanged`.
 
 ### 8.6 Codes d'erreur
-`MALFORMED_MESSAGE`, `UNKNOWN_TYPE`, `UNSUPPORTED_VERSION`, `MESSAGE_TOO_LARGE`, `RATE_LIMITED`, `SESSION_REQUIRED`, `SESSION_EXPIRED`, `NICKNAME_INVALID`, `NICKNAME_TAKEN`, `ROOM_NOT_FOUND`, `ROOM_FULL`, `MATCH_IN_PROGRESS`, `NOT_HOST`, `NOT_ENOUGH_PLAYERS`, `PLAYERS_NOT_READY`, `NOT_YOUR_TURN`, `INVALID_PHASE`, `CARD_NOT_IN_HAND`, `ILLEGAL_MOVE` (avec `details.reason` : `COLOR_MISMATCH`, `WILD_DRAW_FOUR_ILLEGAL`, `COLOR_REQUIRED`, `SWAP_TARGET_REQUIRED`, `JUMP_IN_TOO_LATE`, `CANNOT_STACK`…), `UNO_WINDOW_CLOSED`, `UNO_GRACE_PERIOD`.
+`MALFORMED_MESSAGE`, `UNKNOWN_TYPE`, `UNSUPPORTED_VERSION`, `MESSAGE_TOO_LARGE`, `RATE_LIMITED`, `SESSION_REQUIRED`, `SESSION_EXPIRED`, `NICKNAME_INVALID`, `NICKNAME_TAKEN`, `ROOM_NOT_FOUND`, `ROOM_FULL`, `MATCH_IN_PROGRESS`, `NOT_HOST`, `NOT_ENOUGH_PLAYERS`, `PLAYERS_NOT_READY`, `NOT_YOUR_TURN`, `INVALID_PHASE`, `CARD_NOT_IN_HAND`, `ILLEGAL_MOVE` (avec `details.reason` : `COLOR_MISMATCH`, `WILD_DRAW_FOUR_ILLEGAL`, `COLOR_REQUIRED`, `SWAP_TARGET_REQUIRED`, `JUMP_IN_TOO_LATE`, `CANNOT_STACK`, `MUST_PLAY`…), `UNO_WINDOW_CLOSED`, `UNO_GRACE_PERIOD`.
 Les messages d'erreur sont en anglais technique ; **le client traduit chaque code en message français clair**.
 
 ## 9. Serveur réseau (C++)

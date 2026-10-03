@@ -117,6 +117,14 @@ struct WireNames<app::StackingMode> {
 };
 
 template <>
+struct WireNames<core::DrawRule> {
+    static constexpr std::array kTable{
+        WireName{.value = core::DrawRule::Guided, .name = "guided"},
+        WireName{.value = core::DrawRule::Official, .name = "official"},
+    };
+};
+
+template <>
 struct WireNames<app::WildDrawFourMode> {
     static constexpr std::array kTable{
         WireName{.value = app::WildDrawFourMode::OfficialChallenge, .name = "officialChallenge"},
@@ -188,6 +196,7 @@ struct WireNames<app::IllegalMoveReason> {
         WireName{.value = app::IllegalMoveReason::JumpInTooLate, .name = "JUMP_IN_TOO_LATE"},
         WireName{.value = app::IllegalMoveReason::CannotStack, .name = "CANNOT_STACK"},
         WireName{.value = app::IllegalMoveReason::CannotChallenge, .name = "CANNOT_CHALLENGE"},
+        WireName{.value = app::IllegalMoveReason::MustPlay, .name = "MUST_PLAY"},
     };
 };
 

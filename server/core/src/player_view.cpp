@@ -63,8 +63,8 @@ namespace {
     me.hand.assign(hand.begin(), hand.end());
     if (myTurn) {
         me.playableCardIds = playableCardIds(round, hand);
-        me.canDraw = std::holds_alternative<AwaitingPlay>(phase);
-        me.canPass = std::holds_alternative<AwaitingDrawnCardDecision>(phase);
+        me.canDraw = round.canDraw(viewer);
+        me.canKeepDrawnCard = round.canKeepDrawnCard(viewer);
         me.canChooseColor = std::holds_alternative<AwaitingColorChoice>(phase);
         if (std::holds_alternative<AwaitingPenaltyResponse>(phase)) {
             me.penaltyResponse =

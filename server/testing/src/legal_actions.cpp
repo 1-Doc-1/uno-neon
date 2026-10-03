@@ -45,7 +45,9 @@ std::vector<core::PlayerAction> legalActionsOfCurrentPlayer(const core::Round& r
     std::vector<core::PlayerAction> actions;
     if (std::holds_alternative<core::AwaitingPlay>(round.phase())) {
         addPlayableCards(round, actions);
-        actions.emplace_back(core::DrawCard{});
+        if (round.canDraw(round.currentPlayer())) {
+            actions.emplace_back(core::DrawCard{});
+        }
     } else if (const auto* drawn = std::get_if<core::AwaitingDrawnCardDecision>(&round.phase())) {
         const auto hand = round.hand(round.currentPlayer());
         REQUIRE(hand.has_value());
@@ -54,7 +56,9 @@ std::vector<core::PlayerAction> legalActionsOfCurrentPlayer(const core::Round& r
                 addPlaysOf(card, actions);
             }
         }
-        actions.emplace_back(core::Pass{});
+        if (round.canKeepDrawnCard(round.currentPlayer())) {
+            actions.emplace_back(core::Pass{});
+        }
     } else if (std::holds_alternative<core::AwaitingColorChoice>(round.phase())) {
         for (const auto color : core::kColors) {
             actions.emplace_back(core::ChooseColor{.color = color});

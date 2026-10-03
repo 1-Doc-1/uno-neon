@@ -70,6 +70,7 @@ public:
     TimerHandle expiryTimer;
     TimerHandle turnTimer;
     TimerHandle nextRoundTimer;
+    TimerHandle forcedActionTimer; // plays the move a player has no choice about (guided draw)
     std::unordered_map<std::string, TimerHandle> graceTimers; // by player id: disconnected, waiting to come back
     std::optional<std::int64_t> turnDeadline;                 // epoch ms, shown in the views
     std::optional<std::int64_t> nextRoundDeadline;

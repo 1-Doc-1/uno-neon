@@ -226,7 +226,7 @@ TEST_CASE("The view of the current player lists their hand and what they may do"
                            .hand = hand,
                            .playableCardIds = {CardId{0}},
                            .canDraw = true,
-                           .canPass = false,
+                           .canKeepDrawnCard = false,
                            .canCallUno = false,
                            .canChooseColor = false,
                            .penaltyResponse = std::nullopt,
@@ -272,7 +272,7 @@ TEST_CASE("A player waiting for their turn sees their hand but cannot act", "[co
     REQUIRE(view.me.hand == fillerHand(1));
     REQUIRE(view.me.playableCardIds.empty());
     REQUIRE(!view.me.canDraw);
-    REQUIRE(!view.me.canPass);
+    REQUIRE(!view.me.canKeepDrawnCard);
     REQUIRE(view.currentPlayerId == player(0));
     requireViewLeaksNothing(round, view, player(1));
 }
@@ -290,7 +290,7 @@ TEST_CASE("After drawing a playable card, only that card can be played, or the t
     REQUIRE(view.phase == ViewPhase::AwaitingDrawnCardDecision);
     REQUIRE(view.me.playableCardIds == std::vector<CardId>{CardId{41}});
     REQUIRE(!view.me.canDraw);
-    REQUIRE(view.me.canPass);
+    REQUIRE(view.me.canKeepDrawnCard);
 }
 
 TEST_CASE("A flipped Wild leaves the color to choose, and the view says so", "[core][view]")

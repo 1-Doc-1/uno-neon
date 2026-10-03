@@ -25,11 +25,13 @@ namespace uno::core {
 namespace {
 
 [[nodiscard]] std::expected<RoundStart, DomainError> dealRound(std::vector<PlayerId> seats, PlayerId dealer,
-                                                               RandomSource& random)
+                                                               DrawRule drawRule, RandomSource& random)
 {
     auto deck = createStandardDeck(random);
     shuffle(std::span{deck}, random);
-    return Round::start({.seats = std::move(seats), .dealer = std::move(dealer), .deck = std::move(deck)}, random);
+    return Round::start(
+        {.seats = std::move(seats), .dealer = std::move(dealer), .deck = std::move(deck), .drawRule = drawRule},
+        random);
 }
 
 } // namespace
@@ -50,7 +52,7 @@ std::expected<MatchStart, DomainError> Match::start(std::vector<PlayerId> seats,
         return std::unexpected{DomainError::NotEnoughPlayers};
     }
     auto firstDealer = seats.at(random.uniform(static_cast<std::uint32_t>(seats.size())));
-    auto started = dealRound(std::move(seats), std::move(firstDealer), random);
+    auto started = dealRound(std::move(seats), std::move(firstDealer), settings.drawRule, random);
     if (!started) {
         return std::unexpected{started.error()};
     }
@@ -99,7 +101,7 @@ std::expected<std::vector<DomainEvent>, DomainError> Match::startNextRound(Rando
     std::vector<PlayerId> seats{round_.seats().begin(), round_.seats().end()};
     const auto dealerSeat = static_cast<std::size_t>(std::ranges::find(seats, round_.dealer()) - seats.begin());
     auto nextDealer = seats.at((dealerSeat + 1) % seats.size());
-    auto started = dealRound(std::move(seats), std::move(nextDealer), random);
+    auto started = dealRound(std::move(seats), std::move(nextDealer), settings_.drawRule, random);
     if (!started) {
         return std::unexpected{started.error()};
     }

@@ -102,7 +102,10 @@
           "items": { "$ref": "common.schema.json#/$defs/CardId" }
         },
         "canDraw": { "type": "boolean" },
-        "canPass": { "type": "boolean" },
+        "canKeepDrawnCard": {
+          "description": "Pass: keep the card just drawn instead of playing it. Computed by the server from the draw rule (ADR 0017).",
+          "type": "boolean"
+        },
         "canCallUno": { "type": "boolean" },
         "canChooseColor": { "type": "boolean" },
         "penaltyResponse": {
@@ -114,7 +117,7 @@
         "hand",
         "playableCardIds",
         "canDraw",
-        "canPass",
+        "canKeepDrawnCard",
         "canCallUno",
         "canChooseColor",
         "penaltyResponse"

@@ -58,7 +58,7 @@
         ],
         "playableCardIds": [],
         "canDraw": false,
-        "canPass": false,
+        "canKeepDrawnCard": false,
         "canCallUno": false,
         "canChooseColor": true,
         "penaltyResponse": null
@@ -123,7 +123,8 @@
         "wildDrawFourMode": "officialChallenge",
         "turnTimerSeconds": 30,
         "matchLength": "to500",
-        "maxPlayers": 6
+        "maxPlayers": 6,
+        "drawRule": "guided"
       },
       "roundResult": null,
       "matchWinnerId": null

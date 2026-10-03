@@ -39,6 +39,7 @@ const ILLEGAL_REASONS: Record<IllegalMoveReason, string> = {
   JUMP_IN_TOO_LATE: 'Trop tard pour intercepter.',
   CANNOT_STACK: 'Tu ne peux pas empiler cette carte.',
   CANNOT_CHALLENGE: 'Tu ne peux pas contester ici.',
+  MUST_PLAY: 'Tu dois jouer une carte : la pioche n’est pas permise ici.',
 };
 
 export function describeError(code: ErrorCode, reason?: IllegalMoveReason): string {

@@ -34,6 +34,7 @@ struct Timeouts {
     std::chrono::milliseconds nextRound{std::chrono::seconds(30)};          // the next round starts anyway
     std::chrono::milliseconds unoGrace{std::chrono::seconds(2)};            // only the offender may announce UNO
     std::chrono::milliseconds unoWindow{std::chrono::seconds(15)};          // from its opening, anybody may catch
+    std::chrono::milliseconds forcedAction{std::chrono::milliseconds(700)}; // a move nobody can choose is played
 };
 
 // The use cases of the server: sessions, rooms and (from step 2.4) matches. It reacts to what the
@@ -140,6 +141,7 @@ private:
     void destroyRoom(Room& room, std::optional<response::RoomClosedReason> reason);
     void onRoomExpired(const RoomCode& code);
     void onTurnExpired(const RoomCode& code, std::uint64_t stateVersion);
+    void onForcedActionDue(const RoomCode& code, std::uint64_t stateVersion);
     void onNextRoundDue(const RoomCode& code, std::uint64_t stateVersion);
     void onGraceExpired(const RoomCode& code, const core::PlayerId& player);
     void onSessionIdle(const core::PlayerId& player);

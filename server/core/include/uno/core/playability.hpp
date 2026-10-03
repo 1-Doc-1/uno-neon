@@ -24,6 +24,13 @@ namespace uno::core {
     return candidate.rank == top.rank;
 }
 
+// Guided draw (ADR 0017): the cards that change the game are the Draw Two and the Wilds. Skip and Reverse count as
+// plain cards.
+[[nodiscard]] constexpr bool isSpecialCard(const Card& card) noexcept
+{
+    return card.rank == Rank::DrawTwo || isWild(card.rank);
+}
+
 // SPEC §3: a Wild Draw Four is legal only if the hand (with the played card already removed) holds
 // no card of the current color at the moment it is played. Another Joker, or a card of the same
 // rank in a different color, does not make the play illegal — only a matching color does. Takes a

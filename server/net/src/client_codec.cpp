@@ -47,6 +47,7 @@ Parsed<RoomSettingsPatch> parseSettingsPatch(const Json& value)
     patch.turnTimer = reader.optional<TurnTimerSeconds>("turnTimerSeconds", parseTurnTimer);
     patch.matchLength = reader.optional<core::MatchLength>("matchLength", detail::parseEnum<core::MatchLength>);
     patch.maxPlayers = reader.optional<std::uint8_t>("maxPlayers", parseMaxPlayers);
+    patch.drawRule = reader.optional<core::DrawRule>("drawRule", detail::parseEnum<core::DrawRule>);
     if (auto finished = reader.finish(); !finished) {
         return std::unexpected(finished.error());
     }
@@ -285,6 +286,9 @@ Json encodeSettingsPatch(const RoomSettingsPatch& patch)
     }
     if (patch.matchLength) {
         json.emplace("matchLength", detail::toWire(*patch.matchLength));
+    }
+    if (patch.drawRule) {
+        json.emplace("drawRule", detail::toWire(*patch.drawRule));
     }
     if (patch.maxPlayers) {
         json.emplace("maxPlayers", *patch.maxPlayers);

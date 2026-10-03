@@ -380,8 +380,9 @@ Application::Outcome Application::startMatch(Room& room)
     for (const Member& member : room.members) {
         seats.push_back(member.id);
     }
-    auto started =
-        core::Match::start(std::move(seats), core::MatchSettings{.matchLength = room.settings.matchLength}, *random_);
+    auto started = core::Match::start(
+        std::move(seats),
+        core::MatchSettings{.matchLength = room.settings.matchLength, .drawRule = room.settings.drawRule}, *random_);
     if (!started) {
         spdlog::error("room {}: the engine refused to start a match", room.code.value);
         return fail(ErrorCode::InvalidPhase, "The match could not be started");
@@ -542,6 +543,9 @@ Application::Outcome Application::play(ConnectionId connection, const core::Play
         case core::DomainError::ColorNotAllowed:
             return fail(ErrorCode::IllegalMove, "A color is only chosen for a Wild",
                         IllegalMoveReason::ColorNotAllowed);
+        case core::DomainError::MustPlay:
+            return fail(ErrorCode::IllegalMove, "Play a card instead of drawing, or the card you drew",
+                        IllegalMoveReason::MustPlay);
         case core::DomainError::OnlyDrawnCardPlayable:
             return fail(ErrorCode::IllegalMove, "Only the card you just drew can be played",
                         IllegalMoveReason::OnlyDrawnCardPlayable);

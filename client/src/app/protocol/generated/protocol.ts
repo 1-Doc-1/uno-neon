@@ -58,6 +58,10 @@ export type TurnTimerSeconds = 0 | 15 | 30 | 60;
 export type MatchLength = 'singleRound' | 'to250' | 'to500';
 export type MaxPlayers = number;
 /**
+ * guided: no pointless draws, a plain drawn card is played automatically (ADR 0017); official: SPEC §3.
+ */
+export type DrawRule = 'guided' | 'official';
+/**
  * 6 characters, without the ambiguous I, L, O, 0 and 1.
  */
 export type RoomCode = string;
@@ -129,7 +133,8 @@ export type IllegalMoveReason =
   | 'ONLY_DRAWN_CARD_PLAYABLE'
   | 'JUMP_IN_TOO_LATE'
   | 'CANNOT_STACK'
-  | 'CANNOT_CHALLENGE';
+  | 'CANNOT_CHALLENGE'
+  | 'MUST_PLAY';
 /**
  * Server clock, milliseconds since the Unix epoch.
  */
@@ -220,6 +225,7 @@ export interface RoomSettingsPatch {
   turnTimerSeconds?: TurnTimerSeconds;
   matchLength?: MatchLength;
   maxPlayers?: MaxPlayers;
+  drawRule?: DrawRule;
 }
 /**
  * Joins an existing room that is in the lobby and not full.
@@ -484,6 +490,7 @@ export interface RoomSettings {
   turnTimerSeconds: TurnTimerSeconds;
   matchLength: MatchLength;
   maxPlayers: MaxPlayers;
+  drawRule: DrawRule;
 }
 export interface RoomMember {
   playerId: PlayerId;
@@ -723,7 +730,10 @@ export interface MyState {
   hand: Card[];
   playableCardIds: CardId[];
   canDraw: boolean;
-  canPass: boolean;
+  /**
+   * Pass: keep the card just drawn instead of playing it. Computed by the server from the draw rule (ADR 0017).
+   */
+  canKeepDrawnCard: boolean;
   canCallUno: boolean;
   canChooseColor: boolean;
   penaltyResponse: PenaltyResponseOptions | null;

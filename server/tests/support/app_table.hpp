@@ -48,11 +48,12 @@ inline std::optional<ErrorCode> refusal(const Messages& messages)
 
 // A room of `count` players, everyone ready, in the lobby.
 struct Table {
-    explicit Table(std::size_t count, std::uint64_t seed = 7, core::MatchLength length = core::MatchLength::SingleRound)
+    explicit Table(std::size_t count, std::uint64_t seed = 7, core::MatchLength length = core::MatchLength::SingleRound,
+                   core::DrawRule drawRule = core::DrawRule::Guided)
         : harness(seed)
     {
         players.push_back(harness.helloPlayer());
-        players.front().send(request::CreateRoom{.nickname = "Player0", .settings = patch(length)});
+        players.front().send(request::CreateRoom{.nickname = "Player0", .settings = patch(length, drawRule)});
         code = players.front().room().code;
         for (std::size_t index = 1; index < count; ++index) {
             players.push_back(harness.helloPlayer());
@@ -62,10 +63,11 @@ struct Table {
         clearInboxes();
     }
 
-    static RoomSettingsPatch patch(core::MatchLength length)
+    static RoomSettingsPatch patch(core::MatchLength length, core::DrawRule drawRule = core::DrawRule::Guided)
     {
         RoomSettingsPatch settings;
         settings.matchLength = length;
+        settings.drawRule = drawRule;
         return settings;
     }
 

@@ -25,6 +25,8 @@ enum class DomainError : std::uint8_t {
     // Step 1.4: UNO.
     UnoWindowClosed, // UNO_WINDOW_CLOSED: nobody can be caught right now (or no longer, or not that player)
     CannotCatchSelf,
+    // ADR 0017: guided draw.
+    MustPlay, // ILLEGAL_MOVE / MUST_PLAY: the player has to play a card instead of drawing, or to play the drawn one
 };
 
 } // namespace uno::core

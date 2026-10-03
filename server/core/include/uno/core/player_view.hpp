@@ -47,7 +47,7 @@ struct MyState {
     std::vector<Card> hand;
     std::vector<CardId> playableCardIds;
     bool canDraw{};
-    bool canPass{};
+    bool canKeepDrawnCard{}; // Pass: keep the card just drawn instead of playing it
     bool canCallUno{};
     bool canChooseColor{};
     std::optional<PenaltyResponseOptions> penaltyResponse;
