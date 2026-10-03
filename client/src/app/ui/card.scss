@@ -1,7 +1,6 @@
 :host {
-  --card-w: 104px;
   display: block;
-  width: var(--card-w);
+  width: var(--card-w, 104px);
   aspect-ratio: 5 / 7;
   transition:
     transform var(--dur-base) var(--ease-out),

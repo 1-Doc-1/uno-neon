@@ -1,0 +1,99 @@
+<div class="table">
+  <section class="opponents" aria-label="Adversaires">
+    @for (seat of opponents(); track seat.playerId) {
+      <app-opponent-seat
+        [seat]="seat"
+        [isCurrent]="seat.playerId === view().currentPlayerId"
+        [catchable]="view().me.catchableTargetIds.includes(seat.playerId)"
+        (caught)="catchUno(seat.playerId)"
+      />
+    }
+  </section>
+
+  <section class="center" aria-label="Table">
+    <app-piles
+      [drawPileCount]="view().drawPileCount"
+      [discardTop]="view().discardTop"
+      [currentColor]="view().currentColor"
+      [direction]="view().direction"
+      [pendingDraw]="view().pendingDraw"
+    />
+    <ul class="journal" aria-label="Journal de la partie">
+      @for (line of journal(); track $index) {
+        <li>{{ line }}</li>
+      }
+    </ul>
+  </section>
+
+  <section class="mine" aria-label="Ma main">
+    @if (view().me.penaltyResponse; as penalty) {
+      <app-penalty-bar
+        [options]="penalty"
+        (accepted)="respond('accept')"
+        (challenged)="respond('challenge')"
+      />
+    }
+
+    <p class="turn" [class.mine-turn]="myTurn()" role="status">
+      @if (myTurn()) {
+        À toi de jouer !
+      } @else {
+        Tour de {{ currentName() }}
+      }
+      @if (turnSeconds(); as seconds) {
+        <span class="pill">{{ seconds }} s</span>
+      }
+      @if (mySeat(); as seat) {
+        <span class="pill">{{ seat.score }} pts</span>
+      }
+    </p>
+
+    <app-hand
+      [cards]="view().me.hand"
+      [playableIds]="view().me.playableCardIds"
+      [myTurn]="myTurn()"
+      (played)="play($event)"
+    />
+
+    <div class="actions">
+      <button appNeonButton variant="outline" [disabled]="!view().me.canDraw" (click)="draw()">
+        Piocher
+      </button>
+      <button appNeonButton variant="outline" [disabled]="!view().me.canPass" (click)="pass()">
+        Passer
+      </button>
+      <button
+        type="button"
+        class="uno"
+        [class.active]="view().me.canCallUno"
+        [disabled]="!view().me.canCallUno"
+        (click)="callUno()"
+      >
+        UNO !
+      </button>
+    </div>
+  </section>
+</div>
+
+@if (pendingWild() !== null) {
+  <app-color-picker (picked)="playWild($event)" (cancelled)="pendingWild.set(null)" />
+}
+@if (view().me.canChooseColor) {
+  <app-color-picker [cancellable]="false" (picked)="chooseColor($event)" />
+}
+@if (view().phase === 'roundOver' && view().roundResult; as result) {
+  <app-round-over-dialog
+    [result]="result"
+    [players]="view().players"
+    [meReady]="mySeat()?.isReadyForNextRound ?? false"
+    [secondsLeft]="nextRoundSeconds()"
+    (next)="nextRound()"
+  />
+}
+@if (view().phase === 'matchOver') {
+  <app-match-over-dialog
+    [players]="view().players"
+    [winnerId]="view().matchWinnerId"
+    (left)="leave()"
+  />
+}

@@ -5,12 +5,13 @@ import { NICKNAME_PATTERN } from '../../core/validation';
 import { SessionService } from '../../core/session.service';
 import { GameStore } from '../../state/game-store';
 import { NeonButton } from '../../ui/neon-button';
+import { Table } from '../table/table';
 import { Lobby } from './lobby';
 
 /** Page `/r/:code` : salon (lobby) ou table de jeu selon l'état, et entrée par lien partagé. */
 @Component({
   selector: 'app-room-page',
-  imports: [FormField, NeonButton, Lobby],
+  imports: [FormField, NeonButton, Lobby, Table],
   templateUrl: './room-page.html',
   styleUrl: './room-page.scss',
 })
@@ -25,6 +26,9 @@ export class RoomPage {
     required(path.nickname);
     pattern(path.nickname, NICKNAME_PATTERN);
   });
+  protected readonly inGame = computed(
+    () => this.store.view() !== null && this.store.room()?.phase !== 'lobby',
+  );
   protected readonly canJoin = computed(() => this.store.ready() && this.form.nickname().valid());
 
   constructor() {

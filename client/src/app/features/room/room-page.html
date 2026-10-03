@@ -1,4 +1,4 @@
-<main class="page">
+<main class="page" [class.playing]="inGame()">
   @if (store.loading()) {
     <p class="glass notice">Connexion au serveur…</p>
   } @else if (store.closedReason(); as reason) {
@@ -18,7 +18,15 @@
       <button appNeonButton (click)="goHome()">Retour à l’accueil</button>
     </section>
   } @else if (store.room(); as room) {
-    <app-lobby [room]="room" />
+    @if (store.view(); as view) {
+      @if (room.phase !== 'lobby') {
+        <app-table [view]="view" />
+      } @else {
+        <app-lobby [room]="room" />
+      }
+    } @else {
+      <app-lobby [room]="room" />
+    }
   } @else {
     <section class="glass notice" aria-labelledby="join-title">
       <h1 id="join-title">Rejoindre le salon {{ code().toUpperCase() }}</h1>

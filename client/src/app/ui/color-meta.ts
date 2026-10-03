@@ -42,3 +42,11 @@ export function cardLabel(card: Card): string {
   const rank = RANK_NAME[card.rank];
   return card.color === null ? rank : `${rank} ${COLOR_NAME[card.color].toLowerCase()}`;
 }
+
+/** Caractère de la forme associée à chaque couleur, pour les textes (« Bleu ◆ »). */
+export const SHAPE_CHAR: Record<Color, string> = {
+  red: '▲',
+  yellow: '●',
+  green: '■',
+  blue: '◆',
+};

@@ -1,0 +1,81 @@
+:host {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-3);
+}
+
+.piles {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-5);
+}
+
+.pile {
+  --card-w: 84px;
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+}
+
+// Anneau de lumière de la couleur courante autour de la défausse
+.discard app-card {
+  border-radius: var(--radius-card);
+  box-shadow: var(--glow-lg);
+}
+
+.label {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+.penalty {
+  position: absolute;
+  top: -14px;
+  right: -22px;
+  margin: 0;
+  padding: 2px var(--space-3);
+  border: 2px solid var(--neon-red);
+  border-radius: var(--radius-pill);
+  background: var(--neon-red);
+  color: var(--text-on-neon);
+  font-family: var(--font-display);
+  font-size: var(--fs-lg);
+  font-weight: 900;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin: 0;
+  padding: var(--space-1) var(--space-4);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-pill);
+  background: var(--surface-glass-strong);
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+.color {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.color-name {
+  color: var(--text-primary);
+}
+
+.direction {
+  font-size: var(--fs-lg);
+  color: var(--text-primary);
+}
+
+@media (min-width: 768px) {
+  .pile {
+    --card-w: 128px;
+  }
+}
