@@ -517,10 +517,12 @@ TEST_CASE("A player who is not the host changes nothing: settings and members st
     static_cast<void>(guest.received());
     static_cast<void>(other.received());
 
-    guest.send(request::UpdateSettings{.settings = patchOf([](RoomSettingsPatch& patch) {
-                                           patch.maxPlayers = 10;
-                                           patch.drawRule = uno::core::DrawRule::Official;
-                                       })});
+    guest.send(request::UpdateSettings{
+        .settings = patchOf([](RoomSettingsPatch& patch) {
+            patch.maxPlayers = 10;
+            patch.drawRule = uno::core::DrawRule::Official;
+        }),
+    });
     guest.send(request::Kick{.playerId = other.id()});
 
     const auto replies = guest.received();
