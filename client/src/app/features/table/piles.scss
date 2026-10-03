@@ -24,6 +24,43 @@
   box-shadow: var(--glow-lg);
 }
 
+// La pioche est un bouton : elle ne s'éclaire que lorsque le serveur dit qu'on peut piocher ou garder la carte.
+.deck {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: default;
+  font: inherit;
+
+  &.usable {
+    cursor: pointer;
+    border-radius: var(--radius-card);
+    color: var(--neon-cyan);
+
+    app-card-back {
+      box-shadow: var(--glow-md);
+      border-radius: var(--radius-card);
+      animation: breathe 1.6s ease-in-out infinite;
+    }
+
+    .label {
+      color: var(--text-primary);
+      font-weight: 700;
+    }
+
+    &:hover app-card-back {
+      transform: translateY(-4px);
+    }
+  }
+}
+
+@keyframes breathe {
+  50% {
+    box-shadow: var(--glow-sm);
+  }
+}
+
 .label {
   margin: 0;
   color: var(--text-secondary);

@@ -1,6 +1,11 @@
 import { Component, computed, inject, input, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import type { MatchLength, RoomView, TurnTimerSeconds } from '../../protocol/generated/protocol';
+import type {
+  DrawRule,
+  MatchLength,
+  RoomView,
+  TurnTimerSeconds,
+} from '../../protocol/generated/protocol';
 import { GameStore } from '../../state/game-store';
 import { Avatar } from '../../ui/avatar';
 import { NeonButton } from '../../ui/neon-button';
@@ -17,6 +22,11 @@ const TURN_TIMERS: readonly SegmentOption<TurnTimerSeconds>[] = [
   { value: 15, label: '15 s' },
   { value: 30, label: '30 s' },
   { value: 60, label: '60 s' },
+];
+
+const DRAW_RULES: readonly SegmentOption<DrawRule>[] = [
+  { value: 'guided', label: 'Guidée' },
+  { value: 'official', label: 'Officielle' },
 ];
 
 const MAX_PLAYERS: readonly SegmentOption<number>[] = [2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => ({
@@ -40,6 +50,7 @@ export class Lobby {
   protected readonly matchLengths = MATCH_LENGTHS;
   protected readonly turnTimers = TURN_TIMERS;
   protected readonly maxPlayers = MAX_PLAYERS;
+  protected readonly drawRules = DRAW_RULES;
 
   /** Joueur dont l'exclusion attend une confirmation. */
   protected readonly kickCandidate = signal<string | null>(null);
