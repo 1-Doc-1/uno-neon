@@ -6,6 +6,7 @@
 #include "uno/core/player_action.hpp"
 #include "uno/core/player_id.hpp"
 #include "uno/core/player_view.hpp"
+#include "uno/core/scoring.hpp"
 #include "uno/core/turn_phase.hpp"
 #include "uno/testing/environment.hpp"
 #include "uno/testing/fixtures.hpp"
@@ -20,6 +21,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <span>
 #include <string>
 #include <utility>
 #include <variant>
@@ -130,10 +132,7 @@ private:
     // Someone leaves the match for good: the engine must stay consistent, and with two players left it ends by forfeit.
     void removeSomeoneSometimes()
     {
-        // Not between two rounds: the points of a finished round are the value of the hands left on the table, which
-        // is what the invariants compare them to (the scores of the players who left are tracked separately).
-        const bool betweenRounds = std::holds_alternative<RoundOver>(match_.round().phase());
-        if (match_.winner().has_value() || betweenRounds || pick(1000) >= kRemovalPerMille) {
+        if (match_.winner().has_value() || pick(1000) >= kRemovalPerMille) {
             return;
         }
         const auto leaver = anyPlayer();
@@ -199,10 +198,22 @@ private:
         for (const auto& event : *result) {
             if (const auto* ended = std::get_if<RoundEnded>(&event)) {
                 pointsScored_ += ended->points;
+                requirePointsAreTheHandsLeft(ended->points);
             }
         }
         checkState();
         checkEvents(*result);
+    }
+
+    // At the very moment a round ends, its points are exactly the value of the cards left in the hands.
+    void requirePointsAreTheHandsLeft(std::uint32_t points) const
+    {
+        std::uint32_t handsValue = 0;
+        for (const auto& seated : match_.round().seats()) {
+            handsValue +=
+                uno::core::handPoints(match_.round().hand(seated).value_or(std::span<const uno::core::Card>{}));
+        }
+        REQUIRE(points == handsValue);
     }
 
     // Every event of an accepted action, projected for a random player, shows them nothing they may not see.
@@ -271,6 +282,7 @@ TEST_CASE("Random matches keep every engine invariant", "[core][simulation]")
 {
     const auto games = gamesToSimulate();
     for (std::uint64_t seed = 0; seed < games; ++seed) {
+        INFO("seed " << seed);
         Simulation simulation{seed};
         simulation.run();
         REQUIRE(simulation.match().winner().has_value());
