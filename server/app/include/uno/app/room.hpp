@@ -17,6 +17,14 @@
 
 namespace uno::app {
 
+// The clock of an open UNO window, which the engine does not have (ADR 0018).
+struct UnoWindowTiming {
+    core::PlayerId target;
+    std::int64_t graceEndsAt{};
+    std::int64_t expiresAt{};
+    TimerHandle expiryTimer;
+};
+
 struct Member {
     core::PlayerId id;
     std::string nickname;
@@ -65,6 +73,9 @@ public:
     std::unordered_map<std::string, TimerHandle> graceTimers; // by player id: disconnected, waiting to come back
     std::optional<std::int64_t> turnDeadline;                 // epoch ms, shown in the views
     std::optional<std::int64_t> nextRoundDeadline;
+    std::vector<UnoWindowTiming> unoWindows; // mirrors Round::unoWindows(), with times
+
+    [[nodiscard]] const UnoWindowTiming* findUnoWindow(const core::PlayerId& target) const;
 };
 
 } // namespace uno::app

@@ -194,11 +194,11 @@ TEST_CASE("Winning leaves no UNO window behind", "[core][round][roundEnd]")
     SeededRandomSource random{kSeed};
     auto round = roundWhereFirstPlayerHoldsOnly(coloredCard(kLastCardId, Color::Red, Rank::Skip), {}, random);
     // After the sixth Skip, player-0 left themselves with one card without announcing: window open.
-    REQUIRE(round.unoWindow() == player(0));
+    REQUIRE(round.hasUnoWindowOn(player(0)));
 
     REQUIRE(round.apply(player(0), playLastCard(), random).has_value());
 
-    REQUIRE(round.unoWindow() == std::nullopt);
+    REQUIRE(round.unoWindows().empty());
     REQUIRE(round.apply(player(1), CatchUno{.target = player(0)}, random).error() == DomainError::InvalidPhase);
 }
 

@@ -197,9 +197,6 @@ std::expected<std::vector<DomainEvent>, DomainError> Round::applyPlayCard(const 
         return std::unexpected{DomainError::ColorMismatch};
     }
 
-    // The next turn has begun: nobody can be caught for the previous play any more (ADR 0011).
-    unoWindow_.reset();
-
     const auto previousColor = currentColor_;
 
     hand.erase(found);
@@ -251,8 +248,6 @@ std::expected<std::vector<DomainEvent>, DomainError> Round::applyDrawCard(const 
     if (!std::holds_alternative<AwaitingPlay>(phase_)) {
         return std::unexpected{DomainError::InvalidPhase};
     }
-    unoWindow_.reset(); // The next turn has begun (ADR 0011).
-
     auto drawn = drawCards(drawPile_, discardPile_, 1, random);
     giveCards(turnOrder_.currentSeat(), drawn.cards);
 
@@ -381,11 +376,11 @@ bool Round::canCallUno(const PlayerId& player) const
     if (!seat || unoCalled_.at(*seat)) {
         return false;
     }
-    const bool inWindow = unoWindow_ == player;
+    const bool downToOneCard = hands_.at(*seat).size() == 1;
     const bool aboutToPlayWithTwoCards =
         player == turnOrder_.current() && hands_.at(*seat).size() == 2 &&
         (std::holds_alternative<AwaitingPlay>(phase_) || std::holds_alternative<AwaitingDrawnCardDecision>(phase_));
-    return inWindow || aboutToPlayWithTwoCards;
+    return downToOneCard || aboutToPlayWithTwoCards;
 }
 
 std::expected<std::vector<DomainEvent>, DomainError> Round::applyCallUno(const PlayerId& actor)
@@ -398,9 +393,7 @@ std::expected<std::vector<DomainEvent>, DomainError> Round::applyCallUno(const P
     if (!canCallUno(actor)) {
         return std::vector<DomainEvent>{};
     }
-    if (unoWindow_ == actor) {
-        unoWindow_.reset();
-    }
+    closeUnoWindow(actor);
     unoCalled_.at(*seat) = true;
     return std::vector<DomainEvent>{UnoCalled{.player = actor}};
 }
@@ -412,7 +405,7 @@ std::expected<std::vector<DomainEvent>, DomainError> Round::applyCatchUno(const 
         return std::unexpected{DomainError::UnknownPlayer};
     }
     // The first catch closes the window, so a second, simultaneous one lands here (SPEC §5).
-    if (unoWindow_ != action.target) {
+    if (!hasUnoWindowOn(action.target)) {
         return std::unexpected{DomainError::UnoWindowClosed};
     }
     if (actor == action.target) {
@@ -431,17 +424,25 @@ void Round::giveCards(std::size_t seat, std::span<const Card> cards)
     }
     std::ranges::copy(cards, std::back_inserter(hands_.at(seat)));
     unoCalled_.at(seat) = false;
-    if (unoWindow_.has_value() && turnOrder_.seatOf(*unoWindow_) == seat) {
-        unoWindow_.reset();
-    }
+    closeUnoWindow(turnOrder_.seats().subspan(seat, 1).front());
+}
+
+bool Round::hasUnoWindowOn(const PlayerId& player) const
+{
+    return std::ranges::find(unoWindows_, player) != unoWindows_.end();
+}
+
+void Round::closeUnoWindow(const PlayerId& player)
+{
+    std::erase(unoWindows_, player);
 }
 
 void Round::openUnoWindowIfNeeded(const PlayerId& player, std::size_t seat)
 {
     if (hands_.at(seat).size() != 1) {
         unoCalled_.at(seat) = false;
-    } else if (!unoCalled_.at(seat)) {
-        unoWindow_ = player;
+    } else if (!unoCalled_.at(seat) && !hasUnoWindowOn(player)) {
+        unoWindows_.push_back(player);
     }
 }
 
@@ -470,6 +471,7 @@ void Round::endRound(const PlayerId& winner, Rank rank, RandomSource& random, st
         points += handPoints(hand);
     }
     phase_ = RoundOver{.winner = winner, .points = points};
+    unoWindows_.clear();
     events.emplace_back(RoundEnded{.winner = winner, .points = points});
 }
 
@@ -564,9 +566,7 @@ std::expected<std::vector<DomainEvent>, DomainError> Round::removePlayer(const P
     drawPile_.placeUnderneath(std::move(hands_.at(*seat)));
     hands_.erase(hands_.begin() + static_cast<std::ptrdiff_t>(*seat));
     unoCalled_.erase(unoCalled_.begin() + static_cast<std::ptrdiff_t>(*seat));
-    if (unoWindow_ == player) {
-        unoWindow_.reset();
-    }
+    closeUnoWindow(player);
     if (dealer_ == player) {
         dealer_ = previousSeatPlayer;
     }

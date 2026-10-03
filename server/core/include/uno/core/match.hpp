@@ -69,6 +69,9 @@ public:
     [[nodiscard]] std::expected<std::vector<DomainEvent>, DomainError> removePlayer(const PlayerId& player,
                                                                                     RandomSource& random);
 
+    // Closes the UNO window on `player` (its time ran out, see Round::closeUnoWindow). Rejected once the match is over.
+    [[nodiscard]] std::expected<void, DomainError> closeUnoWindow(const PlayerId& player);
+
     // Deals the next round, the dealer moving one seat clockwise. Only legal between two rounds of a
     // match that is not over (InvalidPhase otherwise). Returns the new round's starting events.
     [[nodiscard]] std::expected<std::vector<DomainEvent>, DomainError> startNextRound(RandomSource& random);

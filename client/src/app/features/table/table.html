@@ -4,7 +4,7 @@
       <app-opponent-seat
         [seat]="seat"
         [isCurrent]="seat.playerId === view().currentPlayerId"
-        [catchable]="view().me.catchableTargetIds.includes(seat.playerId)"
+        [catchable]="canCatch(seat.playerId)"
         (caught)="catchUno(seat.playerId)"
       />
     }

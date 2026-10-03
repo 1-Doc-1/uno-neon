@@ -117,7 +117,7 @@ TEST_CASE("Playing the second-to-last card without announcing UNO opens the UNO 
 
     leaveFirstPlayerWithOneCard(round, random);
 
-    REQUIRE(round.unoWindow() == player(0));
+    REQUIRE(round.hasUnoWindowOn(player(0)));
     REQUIRE(!round.hasCalledUno(player(0)));
     requireRoundInvariants(round);
 }
@@ -132,7 +132,7 @@ TEST_CASE("Announcing UNO before playing the second-to-last card opens no window
     REQUIRE(events.has_value());
     REQUIRE(*events == std::vector<DomainEvent>{UnoCalled{.player = player(0)}});
     leaveFirstPlayerWithOneCard(round, random);
-    REQUIRE(round.unoWindow() == std::nullopt);
+    REQUIRE(round.unoWindows().empty());
     REQUIRE(round.hasCalledUno(player(0)));
     REQUIRE(round.apply(player(1), CatchUno{.target = player(0)}, random).error() == DomainError::UnoWindowClosed);
     requireRoundInvariants(round);
@@ -148,7 +148,7 @@ TEST_CASE("Announcing UNO in the window closes it", "[core][round][uno]")
 
     REQUIRE(events.has_value());
     REQUIRE(*events == std::vector<DomainEvent>{UnoCalled{.player = player(0)}});
-    REQUIRE(round.unoWindow() == std::nullopt);
+    REQUIRE(round.unoWindows().empty());
     REQUIRE(round.hasCalledUno(player(0)));
     REQUIRE(round.apply(player(1), CatchUno{.target = player(0)}, random).error() == DomainError::UnoWindowClosed);
     requireRoundInvariants(round);
@@ -168,34 +168,10 @@ TEST_CASE("Catching UNO makes the offender draw two cards and closes the window"
                            PenaltyCardsDrawn{.player = player(0), .cards = {CardId{41}, CardId{42}}},
                        });
     REQUIRE(handOf(round, player(0)).size() == 3);
-    REQUIRE(round.unoWindow() == std::nullopt);
+    REQUIRE(round.unoWindows().empty());
     // The first catch wins: a second, simultaneous one finds the window closed (SPEC §5).
     REQUIRE(round.apply(player(1), CatchUno{.target = player(0)}, random).error() == DomainError::UnoWindowClosed);
     requireRoundInvariants(round);
-}
-
-TEST_CASE("The UNO window closes when the next player draws", "[core][round][uno]")
-{
-    SeededRandomSource random{kSeed};
-    auto round = roundWithTwoCardsLeft(random);
-    leaveFirstPlayerWithOneCard(round, random);
-
-    REQUIRE(round.apply(player(1), DrawCard{}, random).has_value());
-
-    REQUIRE(round.unoWindow() == std::nullopt);
-    REQUIRE(round.apply(player(1), CatchUno{.target = player(0)}, random).error() == DomainError::UnoWindowClosed);
-}
-
-TEST_CASE("The UNO window closes when the next player plays", "[core][round][uno]")
-{
-    SeededRandomSource random{kSeed};
-    auto round = roundWithTwoCardsLeft(random);
-    leaveFirstPlayerWithOneCard(round, random);
-
-    // player-1 holds red Fives, playable on the red Five just played.
-    play(round, random, kPlayerOneRedFiveId);
-
-    REQUIRE(round.unoWindow() == std::nullopt);
 }
 
 TEST_CASE("A rejected action does not close the UNO window", "[core][round][uno]")
@@ -209,7 +185,7 @@ TEST_CASE("A rejected action does not close the UNO window", "[core][round][uno]
             DomainError::CardNotInHand);
     REQUIRE(round.apply(player(0), DrawCard{}, random).error() == DomainError::NotYourTurn);
 
-    REQUIRE(round.unoWindow() == player(0));
+    REQUIRE(round.hasUnoWindowOn(player(0)));
 }
 
 TEST_CASE("A Skip left as the last-but-one play keeps the window open for the other player", "[core][round][uno]")
@@ -220,7 +196,7 @@ TEST_CASE("A Skip left as the last-but-one play keeps the window open for the ot
     play(round, random, kSecondToLastId);
 
     REQUIRE(round.currentPlayer() == player(0));
-    REQUIRE(round.unoWindow() == player(0));
+    REQUIRE(round.hasUnoWindowOn(player(0)));
     REQUIRE(round.apply(player(1), CatchUno{.target = player(0)}, random).has_value());
     requireRoundInvariants(round);
 }
@@ -236,7 +212,7 @@ TEST_CASE("Invalid catches are rejected", "[core][round][uno]")
     REQUIRE(round.apply(player(0), CatchUno{.target = player(0)}, random).error() == DomainError::CannotCatchSelf);
     REQUIRE(round.apply(player(1), CatchUno{.target = player(1)}, random).error() == DomainError::UnoWindowClosed);
     REQUIRE(round.apply(player(7), CatchUno{.target = player(0)}, random).error() == DomainError::UnknownPlayer);
-    REQUIRE(round.unoWindow() == player(0));
+    REQUIRE(round.hasUnoWindowOn(player(0)));
 }
 
 TEST_CASE("Announcing UNO when it is not due has no effect", "[core][round][uno]")
@@ -285,7 +261,7 @@ TEST_CASE("Announcing UNO never saves someone else", "[core][round][uno]")
 
     REQUIRE(fromOther.has_value());
     REQUIRE(fromOther->empty());
-    REQUIRE(round.unoWindow() == player(0));
+    REQUIRE(round.hasUnoWindowOn(player(0)));
 }
 
 TEST_CASE("Unknown players cannot announce UNO", "[core][round][uno]")
@@ -337,7 +313,7 @@ TEST_CASE("The offender can be caught while a Wild Draw Four penalty is pending"
     SeededRandomSource random{kSeed};
     auto round = roundWithTwoCardsLeft(wildCard(kSecondToLastId, Rank::WildDrawFour), greenSevensFollowing(), random);
     play(round, random, kSecondToLastId, Color::Red);
-    REQUIRE(round.unoWindow() == player(0));
+    REQUIRE(round.hasUnoWindowOn(player(0)));
 
     const auto events = round.apply(player(1), CatchUno{.target = player(0)}, random);
 
@@ -355,7 +331,7 @@ TEST_CASE("A lost challenge closes the window: the offender no longer holds one 
 
     REQUIRE(round.apply(player(1), RespondPenalty{.response = PenaltyResponse::Challenge}, random).has_value());
 
-    REQUIRE(round.unoWindow() == std::nullopt);
+    REQUIRE(round.unoWindows().empty());
     REQUIRE(handOf(round, player(0)).size() == 5);
     requireRoundInvariants(round);
 }
@@ -383,6 +359,46 @@ TEST_CASE("The offender can still be caught after the next player has drawn", "[
     leaveFirstPlayerWithOneCard(round, random);
     REQUIRE(round.apply(player(1), DrawCard{}, random).has_value());
 
-    REQUIRE(round.unoWindow() == player(0));
+    REQUIRE(round.hasUnoWindowOn(player(0)));
     REQUIRE(round.apply(player(1), CatchUno{.target = player(0)}, random).has_value());
+}
+
+TEST_CASE("Announcing UNO at one card is still accepted once the window has run out of time",
+          "[core][round][uno][window]")
+{
+    SeededRandomSource random{kSeed};
+    auto round = roundWithTwoCardsLeft(random);
+    leaveFirstPlayerWithOneCard(round, random);
+    round.closeUnoWindow(player(0));
+
+    REQUIRE(round.unoWindows().empty());
+    REQUIRE(round.apply(player(1), CatchUno{.target = player(0)}, random).error() == DomainError::UnoWindowClosed);
+    REQUIRE(round.canCallUno(player(0)));
+    const auto events = round.apply(player(0), CallUno{}, random);
+    REQUIRE(events.has_value());
+    REQUIRE(*events == std::vector<DomainEvent>{UnoCalled{.player = player(0)}});
+    requireRoundInvariants(round);
+}
+
+TEST_CASE("A player caught once cannot be caught again until they are back to one card", "[core][round][uno][window]")
+{
+    SeededRandomSource random{kSeed};
+    auto round = roundWithTwoCardsLeft(random);
+    leaveFirstPlayerWithOneCard(round, random);
+    REQUIRE(round.apply(player(1), CatchUno{.target = player(0)}, random).has_value());
+
+    REQUIRE(round.unoWindows().empty());
+    REQUIRE(round.apply(player(1), CatchUno{.target = player(0)}, random).error() == DomainError::UnoWindowClosed);
+}
+
+TEST_CASE("Closing a window nobody has opened does nothing", "[core][round][uno][window]")
+{
+    SeededRandomSource random{kSeed};
+    auto round = roundWithTwoCardsLeft(random);
+
+    round.closeUnoWindow(player(0));
+    round.closeUnoWindow(player(7));
+
+    REQUIRE(round.unoWindows().empty());
+    requireRoundInvariants(round);
 }

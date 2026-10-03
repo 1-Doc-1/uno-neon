@@ -82,6 +82,15 @@ std::expected<std::vector<DomainEvent>, DomainError> Match::apply(const PlayerId
     return events;
 }
 
+std::expected<void, DomainError> Match::closeUnoWindow(const PlayerId& player)
+{
+    if (progress_.winner.has_value()) {
+        return std::unexpected{DomainError::InvalidPhase};
+    }
+    round_.closeUnoWindow(player);
+    return {};
+}
+
 std::expected<std::vector<DomainEvent>, DomainError> Match::startNextRound(RandomSource& random)
 {
     if (progress_.winner.has_value() || !std::holds_alternative<RoundOver>(round_.phase())) {

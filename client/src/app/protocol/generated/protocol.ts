@@ -114,7 +114,8 @@ export type ErrorCode =
   | 'INVALID_PHASE'
   | 'CARD_NOT_IN_HAND'
   | 'ILLEGAL_MOVE'
-  | 'UNO_WINDOW_CLOSED';
+  | 'UNO_WINDOW_CLOSED'
+  | 'UNO_GRACE_PERIOD';
 /**
  * Detail of an ILLEGAL_MOVE error.
  */
@@ -702,6 +703,10 @@ export interface PlayerView {
    * In phase roundOver: when the next round starts automatically (server clock).
    */
   nextRoundDeadline: EpochMillis | null;
+  /**
+   * Players holding one unannounced card, oldest first (ADR 0018). Only the target may announce until graceEndsAt; from then until expiresAt anybody else may catch them. Server clock.
+   */
+  unoWindows: UnoWindow[];
   round: number;
   settings: RoomSettings;
   roundResult: RoundResult | null;
@@ -722,7 +727,6 @@ export interface MyState {
   canCallUno: boolean;
   canChooseColor: boolean;
   penaltyResponse: PenaltyResponseOptions | null;
-  catchableTargetIds: PlayerId[];
 }
 /**
  * Present when the viewer is targeted by a pending draw penalty.
@@ -746,6 +750,11 @@ export interface SeatView {
   isHost: boolean;
   hasCalledUno: boolean;
   isReadyForNextRound: boolean;
+}
+export interface UnoWindow {
+  targetId: PlayerId;
+  graceEndsAt: EpochMillis;
+  expiresAt: EpochMillis;
 }
 export interface RoundResult {
   winnerId: PlayerId;

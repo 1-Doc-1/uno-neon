@@ -487,6 +487,20 @@ Application::Outcome Application::handle(ConnectionId connection, const request:
 
 Application::Outcome Application::handle(ConnectionId connection, const request::CatchUno& request)
 {
+    // During the grace period the offender is the only one who may still announce (ADR 0018). The engine has no
+    // clock, so the application is the one to say "too early".
+    const auto session = sessionOf(connection);
+    if (!session) {
+        return std::unexpected(session.error());
+    }
+    const auto room = roomOf(**session);
+    if (!room) {
+        return std::unexpected(room.error());
+    }
+    const UnoWindowTiming* const window = (*room)->findUnoWindow(request.targetId);
+    if (window != nullptr && (*session)->playerId != request.targetId && clock_->nowMillis() < window->graceEndsAt) {
+        return fail(ErrorCode::UnoGracePeriod, "The player may still announce UNO");
+    }
     return play(connection, core::CatchUno{.target = request.targetId});
 }
 
@@ -581,6 +595,7 @@ void Application::broadcastGame(Room& room, std::span<const core::DomainEvent> e
     }
     const core::Match& match = *room.match;
     ++room.stateVersion;
+    syncUnoWindows(room);
     armGameTimers(room);
     const std::int64_t serverTime = clock_->nowMillis();
     for (const Member& member : room.members) {
@@ -601,6 +616,13 @@ response::GameView Application::viewOf(const Room& room, const core::Match& matc
     view.settings = room.settings;
     view.turnDeadline = room.turnDeadline;
     view.nextRoundDeadline = room.nextRoundDeadline;
+    for (const UnoWindowTiming& window : room.unoWindows) {
+        view.unoWindows.push_back(response::UnoWindowInfo{
+            .targetId = window.target,
+            .graceEndsAt = window.graceEndsAt,
+            .expiresAt = window.expiresAt,
+        });
+    }
     // The viewer is a member of a room whose match is running: the engine knows them.
     if (auto projected = core::project(match, viewer)) {
         view.game = std::move(*projected);

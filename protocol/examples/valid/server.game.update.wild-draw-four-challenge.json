@@ -87,8 +87,7 @@
         "canPass": false,
         "canCallUno": false,
         "canChooseColor": false,
-        "penaltyResponse": null,
-        "catchableTargetIds": []
+        "penaltyResponse": null
       },
       "players": [
         {
@@ -140,6 +139,7 @@
       "pendingDraw": 0,
       "turnDeadline": 1790000030000,
       "nextRoundDeadline": null,
+      "unoWindows": [],
       "round": 1,
       "settings": {
         "stacking": "off",

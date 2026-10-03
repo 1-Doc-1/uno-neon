@@ -39,6 +39,11 @@
       "description": "In phase roundOver: when the next round starts automatically (server clock).",
       "anyOf": [{ "$ref": "common.schema.json#/$defs/EpochMillis" }, { "type": "null" }]
     },
+    "unoWindows": {
+      "description": "Players holding one unannounced card, oldest first (ADR 0018). Only the target may announce until graceEndsAt; from then until expiresAt anybody else may catch them. Server clock.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/UnoWindow" }
+    },
     "round": { "type": "integer", "minimum": 1 },
     "settings": { "$ref": "common.schema.json#/$defs/RoomSettings" },
     "roundResult": {
@@ -62,6 +67,7 @@
     "pendingDraw",
     "turnDeadline",
     "nextRoundDeadline",
+    "unoWindows",
     "round",
     "settings",
     "roundResult",
@@ -101,10 +107,6 @@
         "canChooseColor": { "type": "boolean" },
         "penaltyResponse": {
           "anyOf": [{ "$ref": "#/$defs/PenaltyResponseOptions" }, { "type": "null" }]
-        },
-        "catchableTargetIds": {
-          "type": "array",
-          "items": { "$ref": "common.schema.json#/$defs/PlayerId" }
         }
       },
       "required": [
@@ -115,9 +117,19 @@
         "canPass",
         "canCallUno",
         "canChooseColor",
-        "penaltyResponse",
-        "catchableTargetIds"
+        "penaltyResponse"
       ],
+      "additionalProperties": false
+    },
+    "UnoWindow": {
+      "title": "UnoWindow",
+      "type": "object",
+      "properties": {
+        "targetId": { "$ref": "common.schema.json#/$defs/PlayerId" },
+        "graceEndsAt": { "$ref": "common.schema.json#/$defs/EpochMillis" },
+        "expiresAt": { "$ref": "common.schema.json#/$defs/EpochMillis" }
+      },
+      "required": ["targetId", "graceEndsAt", "expiresAt"],
       "additionalProperties": false
     },
     "PenaltyResponseOptions": {

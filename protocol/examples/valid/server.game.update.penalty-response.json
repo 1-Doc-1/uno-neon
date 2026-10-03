@@ -76,8 +76,7 @@
           "amount": 4,
           "canChallenge": false,
           "canStack": true
-        },
-        "catchableTargetIds": []
+        }
       },
       "players": [
         {
@@ -129,6 +128,7 @@
       "pendingDraw": 4,
       "turnDeadline": 1790000030000,
       "nextRoundDeadline": null,
+      "unoWindows": [],
       "round": 1,
       "settings": {
         "stacking": "mixed",

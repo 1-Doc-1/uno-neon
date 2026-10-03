@@ -51,7 +51,6 @@ struct MyState {
     bool canCallUno{};
     bool canChooseColor{};
     std::optional<PenaltyResponseOptions> penaltyResponse;
-    std::vector<PlayerId> catchableTargetIds;
 
     bool operator==(const MyState&) const = default;
 };

@@ -91,8 +91,8 @@ Objectifs de qualité, par ordre de priorité :
   - Pendant la contestation, seul le contestataire voit la main du poseur (information révélée par la règle elle-même), le temps d'afficher le verdict.
 
 **UNO**
-- Un joueur qui pose son avant-dernière carte doit annoncer « UNO ». Il peut l'annoncer juste avant de poser sa carte, ou juste après, tant que le joueur suivant n'a pas commencé son tour.
-- Si un autre joueur le « prend » (bouton « Contre-UNO ») avant que le joueur suivant ne commence son tour (jouer ou piocher), le fautif pioche 2 cartes. Le premier contre-UNO valide ferme la fenêtre.
+- Un joueur qui pose son avant-dernière carte doit annoncer « UNO ». Il peut l'annoncer pendant son tour quand il a 2 cartes (avant de poser ; l'annonce est annulée s'il ne descend pas à 1 carte), ou à 1 carte tant qu'il n'a pas été contré.
+- **Fenêtre de contre-UNO** (ADR 0018) : elle s'ouvre quand un joueur passe à 1 carte sans avoir annoncé. Pendant **2 s de grâce**, lui seul peut encore annoncer (une connexion lente ne le pénalise pas). Ensuite, tout autre joueur peut le « prendre » (bouton « Contre-UNO ») jusqu'à **15 s** après l'ouverture, même si la partie continue ; le fautif pioche 2 cartes. Le premier contre-UNO valide ferme la fenêtre, les suivants sont ignorés. Elle se ferme aussi quand le joueur annonce, n'a plus exactement 1 carte, ou à l'échéance.
 - Annoncer UNO sans y avoir droit n'a aucun effet (le bouton n'est simplement pas proposé).
 
 **Pioche vide** : on remélange la défausse sauf la carte du dessus pour reformer la pioche. Si pioche + défausse ne suffisent pas pour une pénalité, le joueur pioche ce qui reste (pas d'erreur).
@@ -132,7 +132,7 @@ Interactions à gérer explicitement (et à tester) :
 - `sevenZero` à 2 joueurs : le 7 échange forcément avec l'adversaire ; le 0 échange aussi les deux mains.
 - Un 7 posé comme dernière carte : pas d'échange, la manche se termine.
 - Contre-UNO sur un joueur qui s'est déconnecté : autorisé.
-- Deux contre-UNO simultanés : le premier traité gagne, le second reçoit `UNO_WINDOW_CLOSED`.
+- Deux contre-UNO simultanés : le premier traité gagne, le second reçoit `UNO_WINDOW_CLOSED`. Un contre-UNO pendant la grâce de 2 s reçoit `UNO_GRACE_PERIOD`. Plusieurs joueurs peuvent avoir une fenêtre ouverte en même temps.
 - Revanche : même salon, mêmes joueurs connectés, scores remis à zéro.
 
 ## 6. Architecture globale
@@ -267,13 +267,13 @@ interface PlayerView {
     playerId: string; hand: Card[]; playableCardIds: number[];
     canDraw: boolean; canPass: boolean; canCallUno: boolean;
     penaltyResponse: { amount: number; canChallenge: boolean; canStack: boolean } | null;
-    catchableTargetIds: string[];
   };
   players: Array<{ playerId: string; nickname: string; seat: number; cardCount: number; score: number;
                    isConnected: boolean; isBot: boolean; isHost: boolean; hasCalledUno: boolean }>;
   currentPlayerId: string; direction: "clockwise" | "counterClockwise";
   currentColor: Color; discardTop: Card; drawPileCount: number;
   pendingDraw: number; turnDeadline: number | null; // epoch ms, horloge serveur
+  unoWindows: Array<{ targetId: string; graceEndsAt: number; expiresAt: number }>; // fenêtres de contre-UNO ouvertes (ADR 0018), heure serveur
   round: number; settings: RoomSettings;
   roundResult: { winnerId: string; points: number; revealedHands: Record<string, Card[]> } | null;
 }
@@ -281,7 +281,7 @@ interface PlayerView {
 `ClientEvent` (union discriminée par `kind`) : `cardPlayed`, `cardsDrawn` (`cards` présent seulement pour celui qui pioche, sinon `count`), `turnChanged`, `playerSkipped`, `directionChanged`, `colorChosen`, `penaltyStacked`, `challengeResolved`, `unoCalled`, `unoCaught`, `handsSwapped`, `handsRotated`, `deckReshuffled`, `roundEnded`, `matchEnded`, `playerDisconnected`, `playerReconnected`, `hostChanged`.
 
 ### 8.6 Codes d'erreur
-`MALFORMED_MESSAGE`, `UNKNOWN_TYPE`, `UNSUPPORTED_VERSION`, `MESSAGE_TOO_LARGE`, `RATE_LIMITED`, `SESSION_REQUIRED`, `SESSION_EXPIRED`, `NICKNAME_INVALID`, `NICKNAME_TAKEN`, `ROOM_NOT_FOUND`, `ROOM_FULL`, `MATCH_IN_PROGRESS`, `NOT_HOST`, `NOT_ENOUGH_PLAYERS`, `PLAYERS_NOT_READY`, `NOT_YOUR_TURN`, `INVALID_PHASE`, `CARD_NOT_IN_HAND`, `ILLEGAL_MOVE` (avec `details.reason` : `COLOR_MISMATCH`, `WILD_DRAW_FOUR_ILLEGAL`, `COLOR_REQUIRED`, `SWAP_TARGET_REQUIRED`, `JUMP_IN_TOO_LATE`, `CANNOT_STACK`…), `UNO_WINDOW_CLOSED`.
+`MALFORMED_MESSAGE`, `UNKNOWN_TYPE`, `UNSUPPORTED_VERSION`, `MESSAGE_TOO_LARGE`, `RATE_LIMITED`, `SESSION_REQUIRED`, `SESSION_EXPIRED`, `NICKNAME_INVALID`, `NICKNAME_TAKEN`, `ROOM_NOT_FOUND`, `ROOM_FULL`, `MATCH_IN_PROGRESS`, `NOT_HOST`, `NOT_ENOUGH_PLAYERS`, `PLAYERS_NOT_READY`, `NOT_YOUR_TURN`, `INVALID_PHASE`, `CARD_NOT_IN_HAND`, `ILLEGAL_MOVE` (avec `details.reason` : `COLOR_MISMATCH`, `WILD_DRAW_FOUR_ILLEGAL`, `COLOR_REQUIRED`, `SWAP_TARGET_REQUIRED`, `JUMP_IN_TOO_LATE`, `CANNOT_STACK`…), `UNO_WINDOW_CLOSED`, `UNO_GRACE_PERIOD`.
 Les messages d'erreur sont en anglais technique ; **le client traduit chaque code en message français clair**.
 
 ## 9. Serveur réseau (C++)

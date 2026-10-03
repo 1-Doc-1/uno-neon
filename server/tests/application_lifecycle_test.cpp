@@ -282,24 +282,6 @@ TEST_CASE("A move made in time disarms the old timer", "[app][lifecycle][turn]")
     REQUIRE(table.room().match->round().currentPlayer() == after);
 }
 
-TEST_CASE("A timed-out turn closes the UNO window like any draw would", "[app][lifecycle][turn]")
-{
-    bool seenOpenWindow = false;
-    for (std::uint64_t seed = 1; seed <= 12 && !seenOpenWindow; ++seed) {
-        Table table(3, seed);
-        table.start();
-        if (!playUntil(table, [](const core::Round& round) { return round.unoWindow().has_value(); })) {
-            continue;
-        }
-        seenOpenWindow = true;
-
-        table.harness.scheduler.advance(31s);
-
-        REQUIRE_FALSE(table.room().match->round().unoWindow().has_value());
-    }
-    REQUIRE(seenOpenWindow);
-}
-
 TEST_CASE("A pending penalty is accepted when the turn times out", "[app][lifecycle][turn]")
 {
     bool seen = false;

@@ -97,6 +97,14 @@ export class Table {
     void this.store.pass();
   }
 
+  /** Le serveur décide ; on n'affiche le bouton qu'une fois la grâce de 2 s écoulée. */
+  protected canCatch(playerId: string): boolean {
+    const serverNow = this.now() + this.store.serverClockOffset();
+    return this.view().unoWindows.some(
+      (window) => window.targetId === playerId && serverNow >= window.graceEndsAt,
+    );
+  }
+
   protected callUno(): void {
     void this.store.callUno();
   }

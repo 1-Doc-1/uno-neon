@@ -31,6 +31,7 @@ enum class ErrorCode : std::uint8_t {
     CardNotInHand,
     IllegalMove,
     UnoWindowClosed,
+    UnoGracePeriod, // the offender is still the only one who may announce (ADR 0018)
 };
 
 // Detail of an IllegalMove error (protocol `IllegalMoveReason`).

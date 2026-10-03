@@ -171,6 +171,7 @@ struct WireNames<app::ErrorCode> {
         WireName{.value = app::ErrorCode::CardNotInHand, .name = "CARD_NOT_IN_HAND"},
         WireName{.value = app::ErrorCode::IllegalMove, .name = "ILLEGAL_MOVE"},
         WireName{.value = app::ErrorCode::UnoWindowClosed, .name = "UNO_WINDOW_CLOSED"},
+        WireName{.value = app::ErrorCode::UnoGracePeriod, .name = "UNO_GRACE_PERIOD"},
     };
 };
 

@@ -32,6 +32,8 @@ struct Timeouts {
     std::chrono::milliseconds matchOverInactivity{std::chrono::minutes(5)}; // a finished match closes
     std::chrono::milliseconds sessionIdle{std::chrono::minutes(10)};        // a session nobody uses is forgotten
     std::chrono::milliseconds nextRound{std::chrono::seconds(30)};          // the next round starts anyway
+    std::chrono::milliseconds unoGrace{std::chrono::seconds(2)};            // only the offender may announce UNO
+    std::chrono::milliseconds unoWindow{std::chrono::seconds(15)};          // from its opening, anybody may catch
 };
 
 // The use cases of the server: sessions, rooms and (from step 2.4) matches. It reacts to what the
@@ -129,6 +131,9 @@ private:
     // ---- timers (application_lifecycle.cpp) ----
     void scheduleRoomExpiry(Room& room);
     void armGameTimers(Room& room);
+    // Gives the windows the engine opened their times and timers, and forgets the ones it closed.
+    void syncUnoWindows(Room& room);
+    void onUnoWindowExpired(const RoomCode& code, const core::PlayerId& target, std::int64_t expiresAt);
     void startGraceTimer(Room& room, const core::PlayerId& player);
     void scheduleSessionIdle(Session& session);
     // Cancels the timers of a room, forgets it and frees its members; `reason` tells them why, if given.

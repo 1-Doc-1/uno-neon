@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cstdint>
+#include <span>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -163,6 +164,49 @@ void Application::armGameTimers(Room& room)
         scheduler_->schedule(turnTime, [this, code = room.code, version] { onTurnExpired(code, version); });
 }
 
+void Application::syncUnoWindows(Room& room)
+{
+    const auto open = room.match.has_value() ? room.match->round().unoWindows() : std::span<const core::PlayerId>{};
+    for (auto timing = room.unoWindows.begin(); timing != room.unoWindows.end();) {
+        if (std::ranges::find(open, timing->target) == open.end()) {
+            scheduler_->cancel(timing->expiryTimer);
+            timing = room.unoWindows.erase(timing);
+        } else {
+            ++timing;
+        }
+    }
+    const std::int64_t now = clock_->nowMillis();
+    for (const core::PlayerId& target : open) {
+        if (room.findUnoWindow(target) != nullptr) {
+            continue;
+        }
+        const std::int64_t expiresAt = now + timeouts_.unoWindow.count();
+        room.unoWindows.push_back(UnoWindowTiming{
+            .target = target,
+            .graceEndsAt = now + timeouts_.unoGrace.count(),
+            .expiresAt = expiresAt,
+            .expiryTimer = scheduler_->schedule(
+                timeouts_.unoWindow,
+                // NOLINTNEXTLINE(bugprone-exception-escape): only out-of-memory
+                [this, code = room.code, target, expiresAt] { onUnoWindowExpired(code, target, expiresAt); }),
+        });
+    }
+}
+
+void Application::onUnoWindowExpired(const RoomCode& code, const core::PlayerId& target, std::int64_t expiresAt)
+{
+    Room* const room = rooms_->find(code);
+    const UnoWindowTiming* const window = room != nullptr ? room->findUnoWindow(target) : nullptr;
+    // A window closed and opened again since is another window, with its own timer.
+    if (window == nullptr || window->expiresAt != expiresAt || !room->match.has_value()) {
+        return;
+    }
+    if (room->match->closeUnoWindow(target)) {
+        afterMatchChange(*room, {});
+    }
+    flush();
+}
+
 void Application::startGraceTimer(Room& room, const core::PlayerId& player)
 {
     TimerHandle& timer = room.graceTimers[player.value];
@@ -186,6 +230,9 @@ void Application::destroyRoom(Room& room, std::optional<response::RoomClosedReas
     scheduler_->cancel(std::exchange(room.expiryTimer, TimerHandle{}));
     scheduler_->cancel(std::exchange(room.turnTimer, TimerHandle{}));
     scheduler_->cancel(std::exchange(room.nextRoundTimer, TimerHandle{}));
+    for (const UnoWindowTiming& window : room.unoWindows) {
+        scheduler_->cancel(window.expiryTimer);
+    }
     for (const auto& [player, timer] : room.graceTimers) {
         scheduler_->cancel(timer);
     }

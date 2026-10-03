@@ -72,9 +72,6 @@ namespace {
         }
     }
     me.canCallUno = round.canCallUno(viewer);
-    if (const auto& window = round.unoWindow(); window.has_value() && *window != viewer) {
-        me.catchableTargetIds.push_back(*window);
-    }
     return me;
 }
 
