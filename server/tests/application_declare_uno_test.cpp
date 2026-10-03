@@ -28,7 +28,6 @@ namespace core = uno::core;
 using namespace uno::app;
 using namespace std::chrono_literals;
 using uno::testing::AppHarness;
-using uno::testing::ofType;
 using uno::testing::refusal;
 using uno::testing::Table;
 using uno::testing::toRequest;
@@ -90,7 +89,7 @@ TEST_CASE("The last card is refused as MUST_DECLARE_UNO, and the view says so", 
 
     const auto replies = current.received();
     REQUIRE(refusal(replies) == ErrorCode::IllegalMove);
-    REQUIRE(ofType<response::Error>(replies).front().reason == IllegalMoveReason::MustDeclareUno);
+    REQUIRE(uno::testing::refusalReason(replies) == IllegalMoveReason::MustDeclareUno);
     REQUIRE(table->room().match->round().hand(current.id())->size() == 1);
 }
 
