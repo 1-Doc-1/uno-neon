@@ -28,6 +28,7 @@ struct RoomSettings {
     core::MatchLength matchLength{core::MatchLength::To500};
     std::uint8_t maxPlayers{6};
     core::DrawRule drawRule{core::DrawRule::Guided}; // ADR 0017
+    bool declareUnoToWin{false};                     // ADR 0019: the last card needs an announcement
 
     [[nodiscard]] bool operator==(const RoomSettings&) const = default;
 };
@@ -43,6 +44,7 @@ struct RoomSettingsPatch {
     std::optional<core::MatchLength> matchLength;
     std::optional<std::uint8_t> maxPlayers;
     std::optional<core::DrawRule> drawRule;
+    std::optional<bool> declareUnoToWin;
 
     [[nodiscard]] bool operator==(const RoomSettingsPatch&) const = default;
 };

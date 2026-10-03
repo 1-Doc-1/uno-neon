@@ -50,6 +50,11 @@ void playFirstPlayableCard(core::Match& match, const core::PlayerId& actor, core
         return core::isPlayable(card, round.discardPile().top(), round.currentColor());
     });
     if (playable != hand->end()) {
+        // House rule (ADR 0019): the last card needs an announcement, which the server makes on the player's behalf
+        // like the rest of their forced move.
+        if (round.mustDeclareUno(actor)) {
+            autoApply(match, actor, core::CallUno{}, random, events);
+        }
         autoApply(match, actor, core::PlayCard{.cardId = playable->id, .chosenColor = std::nullopt}, random, events);
     }
 }
@@ -169,17 +174,22 @@ void Application::scheduleRoomExpiry(Room& room)
 
 void Application::armGameTimers(Room& room)
 {
-    scheduler_->cancel(std::exchange(room.turnTimer, TimerHandle{}));
     scheduler_->cancel(std::exchange(room.nextRoundTimer, TimerHandle{}));
     scheduler_->cancel(std::exchange(room.forcedActionTimer, TimerHandle{}));
-    room.turnDeadline.reset();
     room.nextRoundDeadline.reset();
+    const auto stopTurnClock = [this, &room] {
+        scheduler_->cancel(std::exchange(room.turnTimer, TimerHandle{}));
+        room.turnDeadline.reset();
+        room.turnKey.reset();
+    };
     if (room.phase != response::RoomPhase::InGame || !room.match.has_value() || room.match->winner().has_value()) {
+        stopTurnClock();
         return;
     }
     const std::int64_t now = clock_->nowMillis();
     const std::uint64_t version = room.stateVersion;
     if (std::holds_alternative<core::RoundOver>(room.match->round().phase())) {
+        stopTurnClock();
         room.nextRoundDeadline = now + timeouts_.nextRound.count();
         room.nextRoundTimer = scheduler_->schedule(
             timeouts_.nextRound, [this, code = room.code, version] { onNextRoundDue(code, version); });
@@ -192,11 +202,23 @@ void Application::armGameTimers(Room& room)
     }
     const auto turnTime = std::chrono::seconds(static_cast<int>(room.settings.turnTimer));
     if (turnTime.count() == 0) {
+        stopTurnClock();
         return;
     }
+    const core::Round& round = room.match->round();
+    const TurnKey key{
+        .round = room.match->roundNumber(),
+        .player = round.currentPlayer(),
+        .phase = round.phase().index(),
+    };
+    if (room.turnKey == key && room.turnDeadline.has_value()) {
+        return; // same turn: its clock keeps running (ADR 0020)
+    }
+    stopTurnClock();
+    room.turnKey = key;
     room.turnDeadline = now + std::chrono::duration_cast<std::chrono::milliseconds>(turnTime).count();
-    room.turnTimer =
-        scheduler_->schedule(turnTime, [this, code = room.code, version] { onTurnExpired(code, version); });
+    const std::uint64_t epoch = ++room.turnEpoch;
+    room.turnTimer = scheduler_->schedule(turnTime, [this, code = room.code, epoch] { onTurnExpired(code, epoch); });
 }
 
 void Application::syncUnoWindows(Room& room)
@@ -295,16 +317,17 @@ void Application::onRoomExpired(const RoomCode& code)
     flush();
 }
 
-void Application::onTurnExpired(const RoomCode& code, std::uint64_t stateVersion)
+void Application::onTurnExpired(const RoomCode& code, std::uint64_t turnEpoch)
 {
     Room* const room = rooms_->find(code);
-    // A timer that outlived the state it was armed for does nothing: every change arms a new one.
-    if (room == nullptr || room->stateVersion != stateVersion || !room->match.has_value() ||
+    // A timer that outlived the turn it was armed for does nothing: every new turn arms a new one.
+    if (room == nullptr || room->turnEpoch != turnEpoch || !room->match.has_value() ||
         room->phase != response::RoomPhase::InGame || room->match->winner().has_value()) {
         return;
     }
     core::Match& match = *room->match;
     const core::PlayerId actor = match.round().currentPlayer();
+    room->turnKey.reset(); // whatever happens, the next broadcast starts a new clock
     std::vector<core::DomainEvent> events;
     // Every automatic action goes through Match::apply, like a player's own: the same rules, the same events,
     // and the UNO window closes as it would have.

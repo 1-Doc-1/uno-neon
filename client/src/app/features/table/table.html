@@ -68,7 +68,17 @@
 
     @if (view().me.canCallUno) {
       <div class="actions">
-        <button type="button" class="uno active" (click)="callUno()">UNO !</button>
+        <button
+          type="button"
+          class="uno active"
+          [class.must]="view().me.mustDeclareUno"
+          (click)="callUno()"
+        >
+          UNO !
+        </button>
+        @if (view().me.mustDeclareUno) {
+          <p class="uno-hint" role="status">Annonce UNO pour poser ta dernière carte.</p>
+        }
       </div>
     }
   </section>

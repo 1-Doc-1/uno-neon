@@ -108,7 +108,9 @@ void requireAnnouncementsAreCoherent(const core::Round& round)
 }
 
 // A hand is only ever empty once its owner has won: while the round is in progress everybody holds
-// cards. Once over, the winner holds none, the others do, and the points are the value of their cards.
+// cards. Once over, the winner holds none and the others do. The points were the value of every hand when the round
+// ended and are already credited; a player who leaves afterwards takes their hand away, so what is left on the table
+// can only be worth less (the exact sum is checked at the moment the round ends, by the simulation).
 void requireRoundOverIsCoherent(const core::Round& round)
 {
     const auto* over = std::get_if<core::RoundOver>(&round.phase());
@@ -121,7 +123,7 @@ void requireRoundOverIsCoherent(const core::Round& round)
     }
     REQUIRE(handsMatchPhase);
     if (over != nullptr) {
-        REQUIRE(over->points == othersPoints);
+        REQUIRE(othersPoints <= over->points);
         REQUIRE(round.unoWindows().empty());
     }
 }

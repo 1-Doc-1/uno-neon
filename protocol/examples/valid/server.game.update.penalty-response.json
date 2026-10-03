@@ -70,6 +70,7 @@
         "playableCardIds": [3301, 650],
         "canDraw": false,
         "canKeepDrawnCard": false,
+        "mustDeclareUno": false,
         "canCallUno": false,
         "canChooseColor": false,
         "penaltyResponse": {
@@ -139,7 +140,8 @@
         "turnTimerSeconds": 30,
         "matchLength": "to500",
         "maxPlayers": 6,
-        "drawRule": "guided"
+        "drawRule": "guided",
+        "declareUnoToWin": false
       },
       "roundResult": null,
       "matchWinnerId": null

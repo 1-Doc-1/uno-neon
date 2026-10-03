@@ -6,6 +6,7 @@
 #include "uno/core/player_action.hpp"
 #include "uno/core/player_id.hpp"
 #include "uno/core/player_view.hpp"
+#include "uno/core/scoring.hpp"
 #include "uno/core/turn_phase.hpp"
 #include "uno/testing/environment.hpp"
 #include "uno/testing/fixtures.hpp"
@@ -20,6 +21,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <span>
 #include <string>
 #include <utility>
 #include <variant>
@@ -91,11 +93,21 @@ constexpr std::uint32_t kColorCount = 4;
     return seed % 2 == 0 ? DrawRule::Guided : DrawRule::Official;
 }
 
+// The "declare UNO to win" house rule is on for half of the matches, independently of the draw rule.
+[[nodiscard]] bool declareUnoToWinFor(std::uint64_t seed)
+{
+    return (seed / 2) % 2 == 1;
+}
+
 [[nodiscard]] Match startMatch(std::uint64_t seed, SeededRandomSource& random)
 {
-    auto started =
-        Match::start(players(playerCountFor(seed)),
-                     MatchSettings{.matchLength = matchLengthFor(seed), .drawRule = drawRuleFor(seed)}, random);
+    auto started = Match::start(players(playerCountFor(seed)),
+                                MatchSettings{
+                                    .matchLength = matchLengthFor(seed),
+                                    .drawRule = drawRuleFor(seed),
+                                    .declareUnoToWin = declareUnoToWinFor(seed),
+                                },
+                                random);
     REQUIRE(started.has_value());
     return std::move(started->match);
 }
@@ -130,10 +142,7 @@ private:
     // Someone leaves the match for good: the engine must stay consistent, and with two players left it ends by forfeit.
     void removeSomeoneSometimes()
     {
-        // Not between two rounds: the points of a finished round are the value of the hands left on the table, which
-        // is what the invariants compare them to (the scores of the players who left are tracked separately).
-        const bool betweenRounds = std::holds_alternative<RoundOver>(match_.round().phase());
-        if (match_.winner().has_value() || betweenRounds || pick(1000) >= kRemovalPerMille) {
+        if (match_.winner().has_value() || pick(1000) >= kRemovalPerMille) {
             return;
         }
         const auto leaver = anyPlayer();
@@ -199,10 +208,22 @@ private:
         for (const auto& event : *result) {
             if (const auto* ended = std::get_if<RoundEnded>(&event)) {
                 pointsScored_ += ended->points;
+                requirePointsAreTheHandsLeft(ended->points);
             }
         }
         checkState();
         checkEvents(*result);
+    }
+
+    // At the very moment a round ends, its points are exactly the value of the cards left in the hands.
+    void requirePointsAreTheHandsLeft(std::uint32_t points) const
+    {
+        std::uint32_t handsValue = 0;
+        for (const auto& seated : match_.round().seats()) {
+            handsValue +=
+                uno::core::handPoints(match_.round().hand(seated).value_or(std::span<const uno::core::Card>{}));
+        }
+        REQUIRE(points == handsValue);
     }
 
     // Every event of an accepted action, projected for a random player, shows them nothing they may not see.
@@ -231,6 +252,8 @@ private:
     {
         const auto forced = round.forcedAction();
         REQUIRE((!forced.has_value() || round.drawRule() == DrawRule::Guided));
+        // A card held back only by the missing announcement is never a reason to move on for the player (ADR 0019).
+        REQUIRE((!round.mustDeclareUno(round.currentPlayer()) || !forced.has_value()));
         if (forced.has_value()) {
             auto copy = round;
             SeededRandomSource scratch{1};
@@ -271,6 +294,7 @@ TEST_CASE("Random matches keep every engine invariant", "[core][simulation]")
 {
     const auto games = gamesToSimulate();
     for (std::uint64_t seed = 0; seed < games; ++seed) {
+        INFO("seed " << seed);
         Simulation simulation{seed};
         simulation.run();
         REQUIRE(simulation.match().winner().has_value());

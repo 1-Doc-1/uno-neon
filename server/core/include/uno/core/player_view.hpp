@@ -48,6 +48,7 @@ struct MyState {
     std::vector<CardId> playableCardIds;
     bool canDraw{};
     bool canKeepDrawnCard{}; // Pass: keep the card just drawn instead of playing it
+    bool mustDeclareUno{};   // stuck on the last card until UNO is announced (house rule, ADR 0019)
     bool canCallUno{};
     bool canChooseColor{};
     std::optional<PenaltyResponseOptions> penaltyResponse;

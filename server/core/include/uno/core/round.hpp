@@ -32,6 +32,7 @@ struct RoundSetup {
     PlayerId dealer;
     std::vector<Card> deck; // already shuffled, in draw order: front() is drawn first
     DrawRule drawRule{DrawRule::Official};
+    bool declareUnoToWin{false}; // house rule (ADR 0019): the last card needs an announcement
 };
 
 // Round::start returns one of these; defined below the class, since it holds a Round by value.
@@ -74,6 +75,11 @@ public:
     // Whether the player announced UNO and still holds the hand they announced it for.
     [[nodiscard]] bool hasCalledUno(const PlayerId& player) const;
     [[nodiscard]] DrawRule drawRule() const noexcept { return drawRule_; }
+    [[nodiscard]] bool declareUnoToWin() const noexcept { return declareUnoToWin_; }
+    // Whether `player` is stuck on their last card for want of an announcement (ADR 0019): the house rule is on, it is
+    // their turn to play, they hold one card that could be played, and they have not announced UNO. They can only
+    // CallUno. Never a reason to draw: the card is playable, so neither the guided draw nor forcedAction() moves on.
+    [[nodiscard]] bool mustDeclareUno(const PlayerId& player) const;
     // Whether DrawCard would be accepted from `player` right now: their turn, nothing else to answer, and the draw
     // rule lets them draw (ADR 0017).
     [[nodiscard]] bool canDraw(const PlayerId& player) const;
@@ -139,6 +145,7 @@ private:
     TurnOrder turnOrder_;
     PlayerId dealer_;
     DrawRule drawRule_{DrawRule::Official};
+    bool declareUnoToWin_{false};
     std::vector<Hand> hands_; // indexed by seat
     DrawPile drawPile_;
     DiscardPile discardPile_;

@@ -380,9 +380,13 @@ Application::Outcome Application::startMatch(Room& room)
     for (const Member& member : room.members) {
         seats.push_back(member.id);
     }
-    auto started = core::Match::start(
-        std::move(seats),
-        core::MatchSettings{.matchLength = room.settings.matchLength, .drawRule = room.settings.drawRule}, *random_);
+    auto started = core::Match::start(std::move(seats),
+                                      core::MatchSettings{
+                                          .matchLength = room.settings.matchLength,
+                                          .drawRule = room.settings.drawRule,
+                                          .declareUnoToWin = room.settings.declareUnoToWin,
+                                      },
+                                      *random_);
     if (!started) {
         spdlog::error("room {}: the engine refused to start a match", room.code.value);
         return fail(ErrorCode::InvalidPhase, "The match could not be started");
@@ -546,6 +550,9 @@ Application::Outcome Application::play(ConnectionId connection, const core::Play
         case core::DomainError::MustPlay:
             return fail(ErrorCode::IllegalMove, "Play a card instead of drawing, or the card you drew",
                         IllegalMoveReason::MustPlay);
+        case core::DomainError::MustDeclareUno:
+            return fail(ErrorCode::IllegalMove, "Announce UNO before playing your last card",
+                        IllegalMoveReason::MustDeclareUno);
         case core::DomainError::OnlyDrawnCardPlayable:
             return fail(ErrorCode::IllegalMove, "Only the card you just drew can be played",
                         IllegalMoveReason::OnlyDrawnCardPlayable);

@@ -4,8 +4,10 @@
 #include "uno/core/match.hpp"
 #include "uno/core/player_action.hpp"
 #include "uno/core/round.hpp"
+#include "uno/core/scoring.hpp"
 #include "uno/core/turn_phase.hpp"
 #include "uno/testing/fixtures.hpp"
+#include "uno/testing/legal_actions.hpp"
 #include "uno/testing/round_invariants.hpp"
 #include "uno/testing/seeded_random_source.hpp"
 
@@ -286,4 +288,75 @@ TEST_CASE("Nobody unknown leaves a match", "[core][removal][match]")
     auto match = std::move(started->match);
 
     REQUIRE(match.removePlayer(player(7), random).error() == DomainError::UnknownPlayer);
+}
+
+namespace {
+
+// A match of four where the first round has just been decided (seed 42), nobody having reached 500 points.
+[[nodiscard]] Match matchBetweenTwoRounds(SeededRandomSource& random)
+{
+    auto started = Match::start(players(4), MatchSettings{.matchLength = MatchLength::To500}, random);
+    REQUIRE(started.has_value());
+    auto match = std::move(started->match);
+    for (std::size_t step = 0; !std::holds_alternative<RoundOver>(match.round().phase()); ++step) {
+        REQUIRE(step < 4000);
+        const auto actions = uno::testing::legalActionsOfCurrentPlayer(match.round());
+        REQUIRE(match.apply(match.round().currentPlayer(), actions.at(step % actions.size()), random).has_value());
+    }
+    REQUIRE_FALSE(match.winner().has_value());
+    return match;
+}
+
+[[nodiscard]] std::uint32_t handsValue(const Round& round)
+{
+    std::uint32_t value = 0;
+    for (const auto& seated : round.seats()) {
+        value += handPoints(*round.hand(seated));
+    }
+    return value;
+}
+
+} // namespace
+
+// Seed 78 of the massive simulation: a player left between two rounds, and the points of the round (already credited)
+// no longer matched the hands on the table. The engine is right, the old invariant was not.
+TEST_CASE("A loser who leaves between two rounds takes their hand away, the points stay", "[core][removal][match]")
+{
+    SeededRandomSource random{kSeed};
+    auto match = matchBetweenTwoRounds(random);
+    const auto& over = std::get<RoundOver>(match.round().phase());
+    const auto winner = over.winner;
+    const auto points = over.points;
+    const auto winnerScore = *match.score(winner);
+    const auto leaver = *std::ranges::find_if(match.round().seats(), [&](const PlayerId& p) { return p != winner; });
+    const auto leaverHand = handPoints(*match.round().hand(leaver));
+    const auto before = handsValue(match.round());
+    REQUIRE(before == points);
+
+    REQUIRE(match.removePlayer(leaver, random).has_value());
+
+    REQUIRE(std::holds_alternative<RoundOver>(match.round().phase()));
+    REQUIRE(std::get<RoundOver>(match.round().phase()).points == points);
+    REQUIRE(handsValue(match.round()) == points - leaverHand);
+    REQUIRE(*match.score(winner) == winnerScore);
+    requireRoundInvariants(match.round());
+    REQUIRE(match.startNextRound(random).has_value());
+    REQUIRE(match.round().seats().size() == 3);
+    requireRoundInvariants(match.round());
+}
+
+TEST_CASE("The winner who leaves between two rounds leaves with their score, and play goes on",
+          "[core][removal][match]")
+{
+    SeededRandomSource random{kSeed};
+    auto match = matchBetweenTwoRounds(random);
+    const auto winner = std::get<RoundOver>(match.round().phase()).winner;
+
+    REQUIRE(match.removePlayer(winner, random).has_value());
+
+    REQUIRE(match.score(winner).error() == DomainError::UnknownPlayer);
+    REQUIRE(match.progress().scores.size() == 3);
+    requireRoundInvariants(match.round());
+    REQUIRE(match.startNextRound(random).has_value());
+    requireRoundInvariants(match.round());
 }

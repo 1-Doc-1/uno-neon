@@ -171,10 +171,15 @@ Json encodeMe(const MyState& me)
         };
     }
     return Json{
-        {"playerId", me.playerId.value},           {"hand", std::move(hand)},
-        {"playableCardIds", std::move(playable)},  {"canDraw", me.canDraw},
-        {"canKeepDrawnCard", me.canKeepDrawnCard}, {"canCallUno", me.canCallUno},
-        {"canChooseColor", me.canChooseColor},     {"penaltyResponse", std::move(penalty)},
+        {"playerId", me.playerId.value},
+        {"hand", std::move(hand)},
+        {"playableCardIds", std::move(playable)},
+        {"canDraw", me.canDraw},
+        {"canKeepDrawnCard", me.canKeepDrawnCard},
+        {"mustDeclareUno", me.mustDeclareUno},
+        {"canCallUno", me.canCallUno},
+        {"canChooseColor", me.canChooseColor},
+        {"penaltyResponse", std::move(penalty)},
     };
 }
 
@@ -604,6 +609,7 @@ Parsed<MyState> parseMe(const Json& value)
     me.playableCardIds = reader.required<std::vector<CardId>>("playableCardIds", parseCardIds);
     me.canDraw = reader.required<bool>("canDraw", parseBool);
     me.canKeepDrawnCard = reader.required<bool>("canKeepDrawnCard", parseBool);
+    me.mustDeclareUno = reader.required<bool>("mustDeclareUno", parseBool);
     me.canCallUno = reader.required<bool>("canCallUno", parseBool);
     me.canChooseColor = reader.required<bool>("canChooseColor", parseBool);
     me.penaltyResponse = reader.required<std::optional<PenaltyResponseOptions>>(
@@ -730,6 +736,7 @@ Json encodeSettings(const RoomSettings& settings)
         {"matchLength", toWire(settings.matchLength)},
         {"maxPlayers", settings.maxPlayers},
         {"drawRule", toWire(settings.drawRule)},
+        {"declareUnoToWin", settings.declareUnoToWin},
     };
 }
 
@@ -746,6 +753,7 @@ Parsed<RoomSettings> parseSettings(const Json& value)
     settings.matchLength = reader.required<MatchLength>("matchLength", parseEnum<MatchLength>);
     settings.maxPlayers = reader.required<std::uint8_t>("maxPlayers", parseMaxPlayers);
     settings.drawRule = reader.required<core::DrawRule>("drawRule", parseEnum<core::DrawRule>);
+    settings.declareUnoToWin = reader.required<bool>("declareUnoToWin", parseBool);
     if (auto finished = reader.finish(); !finished) {
         return std::unexpected(finished.error());
     }

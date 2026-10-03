@@ -96,6 +96,7 @@ describe('GameStore', () => {
             matchLength: 'to500',
             maxPlayers: 6,
             drawRule: 'guided',
+            declareUnoToWin: false,
           },
           players: [
             {
