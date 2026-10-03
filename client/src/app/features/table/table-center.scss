@@ -1,0 +1,62 @@
+// Rapport hauteur / largeur de l'ellipse : l'orbite est un cercle écrasé à cette échelle
+$squash: 0.65;
+
+:host {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--zone-w, min(62vw, calc((100vh - 250px) * 1.5), 820px));
+  aspect-ratio: calc(1 / #{$squash});
+}
+
+// L'ellipse : léger dégradé, liseré fin de la couleur active
+.felt {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse at 50% 38%,
+    rgb(255 255 255 / 0.1),
+    rgb(255 255 255 / 0.035) 62%,
+    rgb(255 255 255 / 0.015)
+  );
+  border: 1.5px solid color-mix(in oklab, currentColor 50%, transparent);
+  box-shadow:
+    inset 0 0 60px rgb(0 0 0 / 0.25),
+    0 0 44px color-mix(in oklab, currentColor 14%, transparent);
+  transition:
+    border-color var(--dur-base),
+    box-shadow var(--dur-base);
+}
+
+// La lueur du sens du jeu : un disque conique tourne dans un carré écrasé, donc dessine une ellipse
+.orbit {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 100%;
+  aspect-ratio: 1;
+  transform: translateY(-50%) scaleY($squash);
+}
+
+.comet {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0 82%, currentColor);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+  filter: drop-shadow(0 0 5px currentColor);
+  animation: glide 18s linear infinite;
+}
+
+// Sens inverse : l'orbite est retournée, donc la même rotation tourne à l'envers, tête en avant
+:host(.reverse) .orbit {
+  transform: translateY(-50%) scale(-1, $squash);
+}
+
+@keyframes glide {
+  to {
+    transform: rotate(1turn);
+  }
+}

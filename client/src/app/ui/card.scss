@@ -55,7 +55,12 @@ svg {
 
 // Non jouable : atténuée par la luminosité et la saturation, jamais par l'opacité (la carte reste opaque)
 :host(.unplayable) {
-  filter: brightness(0.6) saturate(0.7);
+  filter: brightness(0.5) saturate(0.45);
+}
+
+// Jouable : bord néon et halo de la couleur de la carte
+:host(.playable) {
+  filter: drop-shadow(0 0 10px color-mix(in oklab, currentColor 75%, transparent));
 }
 
 .corner,

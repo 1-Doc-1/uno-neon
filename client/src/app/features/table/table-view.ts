@@ -1,14 +1,16 @@
 import { Component, computed, effect, input, output, signal } from '@angular/core';
 import type { Color, PlayerView } from '../../protocol/generated/protocol';
-import { Avatar } from '../../ui/avatar';
 import { ChallengeDialog } from './challenge-dialog';
 import { ColorPicker } from './color-picker';
 import { Hand } from './hand';
 import { MatchOverDialog } from './match-over-dialog';
+import { MyBadge } from './my-badge';
 import { OpponentSeat } from './opponent-seat';
 import { Piles } from './piles';
 import { RoundOverDialog } from './round-over-dialog';
 import { opponentsInViewOrder, seatLayout } from './seat-layout';
+import { TableCenter } from './table-center';
+import { CatchButton, UnoActions } from './uno-actions';
 
 const CLOCK_TICK_MS = 250;
 const NARROW_QUERY = '(max-width: 639px)';
@@ -22,15 +24,6 @@ export interface CardPlay {
   readonly color?: Color;
 }
 
-/** Un bouton « Contre-UNO ! » : un par joueur dont la fenêtre est ouverte. */
-interface CatchButton {
-  readonly playerId: string;
-  readonly nickname: string;
-  /** Pendant la grâce, seul le fautif peut encore annoncer : le bouton est grisé avec son compte à rebours. */
-  readonly inGrace: boolean;
-  readonly secondsLeft: number;
-}
-
 /**
  * La table, sans état serveur : tout arrive par des entrées et repart par des sorties (le conteneur `Table` y branche
  * le store, la page `/dev/table` des scénarios écrits à la main). Moi en bas, les adversaires en arc en haut.
@@ -38,9 +31,11 @@ interface CatchButton {
 @Component({
   selector: 'app-table-view',
   imports: [
-    Avatar,
+    MyBadge,
     OpponentSeat,
     Piles,
+    TableCenter,
+    UnoActions,
     Hand,
     ChallengeDialog,
     ColorPicker,
@@ -166,13 +161,6 @@ export class TableView {
     this.pendingWild.set(null);
     if (cardId !== null) {
       this.cardPlayed.emit({ cardId, color });
-    }
-  }
-
-  /** Un bouton grisé (pendant la grâce) est atténué mais reste focalisable ; le clic n'y fait rien. */
-  protected tryCatch(button: CatchButton): void {
-    if (!button.inGrace) {
-      this.caught.emit(button.playerId);
     }
   }
 

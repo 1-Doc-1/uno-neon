@@ -20,7 +20,7 @@
 
 .seats {
   position: absolute;
-  inset: 0;
+  inset: 2.5vh 0 0;
 }
 
 .place {
@@ -33,87 +33,8 @@
 .center {
   position: absolute;
   left: 50%;
-  top: 53%;
+  top: 54%;
   transform: translate(-50%, -50%);
-}
-
-// Annonces : le bouton UNO et, empilés au même endroit, un « Contre-UNO ! » par cible
-.actions {
-  position: absolute;
-  left: 50%;
-  bottom: var(--space-2);
-  display: flex;
-  flex-direction: column-reverse;
-  align-items: center;
-  gap: var(--space-2);
-  transform: translateX(-50%);
-  z-index: 3;
-}
-
-.uno {
-  width: 84px;
-  height: 84px;
-  border: 0;
-  border-radius: 50%;
-  background: var(--uno);
-  color: var(--text-on-neon);
-  font-family: var(--font-display);
-  font-size: var(--fs-lg);
-  font-weight: 700;
-  box-shadow: var(--glow-edge);
-  cursor: pointer;
-
-  // Mis en avant : la dernière carte attend l'annonce
-  &.must {
-    width: 104px;
-    height: 104px;
-    font-size: 1.6rem;
-    box-shadow: var(--glow-strong);
-    animation: pulse 0.8s ease-in-out infinite;
-  }
-}
-
-.uno-hint {
-  order: 2;
-  font-weight: 700;
-  font-size: var(--fs-sm);
-  text-shadow: 0 1px 4px rgb(0 0 0 / 0.7);
-}
-
-.catch {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  white-space: nowrap;
-  min-height: 44px;
-  padding: 0 var(--space-4);
-  border: 0;
-  border-radius: var(--radius-pill);
-  background: var(--danger);
-  color: var(--text-on-neon);
-  font-family: var(--font-display);
-  font-weight: 700;
-  box-shadow: var(--glow-edge);
-  cursor: pointer;
-
-  // Pendant la grâce : grisé (mais atténué, pas désactivé : il reste focalisable et lisible)
-  &.waiting {
-    background: var(--panel-solid);
-    color: var(--text-dim);
-    box-shadow: none;
-    cursor: not-allowed;
-  }
-}
-
-.count {
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-}
-
-@keyframes pulse {
-  50% {
-    transform: scale(1.08);
-  }
 }
 
 .journal {
@@ -156,89 +77,21 @@
   min-width: 0;
 }
 
-// Ma pastille, en bas à gauche : nombre de cartes, score, minuteur
+// Annonces : au centre, entre le tapis et ma main
+.actions {
+  position: absolute;
+  left: 50%;
+  bottom: var(--space-2);
+  transform: translateX(-50%);
+  z-index: 3;
+}
+
+// Ma pastille, en bas à gauche
 .me {
   position: absolute;
   left: var(--space-4);
   bottom: var(--space-5);
   z-index: 2;
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-1) var(--space-4) var(--space-1) var(--space-1);
-  border-radius: var(--radius-pill);
-  background: var(--panel-solid);
-  box-shadow: var(--elevation);
-
-  &.current {
-    box-shadow:
-      0 0 0 2px rgb(255 255 255 / 0.85),
-      0 0 20px rgb(255 255 255 / 0.4);
-  }
-}
-
-.portrait {
-  position: relative;
-  flex: none;
-
-  app-avatar {
-    width: 48px;
-    height: 48px;
-  }
-
-  &.timed::before {
-    content: '';
-    position: absolute;
-    inset: -6px;
-    border-radius: 50%;
-    background: conic-gradient(var(--text) calc(var(--f) * 1turn), rgb(255 255 255 / 0.14) 0);
-    -webkit-mask: radial-gradient(
-      farthest-side,
-      transparent calc(100% - 4px),
-      #000 calc(100% - 3px)
-    );
-    mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
-  }
-}
-
-.count-badge {
-  position: absolute;
-  right: -8px;
-  bottom: -6px;
-  min-width: 24px;
-  padding: 0 6px;
-  border-radius: var(--radius-pill);
-  background: var(--text);
-  color: var(--text-on-neon);
-  font-family: var(--font-display);
-  font-size: var(--fs-sm);
-  font-weight: 700;
-  line-height: 22px;
-  text-align: center;
-}
-
-.me-info {
-  line-height: 1.25;
-}
-
-.me-name {
-  max-width: 110px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-family: var(--font-display);
-  font-weight: 600;
-}
-
-.me-meta {
-  color: var(--text-dim);
-  font-size: var(--fs-xs);
-}
-
-.timer {
-  color: var(--text);
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
 }
 
 .turn {
@@ -270,7 +123,7 @@
       display: flex;
       gap: var(--space-3);
       height: auto;
-      padding: 56px var(--space-3) var(--space-2);
+      padding: 56px var(--space-3) var(--space-4);
       overflow-x: auto;
       scroll-snap-type: x proximity;
 
@@ -296,7 +149,7 @@
     justify-self: center;
     transform: none;
     padding-top: 190px;
-    padding-bottom: 84px;
+    padding-bottom: 40px;
   }
 
   .seats.strip ~ .center {
