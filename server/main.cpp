@@ -108,7 +108,7 @@ int run()
     uno::app::InMemoryRoomRepository rooms;
     uno::net::ServerMessageSink sink;
     uno::app::Application application(sink, rooms, *random, clock, scheduler,
-                                       uno::bootstrap::makeTimeouts(readEnvironmentVariable));
+                                      uno::bootstrap::makeTimeouts(readEnvironmentVariable));
 
     uno::net::WebSocketServerConfig serverConfig;
     serverConfig.port = config->port;

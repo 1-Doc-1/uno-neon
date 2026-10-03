@@ -38,7 +38,8 @@ Serveur : depuis `server/`, dans un terminal où `dev64` a été lancé. Client 
 | Client : formatage (client + `protocol/`) | `npm run format` / `npm run format:check` |
 | Client : build de production | `npm run build` |
 | Régénérer les types du protocole | `npm run protocol:gen` (après toute modification de `protocol/schema`) |
-| E2E (phase 4) | `npx playwright test` (depuis `e2e/`) |
+| E2E | Prérequis : `cmake --preset e2e && cmake --build --preset e2e` (depuis `server/`, binaire AVEC crochets de test, jamais en production) et `npm run build` (depuis `client/`). Puis `npx playwright test` depuis `e2e/` (`npm ci` et `npx playwright install chromium` la première fois) |
+| Trouver des graines pour les E2E | `npm run seeds -- <première> <nombre>` (depuis `e2e/`) |
 | Vérifier le serveur sous Linux (WSL, avant push serveur) | `wsl -d Ubuntu-24.04 -- bash scripts/linux-check.sh` (depuis la racine du repo ; installation unique : `scripts/linux-setup.sh`, voir `docs/SETUP.md` étape 10) |
 
 Environnement : Windows 10/11, Build Tools Visual Studio 2026, PowerShell initialisé avec la fonction `dev64` (MSVC **x64**, CMake, Ninja dans le PATH ; `VCPKG_ROOT=C:\dev\vcpkg`, notre clone, pas le vcpkg intégré à VS). Triplet vcpkg : `x64-windows`. Générateur CMake : **Ninja** (nécessaire pour `compile_commands.json` → clangd). Le CI (`.github/workflows/ci.yml`) tourne sous Linux (GCC + Clang, sanitizers : la référence) et Windows (MSVC). clang-format et clang-tidy : version majeure 23 sur les postes comme en CI.

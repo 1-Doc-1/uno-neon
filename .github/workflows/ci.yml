@@ -1,5 +1,5 @@
 # Intégration continue : build + tests du serveur (Linux, Windows) et du client, sur chaque PR.
-# Le job e2e (Playwright) sera ajouté en phase 4.
+# Le job e2e (Playwright) joue de vraies parties dans des navigateurs contre un serveur à graine fixe.
 name: CI
 
 on:
@@ -196,3 +196,81 @@ jobs:
 
       - name: Audit dependencies
         run: npm audit --audit-level=high
+
+  # Parties jouées dans de vrais navigateurs (un contexte par joueur) contre un serveur à graine fixe : ce binaire est
+  # compilé avec UNO_ENABLE_TEST_HOOKS (preset e2e), c'est le seul endroit où il existe (ADR 0023).
+  e2e:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      CC: gcc-14
+      CXX: g++-14
+      VCPKG_ROOT: ${{ github.workspace }}/../vcpkg
+      VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}/.vcpkg-cache,readwrite
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ninja-build g++-14 autoconf autoconf-archive automake libtool pkg-config
+
+      # Même clé que server-linux (gcc) : les dépendances vcpkg sont les mêmes, on réutilise son cache.
+      - name: Restore vcpkg binary cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ github.workspace }}/.vcpkg-cache
+          key: vcpkg-linux-gcc-${{ env.VCPKG_COMMIT }}-${{ hashFiles('server/vcpkg.json') }}
+          restore-keys: vcpkg-linux-gcc-${{ env.VCPKG_COMMIT }}-
+
+      - name: Install vcpkg
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/.vcpkg-cache"
+          git clone --filter=blob:none https://github.com/microsoft/vcpkg "$VCPKG_ROOT"
+          git -C "$VCPKG_ROOT" checkout "$VCPKG_COMMIT"
+          "$VCPKG_ROOT/bootstrap-vcpkg.sh" -disableMetrics
+
+      - name: Build the test server (e2e preset)
+        working-directory: server
+        run: |
+          cmake --preset e2e
+          cmake --build --preset e2e
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: |
+            client/package-lock.json
+            e2e/package-lock.json
+
+      - name: Build the client
+        working-directory: client
+        run: |
+          npm ci
+          npm run build
+
+      - name: Install the e2e dependencies and Chromium
+        working-directory: e2e
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Type-check the e2e project
+        working-directory: e2e
+        run: npm run typecheck
+
+      - name: End-to-end tests
+        working-directory: e2e
+        run: npx playwright test
+
+      # Les traces (ouvrables avec `npx playwright show-trace`) ne sont publiées qu'en cas d'échec
+      - name: Upload Playwright traces
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-traces
+          path: |
+            e2e/test-results
+            e2e/playwright-report
+          retention-days: 7
