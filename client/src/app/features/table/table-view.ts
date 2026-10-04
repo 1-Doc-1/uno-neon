@@ -2,6 +2,7 @@ import {
   Component,
   computed,
   effect,
+  ElementRef,
   inject,
   input,
   output,
@@ -25,6 +26,7 @@ import { Piles } from './piles';
 import { RoundOverDialog } from './round-over-dialog';
 import { opponentsInViewOrder, seatLayout } from './seat-layout';
 import { TableCenter } from './table-center';
+import { Size, tableGeometry } from './table-geometry';
 import { CatchButton, UnoActions } from './uno-actions';
 
 const CLOCK_TICK_MS = 250;
@@ -131,6 +133,29 @@ export class TableView {
       compact: placement.compact || this.narrow(),
     })),
   );
+  private readonly stageElement = viewChild<ElementRef<HTMLElement>>('stage');
+  private readonly stageSize = signal<Size>({ w: 0, h: 0 });
+  private readonly viewportHeight = signal(typeof innerHeight === 'number' ? innerHeight : 0);
+  /**
+   * Les sièges et l'ellipse, dimensionnés d'après la zone de jeu mesurée : la table prend la place que les sièges lui
+   * laissent, sans en toucher aucun. `null` tant que la zone n'est pas mesurée (le CSS donne alors une mise en page de repli).
+   */
+  protected readonly geometry = computed(() => {
+    const stage = this.stageSize();
+    return stage.w > 0 && stage.h > 0
+      ? tableGeometry({
+          stage,
+          viewportHeight: this.viewportHeight(),
+          opponents: this.opponents().length,
+          shape: this.narrow() ? 'arc' : 'table',
+          strip: this.strip(),
+        })
+      : null;
+  });
+  protected readonly zoneWidth = computed(() => {
+    const geometry = this.geometry();
+    return geometry ? geometry.ellipse.rx * 2 : null;
+  });
   protected readonly maxBacks = computed(() => (this.narrow() ? NARROW_MAX_BACKS : MAX_FAN_BACKS));
   /** Part du temps de tour qu'il reste, pour l'anneau du joueur dont c'est le tour (`null` sans minuteur). */
   protected readonly turnFraction = computed(() => {
@@ -153,6 +178,9 @@ export class TableView {
       ? { id: reverse.id, durationMs: reverse.durationMs, reduced: reverse.reduced }
       : null;
   });
+  protected readonly names = computed(() =>
+    Object.fromEntries(this.view().players.map((seat) => [seat.playerId, seat.nickname])),
+  );
   protected readonly currentName = computed(() => this.nameOf(this.view().currentPlayerId));
   protected readonly turnSeconds = computed(() => this.secondsUntil(this.view().turnDeadline));
   protected readonly nextRoundSeconds = computed(() =>
@@ -198,6 +226,21 @@ export class TableView {
       }
     });
     effect(() => this.director.speed.set(this.animationSpeed()));
+    effect((onCleanup) => {
+      const element = this.stageElement()?.nativeElement;
+      if (!element || typeof ResizeObserver !== 'function') {
+        return;
+      }
+      const measure = (): void => {
+        const box = element.getBoundingClientRect();
+        this.stageSize.set({ w: box.width, h: box.height });
+        this.viewportHeight.set(innerHeight);
+      };
+      const observer = new ResizeObserver(measure);
+      observer.observe(element);
+      measure();
+      onCleanup(() => observer.disconnect());
+    });
     effect(() => {
       const color = this.view().currentColor;
       untracked(() => (this.previousColor = color));

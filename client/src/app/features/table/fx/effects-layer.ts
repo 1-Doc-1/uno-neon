@@ -13,7 +13,7 @@ import { CardFace } from '../../../ui/card';
 import { CardBack } from '../../../ui/card-back';
 import { COLORS } from '../../../ui/color-meta';
 import type { ActiveEffect } from './animation-director';
-import { Anchors, Box, placeEffect, Placed } from './effect-geometry';
+import { Anchors, Box, placeEffect, Placed, Tone } from './effect-geometry';
 import { FlightMotion } from './flight-motion';
 import { ReverseArrow } from './reverse-arrow';
 
@@ -50,6 +50,8 @@ const BLINK = [1, 0.35, 1, 0.35, 1].map((opacity) => ({ opacity }));
 export class EffectsLayer {
   readonly effects = input.required<readonly ActiveEffect[]>();
   readonly meId = input.required<string>();
+  /** Les pseudos par identifiant : les effets vus par les autres nomment leur cible. */
+  readonly names = input<Readonly<Record<string, string>>>({});
   /** La dernière position connue d'une carte de ma main (elle a peut-être déjà quitté l'écran). */
   readonly handRect = input<(cardId: number) => DOMRect | null>(() => null);
 
@@ -58,6 +60,14 @@ export class EffectsLayer {
   private readonly cache = new Map<number, Placed | null>();
   protected readonly placed = signal<readonly Placed[]>([]);
   protected readonly star = STAR;
+  /** La couleur d'un effet est celle de la carte jouée (blanc pour une carte noire) : toujours un token, jamais une valeur en dur. */
+  protected readonly tones: Record<Tone, string> = {
+    red: 'var(--game-red)',
+    yellow: 'var(--game-yellow)',
+    green: 'var(--game-green)',
+    blue: 'var(--game-blue)',
+    white: 'var(--text)',
+  };
   protected readonly quarters = COLORS.map((color) => ({ color, path: QUARTERS[color] }));
 
   constructor() {
@@ -99,6 +109,7 @@ export class EffectsLayer {
     });
     return {
       meId: this.meId(),
+      nameOf: (playerId) => this.names()[playerId] ?? 'Un joueur',
       layer: { cx: layer.width / 2, cy: layer.height / 2, w: layer.width, h: layer.height },
       box: (anchor) => {
         const element = this.anchorElement(anchor);

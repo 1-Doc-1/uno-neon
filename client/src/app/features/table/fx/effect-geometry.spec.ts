@@ -13,10 +13,12 @@ const BOXES: Record<string, Box> = {
   hand: box(450, 800, 700, 140),
   'seat:loic': box(150, 120, 160, 60),
   'seat:me': box(80, 850, 160, 60),
+  'seat:zoe': box(900, 120, 160, 60),
 };
 
 const anchors = (overrides: Partial<Anchors> = {}): Anchors => ({
   meId: 'me',
+  nameOf: (playerId) => ({ loic: 'Loïc', zoe: 'Zoé', me: 'Moi' })[playerId] ?? '?',
   layer: { cx: 720, cy: 450, w: 1440, h: 900 },
   box: (name) => BOXES[name] ?? null,
   handCard: () => null,
@@ -121,13 +123,113 @@ describe('placeEffect', () => {
     });
   });
 
-  it('writes the verdict of a challenge at the centre of the table', () => {
-    const placed = placeEffect(effect({ kind: 'challenge', succeeded: false }), anchors());
+  describe('an effect aimed at ONE player', () => {
+    const plusTwo: EffectSpec = {
+      kind: 'bigText',
+      text: '+2',
+      amount: 2,
+      victimId: 'me',
+      color: 'blue',
+    };
 
-    expect(placed).toMatchObject({
-      kind: 'label',
-      variant: 'challenge',
-      text: 'Contestation ratée…',
+    it('is shown big at the centre, in the second person, to the player it targets', () => {
+      const placed = placeEffect(effect(plusTwo), anchors());
+
+      expect(placed).toMatchObject({
+        kind: 'bigText',
+        text: '+2',
+        caption: 'Tu pioches 2',
+        tone: 'blue',
+        at: { cx: 450, cy: 300 },
+      });
     });
+
+    it("is shown on the target's seat, with their name, to everybody else", () => {
+      const placed = placeEffect(effect({ ...plusTwo, victimId: 'zoe' }), anchors());
+
+      expect(placed).toMatchObject({
+        kind: 'label',
+        variant: 'seat',
+        where: 'seat',
+        text: '+2 : Zoé pioche 2',
+        tone: 'blue',
+        at: { cx: 900, cy: 120 },
+      });
+    });
+
+    it('is white for a black card, and big for everybody when nobody can be named', () => {
+      const placed = placeEffect(
+        effect({ ...plusTwo, text: '+4', amount: 4, victimId: null, color: null }),
+        anchors(),
+      );
+
+      expect(placed).toMatchObject({ kind: 'bigText', tone: 'white', caption: null });
+    });
+
+    it('says "Tu passes ton tour" at the centre to the player who is skipped, and names them elsewhere', () => {
+      expect(placeEffect(effect({ kind: 'skip', playerId: 'me' }), anchors())).toMatchObject({
+        kind: 'skip',
+        where: 'center',
+        caption: 'Tu passes ton tour',
+        at: { cx: 450, cy: 300 },
+      });
+      expect(placeEffect(effect({ kind: 'skip', playerId: 'loic' }), anchors())).toMatchObject({
+        kind: 'skip',
+        where: 'seat',
+        caption: 'Loïc passe son tour',
+        at: { cx: 150, cy: 120 },
+      });
+    });
+
+    it('stamps "Contre-UNO" big for the player caught, and on their seat for the others', () => {
+      expect(
+        placeEffect(effect({ kind: 'caught', targetId: 'me', amount: 2 }), anchors()),
+      ).toMatchObject({
+        kind: 'label',
+        variant: 'caught',
+        where: 'center',
+        text: 'Contre-UNO : tu pioches 2',
+      });
+      expect(
+        placeEffect(effect({ kind: 'caught', targetId: 'zoe', amount: 2 }), anchors()),
+      ).toMatchObject({
+        kind: 'label',
+        variant: 'seat',
+        where: 'seat',
+        text: 'Contre-UNO sur Zoé : 2 cartes',
+      });
+    });
+
+    it('gives the verdict of a challenge to the penalised player, at the centre, and names them elsewhere', () => {
+      const verdict = (penalizedId: string): EffectSpec => ({
+        kind: 'challenge',
+        succeeded: false,
+        penalizedId,
+        amount: 6,
+      });
+
+      expect(placeEffect(effect(verdict('me')), anchors())).toMatchObject({
+        kind: 'label',
+        variant: 'challenge',
+        where: 'center',
+        text: 'Contestation ratée : tu pioches 6',
+      });
+      expect(placeEffect(effect(verdict('zoe')), anchors())).toMatchObject({
+        kind: 'label',
+        variant: 'seat',
+        text: 'Contestation ratée : Zoé pioche 6',
+      });
+    });
+  });
+
+  it('plays the effects that concern the whole table at the centre, for everybody', () => {
+    const wheel = placeEffect(effect({ kind: 'wheel', color: 'red' }), anchors());
+    const wheelElsewhere = placeEffect(
+      effect({ kind: 'wheel', color: 'red' }),
+      anchors({ meId: 'loic' }),
+    );
+
+    expect(wheel).toMatchObject({ kind: 'wheel', at: { cx: 450, cy: 300 } });
+    expect(wheelElsewhere).toMatchObject({ kind: 'wheel', at: { cx: 450, cy: 300 } });
   });
 });

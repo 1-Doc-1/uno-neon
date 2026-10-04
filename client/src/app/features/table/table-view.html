@@ -1,4 +1,4 @@
-<div class="table">
+<div class="table" [style.--seat-scale]="geometry()?.seatScale">
   @if (banner(); as text) {
     <p class="banner" role="status">{{ text }}</p>
   }
@@ -11,7 +11,7 @@
     }
   </ul>
 
-  <div class="stage">
+  <div class="stage" #stage>
     <section
       class="seats"
       [class.strip]="strip()"
@@ -38,7 +38,13 @@
       }
     </section>
 
-    <section class="center" aria-label="Table">
+    <section
+      class="center"
+      aria-label="Table"
+      [style.left.px]="geometry()?.ellipse?.cx"
+      [style.top.px]="geometry()?.ellipse?.cy"
+      [style.--zone-w.px]="zoneWidth()"
+    >
       <app-table-center
         [currentColor]="shownColor()"
         [direction]="view().direction"
@@ -100,6 +106,7 @@
   <app-effects-layer
     [effects]="director.active()"
     [meId]="view().me.playerId"
+    [names]="names()"
     [handRect]="handRect"
   />
 </div>

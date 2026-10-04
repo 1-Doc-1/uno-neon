@@ -1,7 +1,8 @@
 :host {
   // Tailles proportionnelles à la hauteur de l'écran : la table occupe la place disponible
-  --bw: clamp(36px, 5.8vh, 60px);
-  --pw: clamp(48px, 7.4vh, 70px);
+  // `--seat-scale` : réduction calculée par la géométrie de la table quand la place manque (voir table-geometry.ts)
+  --bw: calc(clamp(36px, 5.8vh, 60px) * var(--seat-scale, 1));
+  --pw: calc(clamp(48px, 7.4vh, 70px) * var(--seat-scale, 1));
   display: block;
 }
 

@@ -235,6 +235,36 @@ const STEPS: readonly Step[] = [
   },
 ];
 
+/**
+ * Les mêmes images vues par un spectateur : Zoé regarde la table, et je deviens un adversaire (« Léa »). Les cartes
+ * piochées ne sont plus montrées que pour celui qui pioche, c'est-à-dire pour Zoé.
+ */
+export function asSpectator(frames: readonly DemoFrame[]): readonly DemoFrame[] {
+  return frames.map((frame) => {
+    const events = frame.events.map((event) =>
+      event.kind === 'cardsDrawn' && event.playerId !== ZOE && event.cards
+        ? { kind: event.kind, playerId: event.playerId, count: event.count }
+        : event,
+    );
+    const players = frame.view.players.map((seat) =>
+      seat.playerId === ME ? { ...seat, nickname: 'Léa' } : seat,
+    );
+    const zoe = players.find((seat) => seat.playerId === ZOE);
+    const hand = frame.view.me.hand.slice(0, zoe?.cardCount ?? 0);
+    const view: PlayerView = {
+      ...frame.view,
+      players: players as PlayerView['players'],
+      me: {
+        ...frame.view.me,
+        playerId: ZOE,
+        hand,
+        playableCardIds: frame.view.currentPlayerId === ZOE ? hand.map((card) => card.id) : [],
+      },
+    };
+    return { caption: frame.caption, events, view };
+  });
+}
+
 /** La mise en scène : une première vue complète, puis une vue et ses événements par étape. */
 export function buildDemoFrames(now: number): readonly DemoFrame[] {
   const state = initialState();

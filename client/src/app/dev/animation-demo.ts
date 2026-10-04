@@ -3,7 +3,7 @@ import { playedCards } from '../features/table/fx/discard-pile';
 import { TableView } from '../features/table/table-view';
 import type { ClientEvent } from '../protocol/generated/protocol';
 import type { EventBatch } from '../state/game-store';
-import { buildDemoFrames, DemoFrame } from './animation-script';
+import { asSpectator, buildDemoFrames, DemoFrame } from './animation-script';
 
 const SPEEDS = [0.5, 1, 2] as const;
 const FRAME_GAP_MS = 5000;
@@ -27,6 +27,15 @@ const LOOP_PAUSE_MS = 3000;
     />
     <div class="controls panel" role="group" aria-label="Démo des animations">
       <button type="button" class="replay" (click)="replay()">Rejouer</button>
+      <label>
+        Point de vue
+        <select (change)="setViewpoint($event)">
+          <option value="me" [selected]="viewpoint() === 'me'">Moi (la cible)</option>
+          <option value="spectator" [selected]="viewpoint() === 'spectator'">
+            Spectateur (Zoé)
+          </option>
+        </select>
+      </label>
       <label>
         Vitesse
         <select (change)="setSpeed($event)">
@@ -77,18 +86,24 @@ const LOOP_PAUSE_MS = 3000;
   `,
 })
 export class AnimationDemo {
-  private readonly frames = buildDemoFrames(Date.now());
+  private readonly myFrames = buildDemoFrames(Date.now());
+  private readonly spectatorFrames = asSpectator(this.myFrames);
   private timer: ReturnType<typeof setTimeout> | undefined;
   private events: readonly ClientEvent[] = [];
   private batchId = 1;
 
   protected readonly speeds = SPEEDS;
-  protected readonly total = this.frames.length - 1;
+  /** Qui regarde : moi (les effets qui me visent en grand au centre) ou un spectateur (ils se jouent sur le siège de la cible). */
+  protected readonly viewpoint = signal<'me' | 'spectator'>('me');
+  private readonly frames = computed(() =>
+    this.viewpoint() === 'me' ? this.myFrames : this.spectatorFrames,
+  );
+  protected readonly total = this.myFrames.length - 1;
   protected readonly index = signal(0);
   protected readonly speed = signal<number>(1);
   protected readonly batch = signal<EventBatch | null>(null);
   protected readonly played = signal<ReturnType<typeof playedCards>>([]);
-  protected readonly frame = computed<DemoFrame>(() => this.frames[this.index()]);
+  protected readonly frame = computed<DemoFrame>(() => this.frames()[this.index()]);
 
   constructor() {
     inject(DestroyRef).onDestroy(() => clearTimeout(this.timer));
@@ -101,18 +116,25 @@ export class AnimationDemo {
     this.show(0, true);
   }
 
+  protected setViewpoint(event: Event): void {
+    this.viewpoint.set(
+      (event.target as HTMLSelectElement).value === 'spectator' ? 'spectator' : 'me',
+    );
+    this.replay();
+  }
+
   protected setSpeed(event: Event): void {
     this.speed.set(Number((event.target as HTMLSelectElement).value));
   }
 
   /** Montre l'étape `index` (la première est une vue complète, sans rien à rejouer), puis programme la suivante. */
   private show(index: number, resync: boolean): void {
-    const frame = this.frames[index];
+    const frame = this.frames()[index];
     this.events = resync ? [] : [...this.events, ...frame.events];
     this.played.set(playedCards(this.events));
     this.index.set(index);
     this.batch.set({ id: this.batchId++, events: frame.events, resync });
-    const last = index === this.frames.length - 1;
+    const last = index === this.frames().length - 1;
     // Une pioche rythmée dure une seconde par carte : la démo laisse le temps de la voir en entier
     const drawn = frame.events.filter((event) => event.kind === 'cardsDrawn').length;
     this.timer = setTimeout(

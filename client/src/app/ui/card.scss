@@ -53,9 +53,21 @@ svg {
   filter: drop-shadow(0 0 3px currentColor) drop-shadow(0 0 12px currentColor);
 }
 
-// Non jouable : atténuée par la luminosité et la saturation, jamais par l'opacité (la carte reste opaque)
+// Non jouable : un voile sombre et une légère baisse de luminosité, sans toucher à la saturation (le jaune reste jaune,
+// le vert reste vert) ni à l'opacité (la carte reste opaque)
+.veil {
+  fill: var(--card-veil);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-base);
+}
+
 :host(.unplayable) {
-  filter: brightness(0.5) saturate(0.45);
+  filter: brightness(0.88);
+
+  .veil {
+    opacity: 1;
+  }
 }
 
 // Jouable : bord néon et halo de la couleur de la carte
