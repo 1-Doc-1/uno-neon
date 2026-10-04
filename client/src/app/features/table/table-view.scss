@@ -142,21 +142,9 @@
     }
   }
 
+  // La table se place d'après la géométrie calculée (left/top/--zone-w en ligne) ; ces valeurs ne servent qu'avant la mesure
   .center {
-    position: static;
-    grid-row: 2;
-    align-self: center;
-    justify-self: center;
-    transform: none;
-    padding-top: 190px;
-    padding-bottom: 40px;
-  }
-
-  .seats.strip ~ .center {
-    padding-top: 0;
-  }
-
-  .center {
+    top: 62%;
     --zone-w: min(92vw, 340px);
   }
 
