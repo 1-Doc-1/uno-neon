@@ -135,7 +135,7 @@ const STEPS: readonly Step[] = [
   },
   {
     caption:
-      'Loïc pose une Inversion : une impulsion fait le tour de l’ellipse, la lueur repart à l’envers',
+      'Loïc pose une Inversion : une grande flèche circulaire fait un tour et se retourne, la lueur repart à l’envers',
     events: [
       played(LOIC, card(63, 'blue', 'reverse')),
       { kind: 'directionChanged', direction: 'counterClockwise' },
@@ -194,6 +194,26 @@ const STEPS: readonly Step[] = [
     events: [{ kind: 'unoCaught', catcherId: ME, targetId: ZOE, penaltyAmount: 2 }, drew(ZOE, 2)],
     apply: (s) => {
       s.counts[ZOE] += 2;
+    },
+  },
+  {
+    caption:
+      'Rien à jouer : je pioche jusqu’à pouvoir jouer, une carte après l’autre depuis le paquet',
+    events: [
+      drew(ME, 1, [card(17, 'yellow', '8')]),
+      drew(ME, 1, [card(18, 'blue', '5')]),
+      drew(ME, 1, [card(19, 'green', '9')]),
+      drew(ME, 1, [card(20, 'green', '3')]),
+      turn(LOIC),
+    ],
+    apply: (s) => {
+      s.hand.push(
+        card(17, 'yellow', '8'),
+        card(18, 'blue', '5'),
+        card(19, 'green', '9'),
+        card(20, 'green', '3'),
+      );
+      s.current = LOIC;
     },
   },
   {

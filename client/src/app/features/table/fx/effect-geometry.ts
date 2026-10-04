@@ -1,4 +1,4 @@
-import type { Card, Color } from '../../../protocol/generated/protocol';
+import type { Card, Color, Direction } from '../../../protocol/generated/protocol';
 import type { ActiveEffect } from './animation-director';
 import { scatterOf } from './discard-pile';
 import { flyingCards } from './effect-plan';
@@ -23,6 +23,8 @@ export interface Flight {
   readonly durationMs: number;
   readonly card: Card | null;
   readonly look: FlightLook;
+  /** La carte se pose sur la défausse : elle y rebondit légèrement. */
+  readonly settle: boolean;
 }
 
 interface Base {
@@ -45,7 +47,8 @@ export type Placed =
   | (Base & { readonly kind: 'skip'; readonly at: Box })
   | (Base & { readonly kind: 'wheel'; readonly color: Color; readonly at: Box })
   | (Base & { readonly kind: 'orb'; readonly from: Box; readonly to: Box })
-  | (Base & { readonly kind: 'spotlight'; readonly at: Box });
+  | (Base & { readonly kind: 'spotlight'; readonly at: Box })
+  | (Base & { readonly kind: 'reverse'; readonly direction: Direction; readonly at: Box });
 
 /** Ce que la géométrie demande à l'écran : des boîtes repérées par des ancres, relatives à la couche. */
 export interface Anchors {
@@ -56,7 +59,6 @@ export interface Anchors {
   readonly layer: Box;
 }
 
-export const DRAW_STAGGER_MS = 90;
 /** Une carte qui part d'un siège ou y arrive est dessinée à cette échelle de la défausse. */
 const SEAT_CARD_RATIO = 0.4;
 const HAND_FALLBACK_RATIO = 0.8;
@@ -101,12 +103,19 @@ function placePlay(
         fromTilt: -tilt,
         toTilt: tilt,
         delayMs: 0,
-        durationMs: effect.durationMs * 0.9,
+        durationMs: effect.durationMs,
         card,
         look: mine ? 'face' : 'back-to-face',
+        settle: true,
       },
     ],
   };
+}
+
+/** Où atterrit une carte de ma main dont la place n'est pas encore connue : une carte de la taille du paquet, au milieu de la main (jamais la boîte entière de la main). */
+function handFallback(anchors: Anchors, deck: Box): Box {
+  const hand = anchors.box('hand');
+  return hand ? sizedLike(hand, deck, HAND_FALLBACK_RATIO) : deck;
 }
 
 function placeDraw(
@@ -121,13 +130,13 @@ function placeDraw(
   const mine = spec.playerId === anchors.meId;
   const seat = seatOf(anchors, spec.playerId);
   const count = flyingCards(spec.count);
-  const stagger = DRAW_STAGGER_MS / effect.speed;
+  const stagger = effect.staggerMs;
   const flightMs = Math.max(120, effect.durationMs - (count - 1) * stagger);
   const flights: Flight[] = [];
   for (let index = 0; index < count; index++) {
     const card = mine ? (spec.cards?.[index] ?? null) : null;
     const landing = mine
-      ? ((card ? anchors.handCard(card.id) : null) ?? anchors.box('hand') ?? deck)
+      ? ((card ? anchors.handCard(card.id) : null) ?? handFallback(anchors, deck))
       : sizedLike(seat ?? deck, deck, SEAT_CARD_RATIO);
     flights.push({
       from: deck,
@@ -138,6 +147,7 @@ function placeDraw(
       durationMs: flightMs,
       card,
       look: card ? 'back-to-face' : 'back',
+      settle: false,
     });
   }
   return {
@@ -194,8 +204,9 @@ export function placeEffect(effect: ActiveEffect, anchors: Anchors): Placed | nu
       const seat = seatOf(anchors, spec.playerId);
       return seat && { ...base, kind: 'spotlight', at: seat };
     }
-    case 'reverse':
-      // L'impulsion tourne dans le tapis lui-même (`TableCenter`), pas dans la couche
-      return null;
+    case 'reverse': {
+      const table = at('table');
+      return table && { ...base, kind: 'reverse', direction: spec.direction, at: table };
+    }
   }
 }

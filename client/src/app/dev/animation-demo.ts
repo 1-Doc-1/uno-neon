@@ -6,7 +6,7 @@ import type { EventBatch } from '../state/game-store';
 import { buildDemoFrames, DemoFrame } from './animation-script';
 
 const SPEEDS = [0.5, 1, 2] as const;
-const FRAME_GAP_MS = 2600;
+const FRAME_GAP_MS = 5000;
 const LOOP_PAUSE_MS = 3000;
 
 /**

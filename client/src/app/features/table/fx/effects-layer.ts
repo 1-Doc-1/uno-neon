@@ -1,10 +1,21 @@
-import { Component, effect, ElementRef, inject, input, signal, untracked } from '@angular/core';
+import {
+  afterNextRender,
+  Component,
+  effect,
+  ElementRef,
+  inject,
+  Injector,
+  input,
+  signal,
+  untracked,
+} from '@angular/core';
 import { CardFace } from '../../../ui/card';
 import { CardBack } from '../../../ui/card-back';
 import { COLORS } from '../../../ui/color-meta';
 import type { ActiveEffect } from './animation-director';
 import { Anchors, Box, placeEffect, Placed } from './effect-geometry';
 import { FlightMotion } from './flight-motion';
+import { ReverseArrow } from './reverse-arrow';
 
 /** Une étoile à seize branches pour l'éclat « UNO ! » (rayons alternés, centrée en 0,0). */
 const STAR = Array.from({ length: 16 }, (_, index) => {
@@ -31,7 +42,7 @@ const BLINK = [1, 0.35, 1, 0.35, 1].map((opacity) => ({ opacity }));
  */
 @Component({
   selector: 'app-effects-layer',
-  imports: [CardFace, CardBack, FlightMotion],
+  imports: [CardFace, CardBack, FlightMotion, ReverseArrow],
   templateUrl: './effects-layer.html',
   styleUrl: './effects-layer.scss',
   host: { 'aria-hidden': 'true' },
@@ -43,6 +54,7 @@ export class EffectsLayer {
   readonly handRect = input<(cardId: number) => DOMRect | null>(() => null);
 
   private readonly host: HTMLElement = inject(ElementRef).nativeElement;
+  private readonly injector = inject(Injector);
   private readonly cache = new Map<number, Placed | null>();
   protected readonly placed = signal<readonly Placed[]>([]);
   protected readonly star = STAR;
@@ -51,7 +63,8 @@ export class EffectsLayer {
   constructor() {
     effect(() => {
       const active = this.effects();
-      untracked(() => this.sync(active));
+      // Après le rendu : la carte qui vient d'arriver dans ma main doit avoir sa place avant qu'on vise son arrivée
+      untracked(() => afterNextRender(() => this.sync(active), { injector: this.injector }));
     });
   }
 

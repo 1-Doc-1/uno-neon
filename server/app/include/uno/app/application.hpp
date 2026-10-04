@@ -34,7 +34,7 @@ struct Timeouts {
     std::chrono::milliseconds nextRound{std::chrono::seconds(30)};          // the next round starts anyway
     std::chrono::milliseconds unoGrace{std::chrono::seconds(2)};            // only the offender may announce UNO
     std::chrono::milliseconds unoWindow{std::chrono::seconds(15)};          // from its opening, anybody may catch
-    std::chrono::milliseconds forcedAction{std::chrono::milliseconds(700)}; // a move nobody can choose is played
+    std::chrono::milliseconds forcedAction{std::chrono::milliseconds(1200)}; // a move nobody can choose is played, once the last animation has been seen
 };
 
 // The use cases of the server: sessions, rooms and (from step 2.4) matches. It reacts to what the

@@ -50,25 +50,46 @@ $squash: 0.65;
   animation: glide 18s linear infinite;
 }
 
-// L'impulsion d'une inversion : un arc plus vif et plus long qui fait un tour, invisible hors de l'effet
-.burst {
+// La tête de la lueur : une flèche qui suit le liseré, au même rythme que la lueur (même durée, même départ). L'angle
+// courant (--orbit-angle, voir base.scss) est animé sur la piste ; la position et l'orientation de la flèche s'en déduisent.
+// La piste est retournée avec l'orbite en sens inverse : la flèche garde la phase de la lueur et pointe dans l'autre sens.
+.track {
   position: absolute;
   inset: 0;
-  border-radius: 50%;
-  background: conic-gradient(from 0deg, transparent 0 55%, currentColor);
-  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 5px));
-  mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 5px));
-  filter: drop-shadow(0 0 10px currentColor);
-  opacity: 0;
+  pointer-events: none;
+  animation: orbit-angle 18s linear infinite;
 }
 
-// Sens inverse : l'orbite est retournée, donc la même rotation tourne à l'envers, tête en avant
+.head {
+  position: absolute;
+  left: calc(50% + 50% * sin(var(--orbit-angle)));
+  top: calc(50% - 50% * cos(var(--orbit-angle)));
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+  filter: drop-shadow(0 0 5px currentColor);
+  // Tangente de l'ellipse au point courant
+  transform: translate(-50%, -50%)
+    rotate(atan2(#{$squash} * sin(var(--orbit-angle)), cos(var(--orbit-angle))));
+}
+
+// Sens inverse : l'orbite et la piste sont retournées, donc la même rotation tourne à l'envers, tête en avant
 :host(.reverse) .orbit {
   transform: translateY(-50%) scale(-1, $squash);
+}
+
+:host(.reverse) .track {
+  transform: scaleX(-1);
 }
 
 @keyframes glide {
   to {
     transform: rotate(1turn);
+  }
+}
+
+@keyframes orbit-angle {
+  to {
+    --orbit-angle: 360deg;
   }
 }

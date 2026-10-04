@@ -31,11 +31,11 @@ describe('OpponentSeat', () => {
     expect(renderSeat(5).querySelectorAll('app-card-back')).toHaveLength(5);
   });
 
-  it('caps the fan at 12 backs and tells the rest with a +N', () => {
-    const host = renderSeat(15);
+  it('caps the hand at 15 backs and leaves the exact count to the badge', () => {
+    const host = renderSeat(20);
 
-    expect(host.querySelectorAll('app-card-back')).toHaveLength(12);
-    expect(host.querySelector('.more')?.textContent?.trim()).toBe('+3');
+    expect(host.querySelectorAll('app-card-back')).toHaveLength(15);
+    expect(host.querySelector('.count')?.textContent?.trim()).toBe('20');
   });
 
   it('flags a forgotten UNO on the seat', () => {

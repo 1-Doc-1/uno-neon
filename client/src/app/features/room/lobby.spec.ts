@@ -126,7 +126,7 @@ describe('Lobby', () => {
 
     expect(ready?.getAttribute('aria-pressed')).toBe('false');
     expect(startButton(host)).toBeUndefined();
-    expect(host.querySelector('app-segmented')).toBeNull();
+    expect(host.querySelector('app-segmented:not(app-motion-setting app-segmented)')).toBeNull();
     expect(query('.summary')?.textContent).toContain('Partie en 500 points');
     expect(host.textContent).not.toContain('Exclure');
 
