@@ -54,11 +54,17 @@ function serveFile(urlPath: string): { body: Buffer; type: string } {
     inside && existsSync(requested) && statSync(requested).isFile()
       ? requested
       : join(CLIENT_DIST, 'index.html');
-  return { body: readFileSync(file), type: MIME[extname(file)] ?? 'application/octet-stream' };
+  return {
+    body: readFileSync(file),
+    type: MIME[extname(file)] ?? 'application/octet-stream',
+  };
 }
 
 /** Le client construit, servi tel quel (repli sur index.html pour les routes), avec `/ws` relayé vers le serveur de jeu. */
-async function startWebServer(gamePort: () => number): Promise<{ server: Server; port: number }> {
+async function startWebServer(
+  gamePort: () => number,
+  tunnels: Set<Socket>,
+): Promise<{ server: Server; port: number }> {
   const server = createServer((request, response) => {
     const { body, type } = serveFile(request.url ?? '/');
     response.writeHead(200, { 'content-type': type, 'cache-control': 'no-store' }).end(body);
@@ -73,6 +79,11 @@ async function startWebServer(gamePort: () => number): Promise<{ server: Server;
       upstream.write(head);
       client.pipe(upstream).pipe(client);
     });
+    // Les sockets « upgradées » échappent à closeAllConnections() : on les suit pour les détruire à l'arrêt
+    for (const socket of [client, upstream]) {
+      tunnels.add(socket);
+      socket.once('close', () => tunnels.delete(socket));
+    }
     upstream.on('error', () => client.destroy());
     client.on('error', () => upstream.destroy());
   });
@@ -114,7 +125,8 @@ export async function startStack(options: StackOptions): Promise<Stack> {
     throw new Error(`Client non construit : ${CLIENT_DIST} (npm run build, dans client/).`);
   }
   const gamePort = await freePort();
-  const web = await startWebServer(() => gamePort);
+  const tunnels = new Set<Socket>();
+  const web = await startWebServer(() => gamePort, tunnels);
   const url = `http://127.0.0.1:${web.port}`;
   const child = spawn(SERVER_BINARY, [], {
     cwd: dirname(SERVER_BINARY),
@@ -138,9 +150,35 @@ export async function startStack(options: StackOptions): Promise<Stack> {
   return {
     url,
     async stop() {
-      child.kill();
+      const startedAt = Date.now();
+      for (const socket of tunnels) {
+        socket.destroy();
+      }
       web.server.closeAllConnections();
-      await new Promise<void>((done) => web.server.close(() => done()));
+      const webClosed = new Promise<void>((done) => web.server.close(() => done()));
+      const exit = await stopServerProcess(child);
+      await webClosed;
+      const elapsedMs = Date.now() - startedAt;
+      if (process.env['CI'] !== undefined || elapsedMs > 1000) {
+        console.log(
+          `[stack] démontage : pid ${child.pid}, ${exit}, ${elapsedMs} ms, port ${gamePort}`,
+        );
+      }
     },
   };
+}
+
+/** SIGTERM, puis SIGKILL si le serveur n'est pas sorti au bout d'une seconde ; décrit comment il s'est arrêté. */
+async function stopServerProcess(child: ChildProcess): Promise<string> {
+  const describe = () => `sortie code ${child.exitCode} signal ${child.signalCode}`;
+  if (child.exitCode !== null || child.signalCode !== null) {
+    return describe();
+  }
+  const exited = new Promise<void>((done) => child.once('exit', () => done()));
+  child.kill();
+  const timer = setTimeout(() => child.kill('SIGKILL'), 1000);
+  await exited;
+  clearTimeout(timer);
+  const killed = child.signalCode === 'SIGKILL' ? ' (SIGKILL : le serveur ne s’arrêtait pas)' : '';
+  return `${describe()}${killed}`;
 }

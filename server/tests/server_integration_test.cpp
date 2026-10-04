@@ -22,6 +22,7 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <string>
 #include <utility>
@@ -328,4 +329,24 @@ TEST_CASE("The grace period runs on the real timers of the server, set to millis
     }
 
     REQUIRE(playersLeft == 1);
+}
+
+TEST_CASE("The server stops within a second while a match is running and players are connected",
+          "[server][integration][shutdown]")
+{
+    REQUIRE(uno::net::initializeCryptoRuntime());
+    // Declared first, destroyed last: the sockets are still open when the server stops, as in production.
+    std::vector<Player> players;
+    auto deployment = std::make_unique<Deployment>(); // real delays: a 60 s grace and a 30 s turn clock are pending
+    players.push_back(enter(*deployment, "Alice"));
+    players.push_back(enter(*deployment, "Bob"));
+    const auto code = openRoom(players.at(0));
+    joinReady(players.at(1), code);
+    players.at(0).client.sendAndExpectAck(request::StartMatch{});
+    awaitUpdate(players.at(0), 0);
+
+    const auto before = std::chrono::steady_clock::now();
+    deployment.reset();
+
+    REQUIRE(std::chrono::steady_clock::now() - before < 1s);
 }

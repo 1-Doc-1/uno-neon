@@ -10,7 +10,8 @@ namespace uno::net {
 
 // The Scheduler port on the timers of the uWebSockets event loop: callbacks run on the loop thread, between
 // two network events, so the application stays single-threaded. A pending timer keeps the event loop running:
-// cancelAll() must be called when the server stops (WebSocketServerConfig::onStop), or run() never returns.
+// cancelAll() must be called when the server stops (WebSocketServerConfig::onStop), or run() never returns; from then
+// on schedule() creates no timer, because the closing sockets still notify the application, which would arm new ones.
 // Use it from the loop thread only.
 class UwsScheduler final : public app::Scheduler {
 public:
@@ -24,8 +25,8 @@ public:
 
     [[nodiscard]] app::TimerHandle schedule(std::chrono::milliseconds delay, std::function<void()> callback) override;
     void cancel(app::TimerHandle timer) override;
-    // Cancels every pending timer. To be called on the loop thread when the server stops: a loop cannot be closed
-    // while timers are still open.
+    // Cancels every pending timer and refuses new ones. To be called on the loop thread when the server stops: a loop
+    // cannot be closed while timers are still open.
     void cancelAll();
 
 private:
