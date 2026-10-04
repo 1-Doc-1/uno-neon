@@ -35,6 +35,7 @@ struct Timeouts {
     std::chrono::milliseconds unoGrace{std::chrono::seconds(2)};             // only the offender may announce UNO
     std::chrono::milliseconds unoWindow{std::chrono::seconds(15)};           // from its opening, anybody may catch
     std::chrono::milliseconds forcedAction{std::chrono::milliseconds(1200)}; // a forced move waits for the animations
+    std::chrono::milliseconds drawStep{std::chrono::seconds(1)};             // every drawn card takes this long to show
 };
 
 // The use cases of the server: sessions, rooms and (from step 2.4) matches. It reacts to what the
@@ -115,8 +116,8 @@ private:
     // `extraEvents` (connections, which the engine ignores), and their own view.
     void broadcastGame(Room& room, std::span<const core::DomainEvent> events,
                        const std::vector<core::ClientEvent>& extraEvents = {});
-    [[nodiscard]] static response::GameView viewOf(const Room& room, const core::Match& match,
-                                                   const core::PlayerId& viewer);
+    [[nodiscard]] response::GameView viewOf(const Room& room, const core::Match& match,
+                                            const core::PlayerId& viewer) const;
     void flush();
 
     // ---- membership ----
@@ -131,7 +132,10 @@ private:
 
     // ---- timers (application_lifecycle.cpp) ----
     void scheduleRoomExpiry(Room& room);
-    void armGameTimers(Room& room);
+    // `drawPause`: how long the clients take to show the cards just drawn (ADR 0026); the next forced move and the
+    // clock of a new turn wait for it.
+    void armGameTimers(Room& room, std::chrono::milliseconds drawPause);
+    [[nodiscard]] std::chrono::milliseconds drawPauseOf(std::span<const core::DomainEvent> events) const;
     // Gives the windows the engine opened their times and timers, and forgets the ones it closed.
     void syncUnoWindows(Room& room);
     void onUnoWindowExpired(const RoomCode& code, const core::PlayerId& target, std::int64_t expiresAt);

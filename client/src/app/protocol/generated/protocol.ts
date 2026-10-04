@@ -724,6 +724,10 @@ export interface PlayerView {
    */
   nextRoundDeadline: EpochMillis | null;
   /**
+   * Pace of drawn cards, set by the server (ADR 0026): every card takes at least this long to show. The forced move that follows a draw and the clock of a new turn wait for N cards x drawStepMs, so a client paces its animations on this value, never on a constant of its own.
+   */
+  drawStepMs: number;
+  /**
    * Players holding one unannounced card, oldest first (ADR 0018). Only the target may announce until graceEndsAt; from then until expiresAt anybody else may catch them. Server clock.
    */
   unoWindows: UnoWindow[];
