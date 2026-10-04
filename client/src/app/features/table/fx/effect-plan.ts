@@ -13,14 +13,29 @@ export type EffectSpec =
       /** Pioche infligée (+2, +4, contestation, contre-UNO) : le siège tremble et clignote. */
       readonly penalty: boolean;
     }
-  | { readonly kind: 'bigText'; readonly text: '+2' | '+4' }
+  /**
+   * Un effet qui vise UN joueur (`victimId`) : en grand au centre chez lui seulement, sur son siège chez les autres.
+   * Il prend la couleur de la carte jouée (`null` : une carte noire, donc blanc).
+   */
+  | {
+      readonly kind: 'bigText';
+      readonly text: '+2' | '+4';
+      readonly amount: number;
+      readonly victimId: string | null;
+      readonly color: Color | null;
+    }
   | { readonly kind: 'skip'; readonly playerId: string }
   | { readonly kind: 'reverse'; readonly direction: Direction }
   | { readonly kind: 'wheel'; readonly color: Color }
   | { readonly kind: 'turn'; readonly from: string | null; readonly to: string }
   | { readonly kind: 'uno'; readonly playerId: string }
-  | { readonly kind: 'caught'; readonly targetId: string }
-  | { readonly kind: 'challenge'; readonly succeeded: boolean }
+  | { readonly kind: 'caught'; readonly targetId: string; readonly amount: number }
+  | {
+      readonly kind: 'challenge';
+      readonly succeeded: boolean;
+      readonly penalizedId: string;
+      readonly amount: number;
+    }
   | { readonly kind: 'spotlight'; readonly playerId: string };
 
 export type EffectKind = EffectSpec['kind'];
@@ -78,6 +93,20 @@ export function timingOf(spec: EffectSpec, reduced: boolean, drawStepMs: number)
   return FIXED_TIMING[spec.kind];
 }
 
+/** Le joueur visé par une carte à pénalité : le premier qui pioche, passe ou reçoit le tour après elle dans le lot. */
+function victimAfter(events: readonly ClientEvent[], playedAt: number): string | null {
+  for (const event of events.slice(playedAt + 1)) {
+    if (
+      event.kind === 'cardsDrawn' ||
+      event.kind === 'playerSkipped' ||
+      event.kind === 'turnChanged'
+    ) {
+      return event.playerId;
+    }
+  }
+  return null;
+}
+
 export interface PlanState {
   readonly turnPlayerId: string | null;
   /** Une pioche infligée est attendue : la prochaine pioche est une pénalité, pas un choix du joueur. */
@@ -98,12 +127,19 @@ export function planEffects(
   const specs: EffectSpec[] = [];
   let { turnPlayerId, penaltyPending } = initial;
 
-  for (const event of events) {
+  for (const [index, event] of events.entries()) {
     switch (event.kind) {
       case 'cardPlayed': {
         specs.push({ kind: 'play', playerId: event.playerId, card: event.card });
         if (event.card.rank === 'drawTwo' || event.card.rank === 'wildDrawFour') {
-          specs.push({ kind: 'bigText', text: event.card.rank === 'drawTwo' ? '+2' : '+4' });
+          const two = event.card.rank === 'drawTwo';
+          specs.push({
+            kind: 'bigText',
+            text: two ? '+2' : '+4',
+            amount: two ? 2 : 4,
+            victimId: victimAfter(events, index),
+            color: event.card.color,
+          });
           penaltyPending = true;
         }
         // Le serveur annonce aussi le choix dans un `colorChosen` : une seule roue par Joker
@@ -161,11 +197,16 @@ export function planEffects(
         specs.push({ kind: 'uno', playerId: event.playerId });
         break;
       case 'unoCaught':
-        specs.push({ kind: 'caught', targetId: event.targetId });
+        specs.push({ kind: 'caught', targetId: event.targetId, amount: event.penaltyAmount });
         penaltyPending = true;
         break;
       case 'challengeResolved':
-        specs.push({ kind: 'challenge', succeeded: event.wasBluff });
+        specs.push({
+          kind: 'challenge',
+          succeeded: event.wasBluff,
+          penalizedId: event.penalizedPlayerId,
+          amount: event.penaltyAmount,
+        });
         penaltyPending = true;
         break;
       case 'roundEnded':

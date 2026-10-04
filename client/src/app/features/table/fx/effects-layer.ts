@@ -50,6 +50,8 @@ const BLINK = [1, 0.35, 1, 0.35, 1].map((opacity) => ({ opacity }));
 export class EffectsLayer {
   readonly effects = input.required<readonly ActiveEffect[]>();
   readonly meId = input.required<string>();
+  /** Les pseudos par identifiant : les effets vus par les autres nomment leur cible. */
+  readonly names = input<Readonly<Record<string, string>>>({});
   /** La dernière position connue d'une carte de ma main (elle a peut-être déjà quitté l'écran). */
   readonly handRect = input<(cardId: number) => DOMRect | null>(() => null);
 
@@ -99,6 +101,7 @@ export class EffectsLayer {
     });
     return {
       meId: this.meId(),
+      nameOf: (playerId) => this.names()[playerId] ?? 'Un joueur',
       layer: { cx: layer.width / 2, cy: layer.height / 2, w: layer.width, h: layer.height },
       box: (anchor) => {
         const element = this.anchorElement(anchor);

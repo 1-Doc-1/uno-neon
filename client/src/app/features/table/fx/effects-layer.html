@@ -27,21 +27,24 @@
     }
     @case ('bigText') {
       <p
-        class="big"
+        [class]="'big tone-' + item.tone"
         [class.reduced]="item.reduced"
         [style.left.px]="item.at.cx"
         [style.top.px]="item.at.cy"
         [style.--dur]="item.durationMs"
       >
         {{ item.text }}
+        @if (item.caption; as caption) {
+          <span class="caption">{{ caption }}</span>
+        }
       </p>
     }
     @case ('label') {
       <p
-        [class]="'label ' + item.variant"
+        [class]="'label ' + item.variant + (item.tone ? ' tone-' + item.tone : '')"
         [class.reduced]="item.reduced"
         [style.left.px]="item.at.cx"
-        [style.top.px]="item.variant === 'challenge' ? item.at.cy : item.at.cy - item.at.h * 0.75"
+        [style.top.px]="item.where === 'center' ? item.at.cy : item.at.cy - item.at.h * 0.75"
         [style.--dur]="item.durationMs"
       >
         @if (item.variant === 'uno') {
@@ -51,18 +54,20 @@
       </p>
     }
     @case ('skip') {
-      <svg
+      <div
         class="skip"
-        viewBox="-50 -50 100 100"
         [class.reduced]="item.reduced"
         [style.left.px]="item.at.cx"
         [style.top.px]="item.at.cy"
-        [style.width.px]="item.at.h * 1.5"
+        [style.width.px]="item.where === 'center' ? item.at.h * 0.42 : item.at.h * 1.5"
         [style.--dur]="item.durationMs"
       >
-        <circle r="38" />
-        <line x1="-27" y1="-27" x2="27" y2="27" />
-      </svg>
+        <svg viewBox="-50 -50 100 100">
+          <circle r="38" />
+          <line x1="-27" y1="-27" x2="27" y2="27" />
+        </svg>
+        <p class="caption">{{ item.caption }}</p>
+      </div>
     }
     @case ('wheel') {
       <svg

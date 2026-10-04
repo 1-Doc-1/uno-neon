@@ -51,6 +51,30 @@ describe('planEffects', () => {
     expect(state.penaltyPending).toBe(false);
   });
 
+  it('names the player a +2 or a +4 aims at, and gives it the colour of the card played', () => {
+    const plusTwo = planEffects(
+      [played('loic', { ...redDrawTwo, color: 'blue' }), drew('zoe', 2), turnTo('amy')],
+      INITIAL_PLAN_STATE,
+    ).specs.find((spec) => spec.kind === 'bigText');
+    const plusFour = planEffects(
+      [
+        played('loic', { id: 11, color: null, rank: 'wildDrawFour' }, 'blue'),
+        { kind: 'colorChosen', playerId: 'loic', color: 'blue' },
+        turnTo('zoe'),
+      ],
+      INITIAL_PLAN_STATE,
+    ).specs.find((spec) => spec.kind === 'bigText');
+
+    expect(plusTwo).toEqual({
+      kind: 'bigText',
+      text: '+2',
+      amount: 2,
+      victimId: 'zoe',
+      color: 'blue',
+    });
+    expect(plusFour).toMatchObject({ text: '+4', amount: 4, victimId: 'zoe', color: null });
+  });
+
   it('remembers a penalty announced in an earlier batch (a +4 accepted later)', () => {
     const first = planEffects(
       [{ kind: 'unoCaught', catcherId: 'a', targetId: 'b', penaltyAmount: 2 }],

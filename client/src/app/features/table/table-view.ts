@@ -153,6 +153,9 @@ export class TableView {
       ? { id: reverse.id, durationMs: reverse.durationMs, reduced: reverse.reduced }
       : null;
   });
+  protected readonly names = computed(() =>
+    Object.fromEntries(this.view().players.map((seat) => [seat.playerId, seat.nickname])),
+  );
   protected readonly currentName = computed(() => this.nameOf(this.view().currentPlayerId));
   protected readonly turnSeconds = computed(() => this.secondsUntil(this.view().turnDeadline));
   protected readonly nextRoundSeconds = computed(() =>
