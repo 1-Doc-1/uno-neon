@@ -42,6 +42,7 @@ struct UwsScheduler::Impl {
     }
 
     std::uint64_t lastId = 0;
+    bool shutDown = false;
     std::unordered_map<std::uint64_t, Entry> entries;
 };
 
@@ -55,6 +56,9 @@ UwsScheduler::~UwsScheduler()
 app::TimerHandle UwsScheduler::schedule(std::chrono::milliseconds delay, std::function<void()> callback)
 {
     const std::uint64_t id = ++impl_->lastId;
+    if (impl_->shutDown) {
+        return app::TimerHandle{id}; // no timer: it would keep the loop alive, and run() would never return
+    }
     // uSockets types the loop of uWebSockets as its own struct: its API asks for this cast.
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     auto* const loop = reinterpret_cast<us_loop_t*>(uWS::Loop::get());
@@ -70,6 +74,7 @@ app::TimerHandle UwsScheduler::schedule(std::chrono::milliseconds delay, std::fu
 
 void UwsScheduler::cancelAll()
 {
+    impl_->shutDown = true;
     for (const auto& [id, entry] : impl_->entries) {
         us_timer_close(entry.timer);
     }

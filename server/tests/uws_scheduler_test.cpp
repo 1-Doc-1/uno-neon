@@ -89,3 +89,25 @@ TEST_CASE("A timer callback may schedule another timer", "[net][scheduler]")
 
     REQUIRE(order.fired() == std::vector<std::string>{"first", "second"});
 }
+
+TEST_CASE("Once cancelAll has run, no timer can be scheduled any more", "[net][scheduler]")
+{
+    Order order;
+    uno::testing::RecordingHandler handler;
+    uno::net::UwsScheduler scheduler;
+    {
+        const uno::testing::RunningServer server(
+            uno::net::WebSocketServerConfig(), handler, [&](uno::net::WebSocketServer& running) {
+                handler.attach(running);
+                // What a closing socket does while the server stops: its handler schedules a grace timer.
+                scheduler.cancelAll();
+                const auto late = scheduler.schedule(10ms, [&order] { order.add("late"); });
+                scheduler.cancel(late);
+                static_cast<void>(scheduler.schedule(10ms, [&order] { order.add("late"); }));
+            });
+
+        std::this_thread::sleep_for(150ms);
+    }
+
+    REQUIRE(order.fired().empty());
+}
