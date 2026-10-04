@@ -11,9 +11,8 @@ export const MOTION_MS = {
   playFlight: 700,
   /** …puis reste visible un instant avant l'action suivante. */
   playRest: 380,
-  /** Une carte piochée quitte le paquet ; la suivante part `drawStagger` plus tard. */
+  /** Le vol d'une carte piochée. L'écart entre deux cartes, lui, vient du serveur (`drawStepMs`, ADR 0026). */
   drawFlight: 520,
-  drawStagger: 150,
   /** Effets spéciaux (+2, +4, Passe, Inversion, Joker) : 1 à 1,4 s. */
   bigText: 1200,
   skip: 1000,

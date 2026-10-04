@@ -198,12 +198,14 @@ const STEPS: readonly Step[] = [
   },
   {
     caption:
-      'Rien à jouer : je pioche jusqu’à pouvoir jouer, une carte après l’autre depuis le paquet',
+      'Rien à jouer : je pioche jusqu’à pouvoir jouer, une carte par seconde (rythme du serveur), mon tas et le compteur de Loïc et Zoé grandissent à chaque arrivée',
     events: [
       drew(ME, 1, [card(17, 'yellow', '8')]),
       drew(ME, 1, [card(18, 'blue', '5')]),
       drew(ME, 1, [card(19, 'green', '9')]),
       drew(ME, 1, [card(20, 'green', '3')]),
+      drew(ME, 1, [card(21, 'red', '6')]),
+      drew(ME, 1, [card(22, 'yellow', '1')]),
       turn(LOIC),
     ],
     apply: (s) => {
@@ -212,6 +214,8 @@ const STEPS: readonly Step[] = [
         card(18, 'blue', '5'),
         card(19, 'green', '9'),
         card(20, 'green', '3'),
+        card(21, 'red', '6'),
+        card(22, 'yellow', '1'),
       );
       s.current = LOIC;
     },

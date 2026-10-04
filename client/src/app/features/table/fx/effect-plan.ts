@@ -44,7 +44,6 @@ interface Timing {
   readonly visibleMs: number;
 }
 
-export const MAX_FLYING_CARDS = 6;
 export const REDUCED_MS = MOTION_MS.reduced;
 
 // Les durées viennent toutes de `ui/motion.ts`. Une carte posée reste visible un instant (`playRest`) avant l'action suivante.
@@ -61,21 +60,20 @@ const FIXED_TIMING: Record<Exclude<EffectKind, 'draw'>, Timing> = {
   spotlight: { stepMs: MOTION_MS.spotlight, visibleMs: MOTION_MS.spotlight },
 };
 
-export function flyingCards(count: number): number {
-  return Math.min(count, MAX_FLYING_CARDS);
-}
-
-export function timingOf(spec: EffectSpec, reduced: boolean): Timing {
+/**
+ * Durées d'une étape, à vitesse normale. Une pioche est rythmée par le serveur (`drawStepMs`, ADR 0026) : une carte
+ * toutes les `drawStepMs`, et l'étape dure autant que le serveur attend avant son prochain coup forcé.
+ */
+export function timingOf(spec: EffectSpec, reduced: boolean, drawStepMs: number): Timing {
+  if (spec.kind === 'draw') {
+    // Le rythme est celui du serveur, même en mouvement réduit : seul le vol devient un fondu
+    return {
+      stepMs: spec.count * drawStepMs,
+      visibleMs: (spec.count - 1) * drawStepMs + (reduced ? REDUCED_MS : MOTION_MS.drawFlight),
+    };
+  }
   if (reduced) {
     return { stepMs: spec.kind === 'turn' ? 0 : REDUCED_MS, visibleMs: REDUCED_MS };
-  }
-  if (spec.kind === 'draw') {
-    const lastDeparture = (flyingCards(spec.count) - 1) * MOTION_MS.drawStagger;
-    // Une seule carte : la suivante (autre événement) part `drawStagger` plus tard, d'où l'effet de cartes l'une après l'autre
-    return {
-      stepMs: MOTION_MS.drawStagger + lastDeparture,
-      visibleMs: MOTION_MS.drawFlight + lastDeparture,
-    };
   }
   return FIXED_TIMING[spec.kind];
 }
@@ -122,13 +120,28 @@ export function planEffects(
         break;
       case 'cardsDrawn':
         if (event.count > 0) {
-          specs.push({
-            kind: 'draw',
-            playerId: event.playerId,
-            count: event.count,
-            cards: event.cards,
-            penalty: penaltyPending,
-          });
+          // Une pioche de plusieurs cartes arrive en un événement par carte : elle ne fait qu'une étape
+          const previous = specs.at(-1);
+          if (
+            previous?.kind === 'draw' &&
+            previous.playerId === event.playerId &&
+            !penaltyPending
+          ) {
+            specs[specs.length - 1] = {
+              ...previous,
+              count: previous.count + event.count,
+              cards:
+                previous.cards && event.cards ? [...previous.cards, ...event.cards] : undefined,
+            };
+          } else {
+            specs.push({
+              kind: 'draw',
+              playerId: event.playerId,
+              count: event.count,
+              cards: event.cards,
+              penalty: penaltyPending,
+            });
+          }
         }
         penaltyPending = false;
         break;
