@@ -29,6 +29,7 @@ const effect = (spec: EffectSpec, extra: Partial<ActiveEffect> = {}): ActiveEffe
   durationMs: 400,
   speed: 1,
   staggerMs: 150,
+  flightMs: 300,
   reduced: false,
   ...extra,
 });
@@ -59,19 +60,22 @@ describe('placeEffect', () => {
     expect(flight?.from).toMatchObject({ cx: 300, cy: 790 });
   });
 
-  it('draws at most six cards, one after another, turning mine over when they arrive', () => {
+  it('draws every card, one after another at the pace of the server, turning mine over when they arrive', () => {
     const cards = Array.from({ length: 8 }, (_, index) => card(20 + index));
     const placed = placeEffect(
       effect(
         { kind: 'draw', playerId: 'me', count: 8, cards, penalty: false },
-        { durationMs: 560 },
+        { durationMs: 7 * 1000 + 300, staggerMs: 1000, flightMs: 300 },
       ),
       anchors({ handCard: (id) => box(100 + id, 800) }),
     );
 
     const flights = placed?.kind === 'flights' ? placed.flights : [];
-    expect(flights).toHaveLength(6);
-    expect(flights.map((flight) => flight.delayMs)).toEqual([0, 150, 300, 450, 600, 750]);
+    expect(flights).toHaveLength(8);
+    expect(flights.map((flight) => flight.delayMs)).toEqual([
+      0, 1000, 2000, 3000, 4000, 5000, 6000, 7000,
+    ]);
+    expect(flights.every((flight) => flight.durationMs === 300)).toBe(true);
     expect(flights.every((flight) => flight.look === 'back-to-face')).toBe(true);
     expect(flights[0].to).toMatchObject({ cx: 120, cy: 800 });
   });

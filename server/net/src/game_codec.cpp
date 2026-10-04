@@ -252,6 +252,7 @@ Json encodeView(const GameView& view)
         {"pendingDraw", game.pendingDraw},
         {"turnDeadline", nullable(view.turnDeadline)},
         {"nextRoundDeadline", nullable(view.nextRoundDeadline)},
+        {"drawStepMs", view.drawStepMs},
         {"unoWindows", encodeUnoWindows(view.unoWindows)},
         {"round", game.round},
         {"settings", encodeSettings(view.settings)},
@@ -709,6 +710,7 @@ Parsed<GameView> parseView(const Json& value)
         reader.required<std::optional<std::int64_t>>("turnDeadline", orNull<std::int64_t>(parseEpochMillis));
     view.nextRoundDeadline =
         reader.required<std::optional<std::int64_t>>("nextRoundDeadline", orNull<std::int64_t>(parseEpochMillis));
+    view.drawStepMs = reader.required<std::uint32_t>("drawStepMs", parseUint32);
     view.unoWindows = reader.required<std::vector<UnoWindowInfo>>(
         "unoWindows", [](const Json& windows) { return parseArray<UnoWindowInfo>(windows, parseUnoWindow); });
     game.round = reader.required<std::uint32_t>("round", parseUint32);

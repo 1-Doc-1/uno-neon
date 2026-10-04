@@ -46,6 +46,7 @@ function viewWith(
     pendingDraw: 0,
     turnDeadline: null,
     nextRoundDeadline: null,
+    drawStepMs: 1000,
     unoWindows: [],
     round: 1,
     settings: {

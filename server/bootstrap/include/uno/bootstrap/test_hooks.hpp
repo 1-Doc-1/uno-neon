@@ -20,7 +20,7 @@ using EnvironmentLookup = std::function<std::optional<std::string>(const char*)>
 [[nodiscard]] std::unique_ptr<core::RandomSource> makeRandomSource(const EnvironmentLookup& environment);
 
 // The timeouts of the application: the defaults, always. A test build may shorten the reconnection grace so that an
-// end-to-end test can watch a player forfeit without waiting a minute.
+// end-to-end test can watch a player forfeit without waiting a minute, and the pace of the drawn cards.
 [[nodiscard]] app::Timeouts makeTimeouts(const EnvironmentLookup& environment);
 
 } // namespace uno::bootstrap

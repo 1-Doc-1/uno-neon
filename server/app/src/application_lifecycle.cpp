@@ -172,7 +172,20 @@ void Application::scheduleRoomExpiry(Room& room)
     room.expiryTimer = scheduler_->schedule(delay, [this, code = room.code] { onRoomExpired(code); });
 }
 
-void Application::armGameTimers(Room& room)
+std::chrono::milliseconds Application::drawPauseOf(std::span<const core::DomainEvent> events) const
+{
+    std::size_t cards = 0;
+    for (const core::DomainEvent& event : events) {
+        if (const auto* drawn = std::get_if<core::CardsDrawn>(&event)) {
+            cards += drawn->cards.size();
+        } else if (const auto* penalty = std::get_if<core::PenaltyCardsDrawn>(&event)) {
+            cards += penalty->cards.size();
+        }
+    }
+    return timeouts_.drawStep * static_cast<std::chrono::milliseconds::rep>(cards);
+}
+
+void Application::armGameTimers(Room& room, std::chrono::milliseconds drawPause)
 {
     scheduler_->cancel(std::exchange(room.nextRoundTimer, TimerHandle{}));
     scheduler_->cancel(std::exchange(room.forcedActionTimer, TimerHandle{}));
@@ -197,11 +210,12 @@ void Application::armGameTimers(Room& room)
     }
     // A move the engine says nobody can choose is played after a short pause, like the player would have (ADR 0017).
     if (room.match->round().forcedAction().has_value()) {
-        room.forcedActionTimer = scheduler_->schedule(
-            timeouts_.forcedAction, [this, code = room.code, version] { onForcedActionDue(code, version); });
+        room.forcedActionTimer =
+            scheduler_->schedule(drawPause + timeouts_.forcedAction,
+                                 [this, code = room.code, version] { onForcedActionDue(code, version); });
     }
-    const auto turnTime = std::chrono::seconds(static_cast<int>(room.settings.turnTimer));
-    if (turnTime.count() == 0) {
+    const auto turnLength = std::chrono::seconds(static_cast<int>(room.settings.turnTimer));
+    if (turnLength.count() == 0) {
         stopTurnClock();
         return;
     }
@@ -216,7 +230,9 @@ void Application::armGameTimers(Room& room)
     }
     stopTurnClock();
     room.turnKey = key;
-    room.turnDeadline = now + std::chrono::duration_cast<std::chrono::milliseconds>(turnTime).count();
+    // The player cannot act before the cards just drawn have been shown: their clock starts after them.
+    const auto turnTime = std::chrono::duration_cast<std::chrono::milliseconds>(turnLength) + drawPause;
+    room.turnDeadline = now + turnTime.count();
     const std::uint64_t epoch = ++room.turnEpoch;
     room.turnTimer = scheduler_->schedule(turnTime, [this, code = room.code, epoch] { onTurnExpired(code, epoch); });
 }

@@ -15,6 +15,8 @@ interface Options {
   seed: number;
   /** Délai de grâce avant le forfait d'un joueur déconnecté. */
   reconnectGraceMs: number;
+  /** Rythme des cartes piochées, en millisecondes (le serveur le dicte, le client le suit). */
+  drawStepMs: number;
   /** Réglage de pioche du salon, fixé explicitement pour ne pas dépendre de la valeur par défaut (ADR 0024). */
   drawAmount: 'one' | 'untilPlayable';
 }
@@ -33,10 +35,11 @@ interface Fixtures {
 export const test = base.extend<Options & Fixtures>({
   seed: [1, { option: true }],
   reconnectGraceMs: [60_000, { option: true }],
+  drawStepMs: [40, { option: true }],
   drawAmount: ['one', { option: true }],
 
-  stack: async ({ seed, reconnectGraceMs }, use) => {
-    const stack = await startStack({ seed, reconnectGraceMs });
+  stack: async ({ seed, reconnectGraceMs, drawStepMs }, use) => {
+    const stack = await startStack({ seed, reconnectGraceMs, drawStepMs });
     await use(stack);
     await stack.stop();
   },

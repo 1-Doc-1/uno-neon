@@ -7,6 +7,8 @@ import { buildDemoFrames, DemoFrame } from './animation-script';
 
 const SPEEDS = [0.5, 1, 2] as const;
 const FRAME_GAP_MS = 5000;
+/** Rythme des cartes piochées dans la démo : celui que le serveur annonce dans `drawStepMs` (fixtures). */
+const DRAW_STEP_MS = 1000;
 const LOOP_PAUSE_MS = 3000;
 
 /**
@@ -111,9 +113,11 @@ export class AnimationDemo {
     this.index.set(index);
     this.batch.set({ id: this.batchId++, events: frame.events, resync });
     const last = index === this.frames.length - 1;
+    // Une pioche rythmée dure une seconde par carte : la démo laisse le temps de la voir en entier
+    const drawn = frame.events.filter((event) => event.kind === 'cardsDrawn').length;
     this.timer = setTimeout(
       () => (last ? this.replay() : this.show(index + 1, false)),
-      (last ? LOOP_PAUSE_MS : FRAME_GAP_MS) / this.speed(),
+      ((last ? LOOP_PAUSE_MS : FRAME_GAP_MS) + drawn * DRAW_STEP_MS) / this.speed(),
     );
   }
 }

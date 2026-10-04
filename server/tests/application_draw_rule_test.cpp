@@ -94,7 +94,8 @@ TEST_CASE("Guided: a drawn plain card that fits is played by the server after th
     const auto drawn = std::get<core::AwaitingDrawnCardDecision>(round.phase()).drawnCard;
     const auto version = table->room().stateVersion;
 
-    table->harness.scheduler.advance(1200ms);
+    table->harness.scheduler.advance(
+        5s); // the pause, after the paced draw (exact timings: application_draw_amount_test.cpp)
 
     REQUIRE(table->room().stateVersion > version);
     REQUIRE(table->room().match->round().discardPile().top().id == drawn);
@@ -144,7 +145,7 @@ TEST_CASE("Guided: a turn that times out plays a card when drawing is not allowe
     auto table = tableWhere(mustPlayInsteadOfDrawing, core::DrawRule::Guided);
     const auto player = table->room().match->round().currentPlayer();
 
-    table->harness.scheduler.advance(31s);
+    table->harness.scheduler.advance(40s); // the 30 s of the turn, after the cards the player just drew have been shown
 
     REQUIRE(table->room().match->round().currentPlayer() != player);
 }

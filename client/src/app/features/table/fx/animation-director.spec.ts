@@ -24,7 +24,8 @@ const drew = (playerId: string, count: number, cards?: Card[]): ClientEvent => (
   ...(cards ? { cards } : {}),
 });
 
-const live = { resync: false, previousColor: null } as const;
+const DRAW_STEP = 1000;
+const live = { resync: false, previousColor: null, drawStepMs: DRAW_STEP } as const;
 
 describe('planEffects', () => {
   it('turns events into effects in the order the server sent them', () => {
@@ -38,11 +39,11 @@ describe('planEffects', () => {
 
   it('shows the "+2" then marks the draw that follows as a penalty, but not a voluntary draw', () => {
     const { specs, state } = planEffects(
-      [played('loic', redDrawTwo), drew('zoe', 2), drew('zoe', 1)],
+      [played('loic', redDrawTwo), drew('zoe', 2), turnTo('zoe'), drew('zoe', 1)],
       INITIAL_PLAN_STATE,
     );
 
-    expect(specs.map((spec) => spec.kind)).toEqual(['play', 'bigText', 'draw', 'draw']);
+    expect(specs.map((spec) => spec.kind)).toEqual(['play', 'bigText', 'draw', 'turn', 'draw']);
     expect(specs.filter((spec) => spec.kind === 'draw').map((spec) => spec.penalty)).toEqual([
       true,
       false,
@@ -106,14 +107,115 @@ describe('AnimationDirector', () => {
     expect(kinds()).toEqual([]);
   });
 
-  it('sends the cards of a multiple draw one after another, each starting before the previous one lands', () => {
-    director.enqueue([drew('me', 1, [red7]), drew('me', 1, [wild]), drew('me', 1)], live);
+  describe('a multiple draw, paced by the server', () => {
+    const twelve = (playerId: string, cards?: Card[]): ClientEvent[] =>
+      Array.from({ length: 12 }, (_, index) =>
+        drew(playerId, 1, cards ? [{ ...red7, id: 300 + index }] : undefined),
+      );
+    const mine = Array.from({ length: 12 }, (_, index) => ({ ...red7, id: 300 + index }));
 
-    expect(kinds()).toEqual(['draw']);
-    vi.advanceTimersByTime(MOTION_MS.drawStagger);
-    expect(kinds()).toEqual(['draw', 'draw']);
-    vi.advanceTimersByTime(MOTION_MS.drawStagger);
-    expect(kinds()).toEqual(['draw', 'draw', 'draw']);
+    it('is one single effect lasting one drawStepMs per card', () => {
+      director.enqueue(twelve('me', []), live);
+
+      expect(kinds()).toEqual(['draw']);
+      expect(director.active()[0].staggerMs).toBe(DRAW_STEP);
+      vi.advanceTimersByTime(11 * DRAW_STEP + MOTION_MS.drawFlight - 1);
+      expect(kinds()).toEqual(['draw']);
+      vi.advanceTimersByTime(1);
+      expect(kinds()).toEqual([]);
+    });
+
+    it('brings my cards into my hand, and the counter up, one per drawStepMs', () => {
+      director.enqueue(twelve('me', []), live);
+      expect(director.hiddenCardIds().size).toBe(12);
+      expect(director.unarrived().get('me')).toBe(12);
+
+      vi.advanceTimersByTime(MOTION_MS.drawFlight);
+      expect(director.hiddenCardIds().size).toBe(11);
+      expect(director.unarrived().get('me')).toBe(11);
+      vi.advanceTimersByTime(DRAW_STEP);
+      expect(director.hiddenCardIds().size).toBe(10);
+      expect(director.unarrived().get('me')).toBe(10);
+      vi.advanceTimersByTime(10 * DRAW_STEP);
+      expect(director.hiddenCardIds().size).toBe(0);
+      expect(director.unarrived().has('me')).toBe(false);
+    });
+
+    it("lets everybody watch the cards reach an opponent's seat one by one", () => {
+      director.enqueue(twelve('zoe'), live);
+      expect(director.unarrived().get('zoe')).toBe(12);
+
+      vi.advanceTimersByTime(MOTION_MS.drawFlight + 3 * DRAW_STEP);
+      expect(director.unarrived().get('zoe')).toBe(8);
+    });
+
+    it('keeps the pile counter up until each card has left it', () => {
+      director.enqueue(twelve('zoe'), live);
+      expect(director.unlaunched()).toBe(12);
+
+      vi.advanceTimersByTime(1);
+      expect(director.unlaunched()).toBe(11);
+      vi.advanceTimersByTime(2 * DRAW_STEP);
+      expect(director.unlaunched()).toBe(9);
+    });
+
+    it('starts the next effect only when the server is done waiting for the draw', () => {
+      director.enqueue([...twelve('me', []), played('me', red7)], live);
+
+      vi.advanceTimersByTime(12 * DRAW_STEP - 1);
+      expect(kinds()).not.toContain('play');
+      vi.advanceTimersByTime(1);
+      expect(kinds()).toContain('play');
+    });
+
+    it('is never abandoned for being long, nor sped up to catch up', () => {
+      const plays = Array.from({ length: 5 }, (_, index) =>
+        played('loic', { ...red7, id: 400 + index }),
+      );
+      director.enqueue([...twelve('me', []), ...plays.slice(0, 3)], live);
+      director.enqueue(plays.slice(3), live);
+
+      expect(kinds()).toEqual(['draw']);
+      expect(director.active()[0].staggerMs).toBe(DRAW_STEP);
+      expect(director.active()[0].durationMs).toBe(11 * DRAW_STEP + MOTION_MS.drawFlight);
+    });
+
+    it('keeps the server pace at the fast setting, where only the flight of a card gets shorter', () => {
+      TestBed.inject(MotionPreferences).set('fast');
+
+      director.enqueue(twelve('me', mine), live);
+
+      expect(director.active()[0].staggerMs).toBe(DRAW_STEP);
+      expect(director.active()[0].flightMs).toBeLessThan(MOTION_MS.drawFlight);
+    });
+
+    it('follows a different pace announced by the server', () => {
+      director.enqueue(twelve('me', []), { ...live, drawStepMs: 250 });
+
+      expect(director.active()[0].staggerMs).toBe(250);
+    });
+
+    it('drops the held counters on a full view', () => {
+      director.enqueue(twelve('zoe'), live);
+
+      director.enqueue([], { ...live, resync: true });
+
+      expect(director.unarrived().size).toBe(0);
+      expect(director.unlaunched()).toBe(0);
+    });
+
+    it('keeps the pace of the server, with a fade as the flight, when motion is reduced', () => {
+      director.reduced.set(true);
+      director.enqueue(twelve('me', []), live);
+      expect(director.unarrived().get('me')).toBe(12);
+      expect(director.active()[0].flightMs).toBe(REDUCED_MS);
+
+      vi.advanceTimersByTime(REDUCED_MS + 2 * DRAW_STEP);
+      expect(director.unarrived().get('me')).toBe(9);
+      vi.advanceTimersByTime(10 * DRAW_STEP);
+      expect(director.unarrived().has('me')).toBe(false);
+      expect(director.hiddenCardIds().size).toBe(0);
+    });
   });
 
   it('keeps the queue in order across updates', () => {
@@ -146,7 +248,7 @@ describe('AnimationDirector', () => {
     director.enqueue([played('loic', red7), turnTo('zoe')], live);
     expect(director.hiddenCardIds().has(red7.id)).toBe(true);
 
-    director.enqueue([played('zoe', redDrawTwo)], { resync: true, previousColor: null });
+    director.enqueue([played('zoe', redDrawTwo)], { ...live, resync: true });
 
     expect(kinds()).toEqual([]);
     expect(director.hiddenCardIds().size).toBe(0);
@@ -183,7 +285,7 @@ describe('AnimationDirector', () => {
   });
 
   it('holds the previous colour while the wheel turns, then lets the rim take the new one', () => {
-    director.enqueue([played('loic', wild, 'blue')], { resync: false, previousColor: 'red' });
+    director.enqueue([played('loic', wild, 'blue')], { ...live, previousColor: 'red' });
     expect(director.heldColor()).toBe('red');
 
     vi.advanceTimersByTime(MOTION_MS.playFlight + MOTION_MS.playRest + MOTION_MS.wheel * 0.4);
@@ -228,7 +330,6 @@ describe('AnimationDirector', () => {
     director.enqueue([played('loic', red7)], live);
 
     expect(director.active()[0].durationMs).toBeLessThan(MOTION_MS.playFlight);
-    expect(director.active()[0].staggerMs).toBeLessThan(MOTION_MS.drawStagger);
   });
 
   it('speeds up to catch up when more than three steps are waiting', () => {

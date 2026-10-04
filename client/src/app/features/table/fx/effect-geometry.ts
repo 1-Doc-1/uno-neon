@@ -1,7 +1,6 @@
 import type { Card, Color, Direction } from '../../../protocol/generated/protocol';
 import type { ActiveEffect } from './animation-director';
 import { scatterOf } from './discard-pile';
-import { flyingCards } from './effect-plan';
 
 /** Une boîte sur l'écran, par son centre, en pixels relatifs à la couche d'effets. */
 export interface Box {
@@ -129,9 +128,9 @@ function placeDraw(
   }
   const mine = spec.playerId === anchors.meId;
   const seat = seatOf(anchors, spec.playerId);
-  const count = flyingCards(spec.count);
+  const count = spec.count;
   const stagger = effect.staggerMs;
-  const flightMs = Math.max(120, effect.durationMs - (count - 1) * stagger);
+  const flightMs = effect.flightMs;
   const flights: Flight[] = [];
   for (let index = 0; index < count; index++) {
     const card = mine ? (spec.cards?.[index] ?? null) : null;

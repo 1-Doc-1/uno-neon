@@ -39,6 +39,12 @@
       "description": "In phase roundOver: when the next round starts automatically (server clock).",
       "anyOf": [{ "$ref": "common.schema.json#/$defs/EpochMillis" }, { "type": "null" }]
     },
+    "drawStepMs": {
+      "description": "Pace of drawn cards, set by the server (ADR 0026): every card takes at least this long to show. The forced move that follows a draw and the clock of a new turn wait for N cards x drawStepMs, so a client paces its animations on this value, never on a constant of its own.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10000
+    },
     "unoWindows": {
       "description": "Players holding one unannounced card, oldest first (ADR 0018). Only the target may announce until graceEndsAt; from then until expiresAt anybody else may catch them. Server clock.",
       "type": "array",
@@ -67,6 +73,7 @@
     "pendingDraw",
     "turnDeadline",
     "nextRoundDeadline",
+    "drawStepMs",
     "unoWindows",
     "round",
     "settings",

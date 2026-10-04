@@ -31,6 +31,9 @@ app::Timeouts makeTimeouts([[maybe_unused]] const EnvironmentLookup& environment
     if (const auto grace = environment("UNO_TEST_RECONNECT_GRACE_MS")) {
         timeouts.reconnectGrace = std::chrono::milliseconds(std::stoll(*grace));
     }
+    if (const auto step = environment("UNO_TEST_DRAW_STEP_MS")) {
+        timeouts.drawStep = std::chrono::milliseconds(std::stoll(*step));
+    }
 #endif
     return timeouts;
 }

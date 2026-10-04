@@ -33,7 +33,7 @@ using uno::testing::toRequest;
 
 // A table where the current player has nothing to play and the top two cards of the draw pile do not fit either, so
 // that drawing takes at least three cards.
-std::unique_ptr<Table> tableWithALongDraw(core::DrawRule rule)
+std::unique_ptr<Table> longDrawAtSeed(std::uint64_t seed, core::DrawRule rule)
 {
     const auto longDraw = [](const core::Round& round) {
         if (!std::holds_alternative<core::AwaitingPlay>(round.phase()) || round.drawPile().cards().size() < 3) {
@@ -46,20 +46,28 @@ std::unique_ptr<Table> tableWithALongDraw(core::DrawRule rule)
         const auto cards = round.drawPile().cards();
         return std::ranges::none_of(hand, playable) && !playable(cards.back()) && !playable(*(cards.end() - 2));
     };
+    auto table =
+        std::make_unique<Table>(3, seed, core::MatchLength::SingleRound, rule, false, core::DrawAmount::UntilPlayable);
+    table->start();
+    for (std::size_t step = 0; step < 3000; ++step) {
+        const auto& round = table->room().match->round();
+        if (longDraw(round)) {
+            return table;
+        }
+        if (std::holds_alternative<core::RoundOver>(round.phase())) {
+            break;
+        }
+        const auto actions = uno::testing::legalActionsOfCurrentPlayer(round);
+        table->currentPlayer().send(toRequest(actions.at(step % actions.size())));
+    }
+    return nullptr;
+}
+
+std::unique_ptr<Table> tableWithALongDraw(core::DrawRule rule)
+{
     for (std::uint64_t seed = 1; seed < 300; ++seed) {
-        auto table = std::make_unique<Table>(3, seed, core::MatchLength::SingleRound, rule, false,
-                                             core::DrawAmount::UntilPlayable);
-        table->start();
-        for (std::size_t step = 0; step < 3000; ++step) {
-            const auto& round = table->room().match->round();
-            if (longDraw(round)) {
-                return table;
-            }
-            if (std::holds_alternative<core::RoundOver>(round.phase())) {
-                break;
-            }
-            const auto actions = uno::testing::legalActionsOfCurrentPlayer(round);
-            table->currentPlayer().send(toRequest(actions.at(step % actions.size())));
+        if (auto table = longDrawAtSeed(seed, rule)) {
+            return table;
         }
     }
     throw std::logic_error{"no seed reached a long draw"};
@@ -130,4 +138,52 @@ TEST_CASE("Opponents see how many cards were drawn, never which", "[app][drawAmo
         }
         REQUIRE(cardsAnnounced(*update, drawerId) >= 3);
     }
+}
+
+namespace {
+
+// A table where the forced draw of the current player takes at least three cards and leaves a card the server must
+// play by itself.
+struct PacedDraw {
+    std::unique_ptr<Table> table;
+    core::PlayerId drawer;
+};
+
+PacedDraw tableWithAForcedLongDrawThenPlay()
+{
+    for (std::uint64_t seed = 1; seed < 300; ++seed) {
+        auto table = longDrawAtSeed(seed, core::DrawRule::Guided);
+        if (table == nullptr) {
+            continue;
+        }
+        const auto drawer = table->room().match->round().currentPlayer();
+        table->harness.scheduler.advance(std::chrono::milliseconds(1200)); // the forced draw
+        const auto forced = table->room().match->round().forcedAction();
+        if (forced.has_value() && std::holds_alternative<core::PlayCard>(*forced)) {
+            return {.table = std::move(table), .drawer = drawer};
+        }
+    }
+    throw std::logic_error{"no seed gave a long draw followed by a forced play"};
+}
+
+} // namespace
+
+TEST_CASE("The forced play waits for the end of the paced draw, and so does the clock of the turn",
+          "[app][drawAmount][pace]")
+{
+    using namespace std::chrono_literals;
+    auto [table, drawer] = tableWithAForcedLongDrawThenPlay();
+    const auto& room = table->room();
+    const auto version = room.stateVersion;
+    const auto drawn =
+        static_cast<std::int64_t>(cardsAnnounced(*table->players.front().last<response::GameUpdate>(), drawer));
+    REQUIRE(drawn >= 3);
+    const auto pause = std::chrono::milliseconds(drawn * 1000);
+    const auto turnClock = room.turnDeadline.value() - table->harness.clock.nowMillis();
+    REQUIRE(turnClock == (std::chrono::seconds(static_cast<int>(room.settings.turnTimer)) + pause).count());
+
+    table->harness.scheduler.advance(pause + 1199ms);
+    REQUIRE(room.stateVersion == version);
+    table->harness.scheduler.advance(1ms);
+    REQUIRE(room.stateVersion == version + 1);
 }

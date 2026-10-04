@@ -103,14 +103,24 @@ export class TableView {
   );
   private readonly serverNow = computed(() => this.now() + this.clockOffset());
 
+  /** Les sièges tels qu'on les montre : les cartes d'une pioche en cours ne comptent qu'à leur arrivée. */
+  private readonly seats = computed(() =>
+    this.view().players.map((seat) => ({
+      ...seat,
+      cardCount: seat.cardCount - (this.director.unarrived().get(seat.playerId) ?? 0),
+    })),
+  );
   protected readonly mySeat = computed(() =>
-    this.view().players.find((p) => p.playerId === this.view().me.playerId),
+    this.seats().find((p) => p.playerId === this.view().me.playerId),
+  );
+  protected readonly shownDrawPileCount = computed(
+    () => this.view().drawPileCount + this.director.unlaunched(),
   );
   protected readonly myTurn = computed(
     () => this.view().currentPlayerId === this.view().me.playerId,
   );
   protected readonly opponents = computed(() =>
-    opponentsInViewOrder(this.view().players, this.mySeat()?.seat ?? 0),
+    opponentsInViewOrder(this.seats(), this.mySeat()?.seat ?? 0),
   );
   protected readonly strip = computed(
     () => this.narrow() && this.opponents().length > MAX_ARC_OPPONENTS,
@@ -182,6 +192,7 @@ export class TableView {
           this.director.enqueue(batch.events, {
             resync: batch.resync,
             previousColor: this.previousColor,
+            drawStepMs: this.view().drawStepMs,
           }),
         );
       }

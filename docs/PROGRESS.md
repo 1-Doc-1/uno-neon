@@ -73,6 +73,11 @@
 - [x] M1 Règle maison « pioche jusqu'à pouvoir jouer » (`drawAmount`, ADR 0024) : moteur, protocole, salon, simulation, E2E
 - [x] M2 Rythme et animations : pioche depuis le paquet, durées centralisées, vitesse réglable, sens du jeu, mains adverses vues de dos
 
+#### Lot N — corrections après test en jeu réel
+- [x] N1 E2E instable au démontage (scheduler, pile de test, bannière sur `/dev`)
+- [x] N2 Pioche multiple rythmée par le serveur (`drawStepMs`, ADR 0026)
+- [ ] N3 Effets et mise en page de la table (chevauchement, effets personnels, couleurs, cartes atténuées)
+
 #### Phase 1 (suite)
 - [ ] 1.6 Options maison (politiques injectables)
 
@@ -118,6 +123,7 @@
 - [0022 — Animations : pilotées par les événements, purement cosmétiques](adr/0022-event-driven-animations.md)
 - [0025 — Rythme du jeu : durées centralisées, vitesse réglable, pioche depuis le paquet](adr/0025-game-feel.md)
 - [0024 — Pioche « jusqu'à pouvoir jouer » : `drawAmount`, une action atomique, un événement par carte](adr/0024-draw-amount.md)
+- [0026 — Pioche rythmée : le serveur décide du rythme (`drawStepMs`), les clients le suivent](adr/0026-paced-draw.md)
 - [0021 — Direction artistique « Nuit » : l'esprit du jeu de cartes, le néon en réserve](adr/0021-art-direction-v2.md)
 
 ## Journal
@@ -170,3 +176,4 @@
 - 2026-10-04 — M1 — pioche « jusqu'à pouvoir jouer » : réglage de salon `drawAmount` (`untilPlayable` par défaut, `one` = règle officielle) qui remplace le booléen `drawUntilPlayable` jamais implémenté ; `Round::applyDrawCard` pioche en une action atomique jusqu'à une carte jouable (un `CardsDrawn` par carte, remélange de la défausse, arrêt quand tout est vide), pioche volontaire inchangée ; protocole (schéma, types, 2 exemples, contrat), salon (« Pioche : jusqu'à pouvoir jouer / 1 carte »), simulation avec les deux valeurs et son invariant, 10 tests ciblés, E2E `draw.spec.ts` (graine 24) et fixture `lobby` qui fixe `drawAmount` ; ADR 0024 — `feat/draw-until-playable`
 - 2026-10-04 — M2 — rythme et animations (ADR 0025) : **bug de pioche** : un effet de pioche en tête de file démarrait avant le rendu de la main, la destination inconnue retombait sur la boîte entière de la main (carte de 1 200 px qui « montait » du bas) ; placement après le rendu et repli à taille de carte ; durées centralisées dans `ui/motion.ts` (`MOTION_MS`, propriétés `--motion-*`, multiplicateur `--motion-scale`), pose ~700 ms avec rebond, effets spéciaux 1 à 1,4 s, cartes d'une pioche à 150 ms, réglage « Vitesse des animations : Normale / Rapide » (`localStorage`), rattrapage de la file au-delà de 3 étapes ; coup forcé du serveur à 1,2 s (injectable) ; lueur du sens du jeu à tête de flèche (`@property --orbit-angle`) et grande flèche circulaire pour l'inversion ; mains adverses de dos en arc inversé avec perspective (face à face agrandie, sièges latéraux tournés vers le centre, 15 dos au plus, badge pour le nombre) ; démo `/dev/table?scenario=animations` avec pioche multiple et nouvelle Inversion — `feat/game-feel`
 - 2026-10-04 — N1 — E2E instable au démontage : run échoué retrouvé (PR #29, `play.spec.ts` « pioche guidée » : `Tearing down "stack" exceeded the test timeout of 30000ms`) ; non reproduit sous Windows (30 répétitions + suite complète verts) ni sous WSL (pas de Node) ; deux causes corrigées : (1) `UwsScheduler::cancelAll` refuse désormais tout nouveau timer (une socket fermée à l'arrêt armait une grâce de 60 s qui gardait la boucle en vie), test rouge → vert + test d'intégration « arrêt en pleine partie < 1 s » ; (2) `stack.stop()` détruit les sockets relayées (`closeAllConnections` ne voit pas les sockets upgradées), attend la sortie du serveur et passe en SIGKILL après 1 s, avec une ligne de log par démontage en CI (`[stack] pid, code/signal, durée`) pour trancher si ça se reproduit ; autre flake vu dans le run de la PR #28 (`draw.spec.ts`, journal limité à 4 entrées) à traiter avec la pioche rythmée ; bannière « Connexion perdue » masquée sur les pages `/dev` — `fix/e2e-teardown-flake`
+- 2026-10-04 — N2 — pioche rythmée (ADR 0026) : le serveur arme le coup forcé à `N × drawStep + forcedAction` et l'horloge d'un nouveau tour après les N cartes (`Timeouts::drawStep`, 1 s, `UNO_TEST_DRAW_STEP_MS`), envoie `drawStepMs` dans chaque vue (schéma, 11 exemples, types, codec) ; client : les `cardsDrawn` consécutifs forment une seule étape (jamais accélérée ni abandonnée, une carte par `drawStepMs`, vol seul raccourci en vitesse Rapide), compteurs des sièges/pastille/paquet et cartes de ma main qui montent à chaque arrivée, même rythme en mouvement réduit (fondus) ; démo `/dev/table?scenario=animations` : pioche de 6 cartes ; E2E : `drawStepMs` d'une pile (40 ms par défaut), scénario « le compteur monte d'une carte à la fois » (400 ms), assertion sur le journal de `draw.spec.ts` retirée (flake de la PR #28 : le journal ne garde que 4 lignes) ; tests : application `[pace]` (bornes exactes), 11 tests du directeur — `feat/paced-draw`
