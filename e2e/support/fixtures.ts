@@ -15,6 +15,8 @@ interface Options {
   seed: number;
   /** Délai de grâce avant le forfait d'un joueur déconnecté. */
   reconnectGraceMs: number;
+  /** Réglage de pioche du salon, fixé explicitement pour ne pas dépendre de la valeur par défaut (ADR 0024). */
+  drawAmount: 'one' | 'untilPlayable';
 }
 
 interface Fixtures {
@@ -31,6 +33,7 @@ interface Fixtures {
 export const test = base.extend<Options & Fixtures>({
   seed: [1, { option: true }],
   reconnectGraceMs: [60_000, { option: true }],
+  drawAmount: ['one', { option: true }],
 
   stack: async ({ seed, reconnectGraceMs }, use) => {
     const stack = await startStack({ seed, reconnectGraceMs });
@@ -38,7 +41,7 @@ export const test = base.extend<Options & Fixtures>({
     await stack.stop();
   },
 
-  lobby: async ({ browser, stack }, use) => {
+  lobby: async ({ browser, stack, drawAmount }, use) => {
     const contexts: BrowserContext[] = [];
     const newPlayer = async (name: string): Promise<Player> => {
       const context = await browser.newContext({
@@ -53,6 +56,10 @@ export const test = base.extend<Options & Fixtures>({
 
     const host = await newPlayer('Alice');
     const code = await host.createRoom();
+    const drawLabel = drawAmount === 'one' ? '1 carte' : 'Jusqu’à pouvoir jouer';
+    const draw = host.page.getByRole('radio', { name: drawLabel, exact: true });
+    await draw.click();
+    await expect(draw).toHaveAttribute('aria-checked', 'true');
     const guest = await newPlayer('Bob');
     await guest.joinByLink(code);
     await expect(host.page.getByText('Bob', { exact: true })).toBeVisible();

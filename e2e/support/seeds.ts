@@ -14,4 +14,10 @@ export const SEEDS = {
   bluffedWildDrawFour: 2,
   /** Défausse : 4 rouge. Bob a un +4 et aucune carte rouge : poser le +4 est légal. */
   legalWildDrawFour: 110,
+  /**
+   * Pioche « jusqu'à pouvoir jouer » (ADR 0024) : défausse 7 vert, Alice joue en premier. À la version 6, Alice n'a rien à
+   * jouer et pioche 3 cartes ou plus d'un coup, la dernière étant spéciale : elle doit choisir, l'écran reste figé.
+   * Alice se retrouve avec 8 cartes.
+   */
+  multiDraw: 24,
 } as const;

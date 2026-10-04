@@ -1,0 +1,6 @@
+{
+  "v": 1,
+  "id": "c-13",
+  "type": "room.updateSettings",
+  "payload": { "settings": { "drawAmount": "everything" } }
+}

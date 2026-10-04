@@ -1,6 +1,7 @@
 import { Component, computed, inject, input, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import type {
+  DrawAmount,
   DrawRule,
   MatchLength,
   RoomView,
@@ -36,6 +37,11 @@ const DRAW_RULES: readonly SegmentOption<DrawRule>[] = [
   { value: 'official', label: 'Officielle' },
 ];
 
+const DRAW_AMOUNTS: readonly SegmentOption<DrawAmount>[] = [
+  { value: 'untilPlayable', label: 'Jusqu’à pouvoir jouer' },
+  { value: 'one', label: '1 carte' },
+];
+
 type LastCardRule = 'free' | 'declare';
 
 const LAST_CARD_RULES: readonly SegmentOption<LastCardRule>[] = [
@@ -67,6 +73,7 @@ export class Lobby {
   protected readonly turnTimers = TURN_TIMERS;
   protected readonly maxPlayers = MAX_PLAYERS;
   protected readonly drawRules = DRAW_RULES;
+  protected readonly drawAmounts = DRAW_AMOUNTS;
   protected readonly lastCardRules = LAST_CARD_RULES;
 
   /** Joueur dont l'exclusion attend une confirmation. */
@@ -95,9 +102,9 @@ export class Lobby {
     const timer = s.turnTimerSeconds === 0 ? 'sans minuteur' : `minuteur ${s.turnTimerSeconds} s`;
     return {
       first: `${MATCH_LENGTH_SUMMARY[s.matchLength]} · ${timer} · ${s.maxPlayers} joueurs max`,
-      second: `Pioche ${s.drawRule === 'guided' ? 'guidée' : 'officielle'} · ${
-        s.declareUnoToWin ? 'UNO obligatoire pour gagner' : 'dernière carte libre'
-      }`,
+      second: `Pioche ${s.drawRule === 'guided' ? 'guidée' : 'officielle'}, ${
+        s.drawAmount === 'untilPlayable' ? 'jusqu’à pouvoir jouer' : '1 carte'
+      } · ${s.declareUnoToWin ? 'UNO obligatoire pour gagner' : 'dernière carte libre'}`,
     };
   });
 

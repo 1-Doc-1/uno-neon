@@ -47,6 +47,10 @@ export type SessionToken = string;
  */
 export type Nickname = string;
 export type StackingMode = 'off' | 'sameType' | 'mixed';
+/**
+ * untilPlayable: a player with nothing to play draws until a card fits (ADR 0024); one: a single card (SPEC §3).
+ */
+export type DrawAmount = 'untilPlayable' | 'one';
 export type WildDrawFourMode = 'officialChallenge' | 'strict';
 /**
  * 0 disables the turn timer.
@@ -221,7 +225,7 @@ export interface RoomSettingsPatch {
   stacking?: StackingMode;
   jumpIn?: boolean;
   sevenZero?: boolean;
-  drawUntilPlayable?: boolean;
+  drawAmount?: DrawAmount;
   wildDrawFourMode?: WildDrawFourMode;
   turnTimerSeconds?: TurnTimerSeconds;
   matchLength?: MatchLength;
@@ -490,7 +494,7 @@ export interface RoomSettings {
   stacking: StackingMode;
   jumpIn: boolean;
   sevenZero: boolean;
-  drawUntilPlayable: boolean;
+  drawAmount: DrawAmount;
   wildDrawFourMode: WildDrawFourMode;
   turnTimerSeconds: TurnTimerSeconds;
   matchLength: MatchLength;

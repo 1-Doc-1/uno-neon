@@ -13,8 +13,8 @@ RoomSettings applyPatch(RoomSettings settings, const RoomSettingsPatch& patch) n
     if (patch.sevenZero) {
         settings.sevenZero = *patch.sevenZero;
     }
-    if (patch.drawUntilPlayable) {
-        settings.drawUntilPlayable = *patch.drawUntilPlayable;
+    if (patch.drawAmount) {
+        settings.drawAmount = *patch.drawAmount;
     }
     if (patch.wildDrawFourMode) {
         settings.wildDrawFourMode = *patch.wildDrawFourMode;
@@ -43,7 +43,7 @@ std::optional<std::string> settingsProblem(const RoomSettings& settings, std::si
         return "maxPlayers is below the number of players in the room";
     }
     const RoomSettings defaults;
-    if (settings.stacking != defaults.stacking || settings.jumpIn || settings.sevenZero || settings.drawUntilPlayable ||
+    if (settings.stacking != defaults.stacking || settings.jumpIn || settings.sevenZero ||
         settings.wildDrawFourMode != defaults.wildDrawFourMode) {
         return "house rules are not available yet";
     }

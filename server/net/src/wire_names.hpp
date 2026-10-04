@@ -117,6 +117,14 @@ struct WireNames<app::StackingMode> {
 };
 
 template <>
+struct WireNames<core::DrawAmount> {
+    static constexpr std::array kTable{
+        WireName{.value = core::DrawAmount::UntilPlayable, .name = "untilPlayable"},
+        WireName{.value = core::DrawAmount::One, .name = "one"},
+    };
+};
+
+template <>
 struct WireNames<core::DrawRule> {
     static constexpr std::array kTable{
         WireName{.value = core::DrawRule::Guided, .name = "guided"},

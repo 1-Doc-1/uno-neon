@@ -140,11 +140,16 @@ export class Player {
       await this.playableCards.first().click();
     }
     await expect
-      .poll(() => this.snapshot(), { message: `l'écran de ${this.name} n'a pas réagi` })
+      .poll(() => this.snapshot(), {
+        message: `l'écran de ${this.name} n'a pas réagi`,
+      })
       .not.toBe(before);
     return true;
   }
 }
+
+/** Ce que `playUntil` demande à un joueur : un test peut le brider (par exemple lui interdire un coup). */
+export type Actor = Pick<Player, 'actNow' | 'canAct'>;
 
 /**
  * Fait jouer tous les joueurs selon la politique jusqu'à ce que `done` soit vrai. Chaque tour de boucle regarde `done`
@@ -152,7 +157,7 @@ export class Player {
  * faire ou que `done` devienne vrai.
  */
 export async function playUntil(
-  players: readonly Player[],
+  players: readonly Actor[],
   done: () => Promise<boolean>,
 ): Promise<void> {
   for (;;) {
@@ -176,7 +181,7 @@ export async function playUntil(
   }
 }
 
-async function anyCanAct(players: readonly Player[]): Promise<boolean> {
+async function anyCanAct(players: readonly Actor[]): Promise<boolean> {
   for (const player of players) {
     if (await player.canAct()) {
       return true;

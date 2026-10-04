@@ -29,7 +29,7 @@ function roomOf(players: RoomMember[]): RoomView {
       stacking: 'off',
       jumpIn: false,
       sevenZero: false,
-      drawUntilPlayable: false,
+      drawAmount: 'untilPlayable',
       wildDrawFourMode: 'officialChallenge',
       turnTimerSeconds: 30,
       matchLength: 'to500',

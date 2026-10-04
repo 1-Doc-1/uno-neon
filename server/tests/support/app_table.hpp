@@ -59,12 +59,15 @@ inline std::optional<IllegalMoveReason> refusalReason(const Messages& messages)
 // A room of `count` players, everyone ready, in the lobby.
 struct Table {
     explicit Table(std::size_t count, std::uint64_t seed = 7, core::MatchLength length = core::MatchLength::SingleRound,
-                   core::DrawRule drawRule = core::DrawRule::Guided, bool declareUnoToWin = false)
+                   core::DrawRule drawRule = core::DrawRule::Guided, bool declareUnoToWin = false,
+                   core::DrawAmount drawAmount = core::DrawAmount::One)
         : harness(seed)
     {
         players.push_back(harness.helloPlayer());
-        players.front().send(
-            request::CreateRoom{.nickname = "Player0", .settings = patch(length, drawRule, declareUnoToWin)});
+        players.front().send(request::CreateRoom{
+            .nickname = "Player0",
+            .settings = patch(length, drawRule, declareUnoToWin, drawAmount),
+        });
         code = players.front().room().code;
         for (std::size_t index = 1; index < count; ++index) {
             players.push_back(harness.helloPlayer());
@@ -75,12 +78,13 @@ struct Table {
     }
 
     static RoomSettingsPatch patch(core::MatchLength length, core::DrawRule drawRule = core::DrawRule::Guided,
-                                   bool declareUnoToWin = false)
+                                   bool declareUnoToWin = false, core::DrawAmount drawAmount = core::DrawAmount::One)
     {
         RoomSettingsPatch settings;
         settings.matchLength = length;
         settings.drawRule = drawRule;
         settings.declareUnoToWin = declareUnoToWin;
+        settings.drawAmount = drawAmount;
         return settings;
     }
 

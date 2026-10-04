@@ -1,5 +1,6 @@
 #pragma once
 
+#include "uno/core/draw_amount.hpp"
 #include "uno/core/draw_rule.hpp"
 #include "uno/core/match.hpp"
 
@@ -22,7 +23,7 @@ struct RoomSettings {
     StackingMode stacking{StackingMode::Off};
     bool jumpIn{false};
     bool sevenZero{false};
-    bool drawUntilPlayable{false};
+    core::DrawAmount drawAmount{core::DrawAmount::UntilPlayable}; // ADR 0024
     WildDrawFourMode wildDrawFourMode{WildDrawFourMode::OfficialChallenge};
     TurnTimerSeconds turnTimer{TurnTimerSeconds::Thirty};
     core::MatchLength matchLength{core::MatchLength::To500};
@@ -38,7 +39,7 @@ struct RoomSettingsPatch {
     std::optional<StackingMode> stacking;
     std::optional<bool> jumpIn;
     std::optional<bool> sevenZero;
-    std::optional<bool> drawUntilPlayable;
+    std::optional<core::DrawAmount> drawAmount;
     std::optional<WildDrawFourMode> wildDrawFourMode;
     std::optional<TurnTimerSeconds> turnTimer;
     std::optional<core::MatchLength> matchLength;
