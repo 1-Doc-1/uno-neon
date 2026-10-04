@@ -27,15 +27,14 @@ namespace uno::app {
 
 // How long the application waits before it acts on silence (SPEC §5, §9.3).
 struct Timeouts {
-    std::chrono::milliseconds reconnectGrace{std::chrono::seconds(60)};     // a disconnected player is removed
-    std::chrono::milliseconds lobbyInactivity{std::chrono::minutes(15)};    // an idle lobby closes
-    std::chrono::milliseconds matchOverInactivity{std::chrono::minutes(5)}; // a finished match closes
-    std::chrono::milliseconds sessionIdle{std::chrono::minutes(10)};        // a session nobody uses is forgotten
-    std::chrono::milliseconds nextRound{std::chrono::seconds(30)};          // the next round starts anyway
-    std::chrono::milliseconds unoGrace{std::chrono::seconds(2)};            // only the offender may announce UNO
-    std::chrono::milliseconds unoWindow{std::chrono::seconds(15)};          // from its opening, anybody may catch
-    std::chrono::milliseconds forcedAction{
-        std::chrono::milliseconds(1200)}; // a forced move is played once the last animation was seen
+    std::chrono::milliseconds reconnectGrace{std::chrono::seconds(60)};      // a disconnected player is removed
+    std::chrono::milliseconds lobbyInactivity{std::chrono::minutes(15)};     // an idle lobby closes
+    std::chrono::milliseconds matchOverInactivity{std::chrono::minutes(5)};  // a finished match closes
+    std::chrono::milliseconds sessionIdle{std::chrono::minutes(10)};         // a session nobody uses is forgotten
+    std::chrono::milliseconds nextRound{std::chrono::seconds(30)};           // the next round starts anyway
+    std::chrono::milliseconds unoGrace{std::chrono::seconds(2)};             // only the offender may announce UNO
+    std::chrono::milliseconds unoWindow{std::chrono::seconds(15)};           // from its opening, anybody may catch
+    std::chrono::milliseconds forcedAction{std::chrono::milliseconds(1200)}; // a forced move waits for the animations
 };
 
 // The use cases of the server: sessions, rooms and (from step 2.4) matches. It reacts to what the
