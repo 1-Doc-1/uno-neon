@@ -40,3 +40,6 @@ Thumbs.db
 # Playwright CLI output (may contain credentials)
 .playwright-cli/
 .playwright-cli/
+
+# Skills installés localement : se réinstallent depuis skills-lock.json (docs/SETUP.md)
+.claude/skills/

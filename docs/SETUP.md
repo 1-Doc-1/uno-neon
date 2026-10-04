@@ -10,7 +10,7 @@
 | **CLAUDE.md** | les règles permanentes du repo, lues automatiquement à chaque session | racine du repo (versionné) |
 | **docs/SPEC.md** | la spécification complète (le « giga prompt »), lue à la demande | repo (versionné) |
 | **Plugins** | paquets installables (skills, agents, serveurs de langage…) via `/plugin` | activés dans `.claude/settings.json` (versionné), installés sur chaque PC |
-| **Skills** | instructions spécialisées que Claude charge quand la tâche correspond | `.claude/skills/` (versionné) |
+| **Skills** | instructions spécialisées que Claude charge quand la tâche correspond | `.claude/skills/` (non versionné ; `skills-lock.json` l'est) |
 | **MCP** | serveurs d'outils (ici : la CLI Angular) que Claude peut appeler | `.mcp.json` (versionné) |
 
 **Pourquoi une SPEC dans un fichier plutôt qu'un énorme prompt collé dans le chat ?** Un prompt collé disparaît au premier `/clear` ou quand la conversation est résumée ; un fichier reste dans le repo, versionné, identique pour tout le groupe, et Claude peut en relire la bonne section à chaque étape.
@@ -192,8 +192,9 @@ npx skills add vercel-labs/agent-skills --skill web-design-guidelines -a claude-
 playwright-cli install --skills
 ```
 
-- `--copy` : de vrais fichiers plutôt que des liens symboliques. Sous Windows, git gère mal les liens symboliques, et les coéquipiers récupèrent ainsi les skills par un simple `git pull`.
-- **Avant de committer, ouvre chaque `SKILL.md` dans `.claude/skills/` et lis-le** : un skill est un prompt qui s'exécute avec tes droits.
+- `--copy` : de vrais fichiers plutôt que des liens symboliques (git gère mal les liens symboliques sous Windows).
+- **`.claude/skills/` n'est pas versionné** (contenu tiers, ignoré par git) ; seul `skills-lock.json` l'est : il fige la source et l'empreinte de chaque skill. Après un `git clone`, réinstalle-les depuis ce fichier : `npx skills experimental_install` (à la racine du repo), ou, à défaut, relance les commandes ci-dessus (`playwright-cli` n'est pas dans le fichier : `playwright-cli install --skills`).
+- **Ouvre chaque `SKILL.md` installé dans `.claude/skills/` et lis-le** : un skill est un prompt qui s'exécute avec tes droits.
 - `web-design-guidelines` télécharge ses règles depuis GitHub à chaque audit (il faut Internet, et le contenu peut évoluer).
 
 | Skill | Rôle |
@@ -236,7 +237,7 @@ Fusionne la PR sur GitHub, puis `git checkout main` et `git pull`.
    ```powershell
    .\scripts\setup-claude.ps1
    ```
-   Le script installe les plugins du projet et signale les outils manquants. Les skills et le MCP arrivent déjà avec le repo.
+   Le script installe les plugins du projet et signale les outils manquants. Le MCP arrive avec le repo ; les skills se réinstallent depuis `skills-lock.json` (étape 5).
 
 Si PowerShell refuse d'exécuter le script : `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`, une seule fois.
 

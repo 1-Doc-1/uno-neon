@@ -1,11 +1,19 @@
-# Intégration continue : build + tests du serveur (Linux, Windows) et du client, sur chaque PR.
+# Intégration continue : build + tests du serveur (Linux, Windows) et du client, sur chaque PR vers main.
 # Le job e2e (Playwright) joue de vraies parties dans des navigateurs contre un serveur à graine fixe.
+#
+# Déclencheurs : pull_request vers main et lancement manuel, jamais un push de branche (une PR ne lance qu'un run).
+# Les PR en brouillon sont ignorées. Aucun secret n'est utilisé et pull_request_target n'est jamais employé : une PR
+# venue d'un fork s'exécute avec un jeton en lecture seule, sans accès à rien d'autre que le code qu'elle propose.
+#
+# Filtre de chemins : le job `changes` décide quels jobs tournent, avec des `if:` au niveau des jobs. Pas de `paths:`
+# au niveau du workflow : un check requis qui ne se déclenche jamais bloquerait la fusion (un job sauté, lui, passe).
 name: CI
 
 on:
   pull_request:
-  push:
     branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -19,8 +27,55 @@ env:
   VCPKG_COMMIT: 4cb050be2cfa7a947cdd2dd1a70e24b17774c979
 
 jobs:
+  # Quels morceaux du dépôt la PR touche-t-elle ? Un brouillon saute ce job, donc tous les autres (ils en dépendent).
+  #   docs/, fichiers Markdown, réglages de l'éditeur ou de Claude Code uniquement → rien ne tourne
+  #   client/ → client + e2e ; server/ → serveur + e2e ; e2e/ → e2e
+  #   protocol/, .github/ et tout chemin non reconnu → tout
+  changes:
+    name: changes
+    if: github.event.pull_request.draft != true
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      server: ${{ steps.filter.outputs.server }}
+      client: ${{ steps.filter.outputs.client }}
+      e2e: ${{ steps.filter.outputs.e2e }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - id: filter
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          server=false client=false e2e=false
+          if [ -z "$BASE_SHA" ]; then
+            # Lancement manuel : tout tourne.
+            server=true client=true e2e=true
+          else
+            while IFS= read -r file; do
+              case "$file" in
+                protocol/* | .github/*) server=true client=true e2e=true ;;
+                client/*) client=true e2e=true ;;
+                server/*) server=true e2e=true ;;
+                e2e/*) e2e=true ;;
+                docs/* | .claude/* | *.md | skills-lock.json | .gitignore | .gitleaksignore) ;;
+                *) server=true client=true e2e=true ;;
+              esac
+            done < <(git diff --name-only --no-renames "$BASE_SHA...$HEAD_SHA")
+          fi
+          echo "server=$server" >> "$GITHUB_OUTPUT"
+          echo "client=$client" >> "$GITHUB_OUTPUT"
+          echo "e2e=$e2e" >> "$GITHUB_OUTPUT"
+          echo "server=$server client=$client e2e=$e2e"
+
   server-linux:
     name: server-linux (${{ matrix.compiler }})
+    needs: changes
+    if: needs.changes.outputs.server == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     strategy:
@@ -40,6 +95,8 @@ jobs:
       VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}/.vcpkg-cache,readwrite
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Install build tools
         run: |
@@ -115,6 +172,8 @@ jobs:
         run: git ls-files 'server/*.cpp' | xargs clang-tidy-23 -p server/build/debug-asan --quiet
 
   server-windows:
+    needs: changes
+    if: needs.changes.outputs.server == 'true'
     runs-on: windows-latest
     timeout-minutes: 60
     env:
@@ -122,6 +181,8 @@ jobs:
       VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}\.vcpkg-cache,readwrite
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Restore vcpkg binary cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -157,6 +218,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
   client:
+    needs: changes
+    if: needs.changes.outputs.client == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     defaults:
@@ -164,6 +227,8 @@ jobs:
         working-directory: client
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -200,6 +265,8 @@ jobs:
   # Parties jouées dans de vrais navigateurs (un contexte par joueur) contre un serveur à graine fixe : ce binaire est
   # compilé avec UNO_ENABLE_TEST_HOOKS (preset e2e), c'est le seul endroit où il existe (ADR 0023).
   e2e:
+    needs: changes
+    if: needs.changes.outputs.e2e == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
@@ -209,6 +276,8 @@ jobs:
       VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}/.vcpkg-cache,readwrite
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Install build tools
         run: |
