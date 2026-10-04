@@ -7,6 +7,10 @@ export interface SeatPlacement {
   readonly angle: number;
   /** Au-delà de cinq adversaires, les sièges sont compacts. */
   readonly compact: boolean;
+  /** Le siège est en face de moi : sa main est grande et centrée. */
+  readonly facing: boolean;
+  /** Rotation de sa main autour de l'axe vertical, vers le centre de la table (degrés ; 0 en face). */
+  readonly yaw: number;
 }
 
 export type TableShape = 'table' | 'arc';
@@ -29,6 +33,11 @@ const ELLIPSES: Record<TableShape, Ellipse> = {
 };
 
 const SPREAD_DEGREES = 82;
+/** Un siège à moins de cette ouverture de l'axe est « en face ». */
+const FACING_DEGREES = 20;
+/** Part de l'angle du siège reportée sur l'orientation de sa main (limitée : au-delà le dessin se déforme). */
+const YAW_RATIO = 0.4;
+const MAX_YAW_DEGREES = 32;
 
 /** Les angles des sièges, du plus à gauche au plus à droite, selon le nombre d'adversaires. */
 function anglesFor(count: number): readonly number[] {
@@ -68,6 +77,8 @@ export function seatLayout(count: number, shape: TableShape = 'table'): readonly
       y: cy - ry * Math.cos(radians),
       angle,
       compact: count >= COMPACT_FROM,
+      facing: Math.abs(angle) <= FACING_DEGREES,
+      yaw: Math.max(-MAX_YAW_DEGREES, Math.min(MAX_YAW_DEGREES, -angle * YAW_RATIO)),
     };
   });
 }

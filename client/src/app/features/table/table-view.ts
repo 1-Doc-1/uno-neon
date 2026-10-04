@@ -16,8 +16,10 @@ import { ColorPicker } from './color-picker';
 import { AnimationDirector } from './fx/animation-director';
 import { EffectsLayer } from './fx/effects-layer';
 import { Hand } from './hand';
+import { MotionSetting } from '../../ui/motion-setting';
 import { MatchOverDialog } from './match-over-dialog';
 import { MyBadge } from './my-badge';
+import { MAX_FAN_BACKS } from './opponent-fan';
 import { OpponentSeat } from './opponent-seat';
 import { Piles } from './piles';
 import { RoundOverDialog } from './round-over-dialog';
@@ -55,6 +57,7 @@ export interface CardPlay {
     ColorPicker,
     RoundOverDialog,
     MatchOverDialog,
+    MotionSetting,
   ],
   providers: [AnimationDirector],
   templateUrl: './table-view.html',
@@ -118,7 +121,7 @@ export class TableView {
       compact: placement.compact || this.narrow(),
     })),
   );
-  protected readonly maxBacks = computed(() => (this.narrow() ? NARROW_MAX_BACKS : 12));
+  protected readonly maxBacks = computed(() => (this.narrow() ? NARROW_MAX_BACKS : MAX_FAN_BACKS));
   /** Part du temps de tour qu'il reste, pour l'anneau du joueur dont c'est le tour (`null` sans minuteur). */
   protected readonly turnFraction = computed(() => {
     const deadline = this.view().turnDeadline;

@@ -13,6 +13,11 @@
   gap: var(--space-1);
 }
 
+// L'adversaire en face : une grande main centrée
+.seat.facing {
+  --back-w: calc(var(--bw) * 1.1);
+}
+
 .seat.compact {
   --back-w: calc(var(--bw) * 0.78);
   --portrait: calc(var(--pw) * 0.8);

@@ -77,7 +77,7 @@ TEST_CASE("Guided: a player with nothing to play draws by themselves after a sho
     const auto version = table->room().stateVersion;
     const auto cards = table->room().match->round().hand(player)->size();
 
-    table->harness.scheduler.advance(699ms);
+    table->harness.scheduler.advance(1199ms);
     REQUIRE(table->room().stateVersion == version);
     table->harness.scheduler.advance(1ms);
 
@@ -94,7 +94,7 @@ TEST_CASE("Guided: a drawn plain card that fits is played by the server after th
     const auto drawn = std::get<core::AwaitingDrawnCardDecision>(round.phase()).drawnCard;
     const auto version = table->room().stateVersion;
 
-    table->harness.scheduler.advance(700ms);
+    table->harness.scheduler.advance(1200ms);
 
     REQUIRE(table->room().stateVersion > version);
     REQUIRE(table->room().match->round().discardPile().top().id == drawn);

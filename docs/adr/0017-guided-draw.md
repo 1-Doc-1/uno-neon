@@ -29,7 +29,7 @@ projection et les générateurs de coups de test : une seule définition) et `Ro
 coup que le joueur courant a quand il n'a pas le choix (`DrawCard` sans carte jouable, `PlayCard` de la carte piochée si
 elle est normale et jouable), et rien dans la règle officielle.
 
-**L'application dit QUAND** : comme le minuteur de tour (ADR 0016), un timer `Timeouts::forcedAction` (700 ms) est armé
+**L'application dit QUAND** : comme le minuteur de tour (ADR 0016), un timer `Timeouts::forcedAction` (1,2 s depuis l'ADR 0025 ; 700 ms à l'origine) est armé
 à chaque changement d'état quand `forcedAction()` existe ; il porte le `stateVersion` et applique le coup par
 `Match::apply`, la même `PlayerAction` qu'un humain, donc les mêmes règles et événements. Le délai laisse voir la
 situation (« je n'ai rien »). Le joueur peut aussi cliquer avant l'échéance : le timer devient périmé.

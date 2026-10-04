@@ -28,6 +28,7 @@ const effect = (spec: EffectSpec, extra: Partial<ActiveEffect> = {}): ActiveEffe
   spec,
   durationMs: 400,
   speed: 1,
+  staggerMs: 150,
   reduced: false,
   ...extra,
 });
@@ -70,9 +71,21 @@ describe('placeEffect', () => {
 
     const flights = placed?.kind === 'flights' ? placed.flights : [];
     expect(flights).toHaveLength(6);
-    expect(flights.map((flight) => flight.delayMs)).toEqual([0, 90, 180, 270, 360, 450]);
+    expect(flights.map((flight) => flight.delayMs)).toEqual([0, 150, 300, 450, 600, 750]);
     expect(flights.every((flight) => flight.look === 'back-to-face')).toBe(true);
     expect(flights[0].to).toMatchObject({ cx: 120, cy: 800 });
+  });
+
+  it('lands a card whose place in my hand is not known yet on a card-sized spot, never on the whole hand', () => {
+    const placed = placeEffect(
+      effect({ kind: 'draw', playerId: 'me', count: 1, cards: [card(30)], penalty: false }),
+      anchors(),
+    );
+
+    const flights = placed?.kind === 'flights' ? placed.flights : [];
+    expect(flights[0].from).toMatchObject({ cx: 350, cy: 300 });
+    expect(flights[0].to).toMatchObject({ cx: 450, cy: 800 });
+    expect(flights[0].to.w).toBeLessThan(200);
   });
 
   it("sends an opponent's drawn cards face down to their seat, without ever showing a card", () => {
@@ -87,9 +100,21 @@ describe('placeEffect', () => {
     expect(flights[0].to).toMatchObject({ cx: 150, cy: 120 });
   });
 
-  it('places nothing when its target is not on screen, and leaves the reversal to the table centre', () => {
+  it('places nothing when its target is not on screen', () => {
     expect(placeEffect(effect({ kind: 'skip', playerId: 'ghost' }), anchors())).toBeNull();
-    expect(placeEffect(effect({ kind: 'reverse', direction: 'clockwise' }), anchors())).toBeNull();
+  });
+
+  it('draws the reversal as a big circular arrow at the centre of the table, turning towards the old direction', () => {
+    const placed = placeEffect(
+      effect({ kind: 'reverse', direction: 'counterClockwise' }),
+      anchors(),
+    );
+
+    expect(placed).toMatchObject({
+      kind: 'reverse',
+      direction: 'counterClockwise',
+      at: { cx: 450, cy: 300 },
+    });
   });
 
   it('writes the verdict of a challenge at the centre of the table', () => {

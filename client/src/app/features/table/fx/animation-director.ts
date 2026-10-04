@@ -9,9 +9,15 @@ import {
   PlanState,
   timingOf,
 } from './effect-plan';
+import {
+  CATCH_UP_MIN_FACTOR,
+  CATCH_UP_THRESHOLD,
+  MOTION_MS,
+  MotionPreferences,
+} from '../../../ui/motion';
 
 /** Au-delà de ce retard cumulé, la file est abandonnée : mieux vaut l'état final que des effets qui n'ont plus de sens. */
-export const MAX_BACKLOG_MS = 2500;
+export const MAX_BACKLOG_MS = MOTION_MS.maxBacklog;
 const REDUCED_QUERY = '(prefers-reduced-motion: reduce)';
 /** Le Joker retient la couleur affichée jusqu'à ce point de la roue (part de sa durée), puis le liseré la prend. */
 const WHEEL_REVEAL_FRACTION = 0.65;
@@ -22,6 +28,8 @@ export interface ActiveEffect {
   /** Durée visible, déjà ramenée à la vitesse choisie. */
   readonly durationMs: number;
   readonly speed: number;
+  /** Écart entre deux cartes d'une même pioche, déjà ramené à la vitesse choisie. */
+  readonly staggerMs: number;
   readonly reduced: boolean;
 }
 
@@ -46,6 +54,7 @@ interface QueuedStep {
 @Injectable()
 export class AnimationDirector {
   private readonly document = inject(DOCUMENT);
+  private readonly motion = inject(MotionPreferences);
   private readonly timers = new Set<ReturnType<typeof setTimeout>>();
   private queue: QueuedStep[] = [];
   private running = false;
@@ -165,26 +174,38 @@ export class AnimationDirector {
       this.running = false;
       return;
     }
-    const speed = this.speed();
+    // Réglage du joueur (Normale/Rapide), vitesse de la démo, et rattrapage si trop d'étapes attendent
+    const factor = this.timeFactor();
+    const reduced = this.reduced();
+    const visibleMs = step.visibleMs * factor;
     const effect: ActiveEffect = {
       id: this.nextId++,
       spec: step.spec,
-      durationMs: step.visibleMs / speed,
-      speed,
-      reduced: this.reduced(),
+      durationMs: visibleMs,
+      speed: 1 / factor,
+      staggerMs: MOTION_MS.drawStagger * factor,
+      reduced,
     };
     this.activeState.update((list) => [...list, effect]);
-    this.after(step.visibleMs / speed, () => this.finish(effect));
+    this.after(visibleMs, () => this.finish(effect));
     if (step.spec.kind === 'wheel') {
-      this.after((step.visibleMs * WHEEL_REVEAL_FRACTION) / speed, () =>
-        this.heldColorState.set(null),
-      );
+      this.after(visibleMs * WHEEL_REVEAL_FRACTION, () => this.heldColorState.set(null));
     }
     if (step.stepMs <= 0) {
       this.startNext();
     } else {
-      this.after(step.stepMs / speed, () => this.startNext());
+      this.after(step.stepMs * factor, () => this.startNext());
     }
+  }
+
+  /** Multiplicateur des durées : le réglage du joueur, la vitesse de la démo, et un rattrapage quand la file s'allonge. */
+  private timeFactor(): number {
+    const waiting = this.queue.length;
+    const catchUp =
+      waiting > CATCH_UP_THRESHOLD
+        ? Math.max(CATCH_UP_MIN_FACTOR, CATCH_UP_THRESHOLD / waiting)
+        : 1;
+    return (this.motion.scale() / this.speed()) * catchUp;
   }
 
   private finish(effect: ActiveEffect): void {

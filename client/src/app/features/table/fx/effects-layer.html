@@ -84,6 +84,14 @@
         <circle class="hub" r="12" />
       </svg>
     }
+    @case ('reverse') {
+      <app-reverse-arrow
+        [direction]="item.direction"
+        [at]="item.at"
+        [durationMs]="item.durationMs"
+        [reduced]="item.reduced"
+      />
+    }
     @case ('orb') {
       <span
         class="orb"

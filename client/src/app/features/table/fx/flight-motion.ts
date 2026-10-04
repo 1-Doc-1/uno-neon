@@ -2,6 +2,7 @@ import { afterNextRender, Directive, ElementRef, inject, input } from '@angular/
 import type { Flight } from './effect-geometry';
 
 const EASING = 'cubic-bezier(0.22, 0.8, 0.26, 1)';
+const SETTLE_SCALE = 1.07;
 
 function transformAt(
   box: { cx: number; cy: number },
@@ -44,10 +45,19 @@ export class FlightMotion {
         return;
       }
       const first = transformAt(flight.from, flight, flight.fromTilt, flight.from.w / flight.to.w);
-      element.animate([{ transform: first }, { transform: last }], {
+      // Une carte posée glisse puis rebondit un peu en arrivant (dernier cinquième de la durée)
+      const frames: Keyframe[] = flight.settle
+        ? [
+            { transform: first, easing: EASING },
+            { transform: last, offset: 0.8 },
+            { transform: transformAt(flight.to, flight, flight.toTilt, SETTLE_SCALE), offset: 0.9 },
+            { transform: last },
+          ]
+        : [{ transform: first }, { transform: last }];
+      element.animate(frames, {
         duration: flight.durationMs,
         delay: flight.delayMs,
-        easing: EASING,
+        easing: flight.settle ? 'linear' : EASING,
         fill: 'both',
       });
     });

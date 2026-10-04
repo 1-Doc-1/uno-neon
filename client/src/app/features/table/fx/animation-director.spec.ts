@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, vi } from 'vitest';
 import type { Card, ClientEvent } from '../../../protocol/generated/protocol';
+import { MOTION_MS, MotionPreferences } from '../../../ui/motion';
 import { AnimationDirector, MAX_BACKLOG_MS } from './animation-director';
 import { planEffects, INITIAL_PLAN_STATE, REDUCED_MS } from './effect-plan';
 
@@ -89,26 +90,37 @@ describe('AnimationDirector', () => {
   });
 
   afterEach(() => {
+    localStorage.clear();
     vi.useRealTimers();
   });
 
-  it('starts the first effect at once and chains the next ones in order, small ones overlapping', () => {
+  it('starts the first effect at once and lets a played card rest before the next effect', () => {
     director.enqueue([played('loic', red7), turnTo('zoe')], live);
 
     expect(kinds()).toEqual(['play']);
-    vi.advanceTimersByTime(320);
-    expect(kinds()).toEqual(['play', 'turn']);
-    vi.advanceTimersByTime(80);
-    expect(kinds()).toEqual(['turn']);
-    vi.advanceTimersByTime(1000);
+    vi.advanceTimersByTime(MOTION_MS.playFlight);
     expect(kinds()).toEqual([]);
+    vi.advanceTimersByTime(MOTION_MS.playRest);
+    expect(kinds()).toEqual(['turn']);
+    vi.advanceTimersByTime(MOTION_MS.turn);
+    expect(kinds()).toEqual([]);
+  });
+
+  it('sends the cards of a multiple draw one after another, each starting before the previous one lands', () => {
+    director.enqueue([drew('me', 1, [red7]), drew('me', 1, [wild]), drew('me', 1)], live);
+
+    expect(kinds()).toEqual(['draw']);
+    vi.advanceTimersByTime(MOTION_MS.drawStagger);
+    expect(kinds()).toEqual(['draw', 'draw']);
+    vi.advanceTimersByTime(MOTION_MS.drawStagger);
+    expect(kinds()).toEqual(['draw', 'draw', 'draw']);
   });
 
   it('keeps the queue in order across updates', () => {
     director.enqueue([played('loic', redDrawTwo)], live);
     director.enqueue([drew('zoe', 2)], live);
     const started = new Map<number, string>();
-    for (let elapsed = 0; elapsed < 2000; elapsed += 10) {
+    for (let elapsed = 0; elapsed < 6000; elapsed += 10) {
       for (const effect of director.active()) {
         started.set(effect.id, effect.spec.kind);
       }
@@ -124,7 +136,7 @@ describe('AnimationDirector', () => {
       live,
     );
     const fullscreen = new Set(['bigText', 'reverse', 'wheel', 'challenge', 'spotlight']);
-    for (let elapsed = 0; elapsed < 2000; elapsed += 10) {
+    for (let elapsed = 0; elapsed < 6000; elapsed += 10) {
       expect(kinds().filter((kind) => fullscreen.has(kind)).length).toBeLessThanOrEqual(1);
       vi.advanceTimersByTime(10);
     }
@@ -138,7 +150,7 @@ describe('AnimationDirector', () => {
 
     expect(kinds()).toEqual([]);
     expect(director.hiddenCardIds().size).toBe(0);
-    vi.advanceTimersByTime(5000);
+    vi.advanceTimersByTime(8000);
     expect(kinds()).toEqual([]);
   });
 
@@ -165,7 +177,7 @@ describe('AnimationDirector', () => {
     director.enqueue([played('loic', red7)], live);
     expect(director.hiddenCardIds().has(red7.id)).toBe(true);
 
-    vi.advanceTimersByTime(400);
+    vi.advanceTimersByTime(MOTION_MS.playFlight);
 
     expect(director.hiddenCardIds().has(red7.id)).toBe(false);
   });
@@ -174,9 +186,9 @@ describe('AnimationDirector', () => {
     director.enqueue([played('loic', wild, 'blue')], { resync: false, previousColor: 'red' });
     expect(director.heldColor()).toBe('red');
 
-    vi.advanceTimersByTime(300);
+    vi.advanceTimersByTime(MOTION_MS.playFlight + MOTION_MS.playRest + MOTION_MS.wheel * 0.4);
     expect(director.heldColor()).toBe('red');
-    vi.advanceTimersByTime(420);
+    vi.advanceTimersByTime(MOTION_MS.wheel * 0.3);
     expect(director.heldColor()).toBeNull();
   });
 
@@ -184,7 +196,7 @@ describe('AnimationDirector', () => {
     director.enqueue([{ kind: 'roundEnded', winnerId: 'zoe', points: 40 }], live);
     expect(director.dialogsHeld()).toBe(true);
 
-    vi.advanceTimersByTime(600);
+    vi.advanceTimersByTime(MOTION_MS.spotlight);
 
     expect(director.dialogsHeld()).toBe(false);
   });
@@ -204,10 +216,29 @@ describe('AnimationDirector', () => {
     director.speed.set(2);
 
     director.enqueue([played('loic', red7), turnTo('zoe')], live);
-    vi.advanceTimersByTime(160);
+    expect(director.active()[0].durationMs).toBe(MOTION_MS.playFlight / 2);
+    vi.advanceTimersByTime((MOTION_MS.playFlight + MOTION_MS.playRest) / 2);
 
     expect(kinds()).toContain('turn');
-    expect(director.active()[0].durationMs).toBe(200);
+  });
+
+  it("follows the player's animation speed setting", () => {
+    TestBed.inject(MotionPreferences).set('fast');
+
+    director.enqueue([played('loic', red7)], live);
+
+    expect(director.active()[0].durationMs).toBeLessThan(MOTION_MS.playFlight);
+    expect(director.active()[0].staggerMs).toBeLessThan(MOTION_MS.drawStagger);
+  });
+
+  it('speeds up to catch up when more than three steps are waiting', () => {
+    const plays = Array.from({ length: 5 }, (_, index) =>
+      played('loic', { ...red7, id: 200 + index }),
+    );
+
+    director.enqueue(plays, live);
+
+    expect(director.active()[0].durationMs).toBeLessThan(MOTION_MS.playFlight);
   });
 
   it('flushes when the tab goes to the background', () => {

@@ -1,4 +1,5 @@
 import type { Card, ClientEvent, Color, Direction } from '../../../protocol/generated/protocol';
+import { MOTION_MS } from '../../../ui/motion';
 
 /** Ce qu'on montre : une description pure, sans position ni durée (la couche d'effets la traduit en pixels). */
 export type EffectSpec =
@@ -44,23 +45,21 @@ interface Timing {
 }
 
 export const MAX_FLYING_CARDS = 6;
-export const REDUCED_MS = 160;
+export const REDUCED_MS = MOTION_MS.reduced;
 
+// Les durées viennent toutes de `ui/motion.ts`. Une carte posée reste visible un instant (`playRest`) avant l'action suivante.
 const FIXED_TIMING: Record<Exclude<EffectKind, 'draw'>, Timing> = {
-  play: { stepMs: 320, visibleMs: 400 },
-  bigText: { stepMs: 480, visibleMs: 480 },
-  skip: { stepMs: 160, visibleMs: 520 },
-  reverse: { stepMs: 560, visibleMs: 560 },
-  wheel: { stepMs: 600, visibleMs: 600 },
-  turn: { stepMs: 90, visibleMs: 320 },
-  uno: { stepMs: 160, visibleMs: 640 },
-  caught: { stepMs: 220, visibleMs: 640 },
-  challenge: { stepMs: 600, visibleMs: 600 },
-  spotlight: { stepMs: 600, visibleMs: 600 },
+  play: { stepMs: MOTION_MS.playFlight + MOTION_MS.playRest, visibleMs: MOTION_MS.playFlight },
+  bigText: { stepMs: MOTION_MS.bigText, visibleMs: MOTION_MS.bigText },
+  skip: { stepMs: MOTION_MS.specialGap, visibleMs: MOTION_MS.skip },
+  reverse: { stepMs: MOTION_MS.reverse, visibleMs: MOTION_MS.reverse },
+  wheel: { stepMs: MOTION_MS.wheel, visibleMs: MOTION_MS.wheel },
+  turn: { stepMs: 90, visibleMs: MOTION_MS.turn },
+  uno: { stepMs: MOTION_MS.specialGap, visibleMs: MOTION_MS.uno },
+  caught: { stepMs: MOTION_MS.specialGap, visibleMs: MOTION_MS.caught },
+  challenge: { stepMs: MOTION_MS.challenge, visibleMs: MOTION_MS.challenge },
+  spotlight: { stepMs: MOTION_MS.spotlight, visibleMs: MOTION_MS.spotlight },
 };
-
-const DRAW_FLIGHT_MS = 300;
-const DRAW_STAGGER_MS = 90;
 
 export function flyingCards(count: number): number {
   return Math.min(count, MAX_FLYING_CARDS);
@@ -71,10 +70,11 @@ export function timingOf(spec: EffectSpec, reduced: boolean): Timing {
     return { stepMs: spec.kind === 'turn' ? 0 : REDUCED_MS, visibleMs: REDUCED_MS };
   }
   if (spec.kind === 'draw') {
-    const lastDeparture = (flyingCards(spec.count) - 1) * DRAW_STAGGER_MS;
+    const lastDeparture = (flyingCards(spec.count) - 1) * MOTION_MS.drawStagger;
+    // Une seule carte : la suivante (autre événement) part `drawStagger` plus tard, d'où l'effet de cartes l'une après l'autre
     return {
-      stepMs: Math.min(600, 120 + lastDeparture),
-      visibleMs: Math.min(600, DRAW_FLIGHT_MS + lastDeparture),
+      stepMs: MOTION_MS.drawStagger + lastDeparture,
+      visibleMs: MOTION_MS.drawFlight + lastDeparture,
     };
   }
   return FIXED_TIMING[spec.kind];

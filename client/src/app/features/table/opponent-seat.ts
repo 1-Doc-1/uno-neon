@@ -15,9 +15,15 @@ import { MAX_FAN_BACKS, OpponentFan } from './opponent-fan';
       class="seat"
       [class.current]="isCurrent()"
       [class.compact]="compact()"
+      [class.facing]="facing()"
       [class.offline]="!seat().isConnected"
     >
-      <app-opponent-fan class="fan" [count]="seat().cardCount" [maxBacks]="maxBacks()" />
+      <app-opponent-fan
+        class="fan"
+        [count]="seat().cardCount"
+        [maxBacks]="maxBacks()"
+        [yaw]="yaw()"
+      />
       <div class="pill" [attr.data-anchor]="'seat:' + seat().playerId">
         <div
           class="portrait"
@@ -53,6 +59,10 @@ export class OpponentSeat {
   /** Sa fenêtre de contre-UNO est ouverte : il n'a qu'une carte et n'a pas annoncé UNO. */
   readonly forgotUno = input.required<boolean>();
   readonly compact = input(false);
+  /** Siège en face de moi : une grande main centrée. */
+  readonly facing = input(false);
+  /** Rotation de la main autour de l'axe vertical, vers le centre de la table (degrés). */
+  readonly yaw = input(0);
   readonly maxBacks = input(MAX_FAN_BACKS);
   /** Part du temps de tour qu'il reste (0 à 1) si c'est son tour et qu'il y a un minuteur, sinon `null`. */
   readonly timerFraction = input<number | null>(null);

@@ -101,3 +101,11 @@ select {
     scroll-behavior: auto !important;
   }
 }
+
+// L'angle de la lueur qui fait le tour du tapis (SPEC §13) : animé en CSS pour que la flèche qui en est la tête reste
+// calée sur la lueur.
+@property --orbit-angle {
+  syntax: '<angle>';
+  inherits: true;
+  initial-value: 0deg;
+}

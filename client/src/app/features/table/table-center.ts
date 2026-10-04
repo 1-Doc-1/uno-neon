@@ -18,14 +18,18 @@ export interface Burst {
 
 /**
  * Le tapis : une grande ellipse douce dont le liseré prend discrètement la couleur active, et une lueur qui glisse
- * lentement le long du liseré dans le sens du jeu (coupée si `prefers-reduced-motion`). Les piles sont projetées dedans.
+ * lentement le long du liseré dans le sens du jeu, avec une tête en forme de flèche qui montre ce sens (coupée si
+ * `prefers-reduced-motion`). Les piles sont projetées dedans.
  */
 @Component({
   selector: 'app-table-center',
   template: `
     <div class="felt" aria-hidden="true"></div>
     <div class="orbit" aria-hidden="true">
-      <span #comet class="comet"></span><span #burst class="burst"></span>
+      <span #comet class="comet"></span>
+    </div>
+    <div class="track" aria-hidden="true">
+      <svg #head class="head" viewBox="-10 -10 20 20"><polygon points="9,0 -7,-8 -3,0 -7,8" /></svg>
     </div>
     <ng-content />
   `,
@@ -39,11 +43,11 @@ export interface Burst {
 export class TableCenter {
   readonly currentColor = input.required<Color | null>();
   readonly direction = input.required<Direction>();
-  /** Une inversion du sens : une impulsion lumineuse fait le tour de l'ellipse, puis la lueur repart dans l'autre sens. */
+  /** Une inversion du sens : la lueur et sa flèche s'éteignent le temps de la grande flèche circulaire, puis repartent à l'envers. */
   readonly burst = input<Burst | null>(null);
 
   private readonly comet = viewChild.required<ElementRef<HTMLElement>>('comet');
-  private readonly pulse = viewChild.required<ElementRef<HTMLElement>>('burst');
+  private readonly head = viewChild.required<ElementRef<SVGElement>>('head');
 
   protected readonly tint = computed(() => tintClass(this.currentColor()));
 
@@ -56,28 +60,12 @@ export class TableCenter {
     });
   }
 
-  private play({ durationMs, reduced }: Burst): void {
-    const pulse = this.pulse().nativeElement;
-    const comet = this.comet().nativeElement;
-    if (typeof pulse.animate !== 'function') {
-      return;
-    }
-    // La lueur régulière s'éteint le temps de l'impulsion, puis revient (dans le nouveau sens)
-    comet.animate([{ opacity: 0 }, { opacity: 0, offset: 0.8 }, { opacity: 1 }], {
-      duration: durationMs,
-    });
-    if (reduced) {
-      pulse.animate([{ opacity: 0 }, { opacity: 1, offset: 0.4 }, { opacity: 0 }], {
-        duration: durationMs,
-      });
-    } else {
-      pulse.animate(
-        [
-          { opacity: 1, transform: 'rotate(0turn)' },
-          { opacity: 1, transform: 'rotate(1turn)' },
-        ],
-        { duration: durationMs, easing: 'cubic-bezier(0.45, 0, 0.2, 1)' },
-      );
+  private play({ durationMs }: Burst): void {
+    const fade = [{ opacity: 0 }, { opacity: 0, offset: 0.8 }, { opacity: 1 }];
+    for (const glow of [this.comet().nativeElement, this.head().nativeElement]) {
+      if (typeof glow.animate === 'function') {
+        glow.animate(fade, { duration: durationMs });
+      }
     }
   }
 }

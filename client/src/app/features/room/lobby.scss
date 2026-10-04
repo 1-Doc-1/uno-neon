@@ -196,3 +196,8 @@ h2 {
     text-align: center;
   }
 }
+
+// Réglage propre à ce navigateur, sous les réglages de la partie
+.motion {
+  margin-top: var(--space-3);
+}

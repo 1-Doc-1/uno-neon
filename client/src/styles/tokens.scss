@@ -29,9 +29,11 @@
   --z-modal: 200;
   --z-toast: 300;
 
-  // Mouvement (les pulsations sont coupées par prefers-reduced-motion, voir base.scss)
-  --dur-fast: 120ms;
-  --dur-base: 200ms;
+  // Mouvement (les pulsations sont coupées par prefers-reduced-motion, voir base.scss). Les durées d'animation de jeu
+  // viennent de `ui/motion.ts` (`--motion-*`) ; `--motion-scale` est le réglage « Vitesse des animations » du joueur.
+  --motion-scale: 1;
+  --dur-fast: calc(120ms * var(--motion-scale));
+  --dur-base: calc(200ms * var(--motion-scale));
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 
   // Les quatre couleurs du jeu : franches, et lumineuses sur fond sombre

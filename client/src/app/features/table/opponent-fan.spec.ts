@@ -10,20 +10,29 @@ function render(count: number, maxBacks = MAX_FAN_BACKS) {
 }
 
 describe('OpponentFan', () => {
-  it('draws one back per card, capped, with the surplus in a "+N" label', () => {
+  it('draws one back per card, capped at 15, and leaves the exact count to the seat badge', () => {
     const few = render(4);
-    const many = render(15);
+    const many = render(22);
 
     expect(few.querySelectorAll('app-card-back')).toHaveLength(4);
-    expect(few.querySelector('.more')).toBeNull();
-    expect(many.querySelectorAll('app-card-back')).toHaveLength(MAX_FAN_BACKS);
-    expect(many.querySelector('.more')?.textContent).toBe('+3');
+    expect(many.querySelectorAll('app-card-back')).toHaveLength(15);
+    expect(MAX_FAN_BACKS).toBe(15);
+    expect(many.querySelector('.more')).toBeNull();
   });
 
-  it('keeps the fan nearly flat: a gentle step that shrinks as the fan grows', () => {
+  it('spreads the cards less and less as the hand grows, so that it never gets wider than a few cards', () => {
     const step = (count: number) => parseFloat(render(count).style.getPropertyValue('--step'));
 
-    expect(step(2)).toBeLessThanOrEqual(4);
-    expect(step(12)).toBeLessThan(step(4));
+    expect(step(2)).toBeLessThanOrEqual(6);
+    expect(step(15)).toBeLessThan(step(4));
+  });
+
+  it('turns the hand around the vertical axis only, never flat on the table', () => {
+    const fixture = TestBed.createComponent(OpponentFan);
+    fixture.componentRef.setInput('count', 5);
+    fixture.componentRef.setInput('yaw', -24);
+    fixture.detectChanges();
+
+    expect((fixture.nativeElement as HTMLElement).style.getPropertyValue('--yaw')).toBe('-24deg');
   });
 });
