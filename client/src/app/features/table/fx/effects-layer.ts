@@ -13,7 +13,7 @@ import { CardFace } from '../../../ui/card';
 import { CardBack } from '../../../ui/card-back';
 import { COLORS } from '../../../ui/color-meta';
 import type { ActiveEffect } from './animation-director';
-import { Anchors, Box, placeEffect, Placed } from './effect-geometry';
+import { Anchors, Box, placeEffect, Placed, Tone } from './effect-geometry';
 import { FlightMotion } from './flight-motion';
 import { ReverseArrow } from './reverse-arrow';
 
@@ -60,6 +60,14 @@ export class EffectsLayer {
   private readonly cache = new Map<number, Placed | null>();
   protected readonly placed = signal<readonly Placed[]>([]);
   protected readonly star = STAR;
+  /** La couleur d'un effet est celle de la carte jouée (blanc pour une carte noire) : toujours un token, jamais une valeur en dur. */
+  protected readonly tones: Record<Tone, string> = {
+    red: 'var(--game-red)',
+    yellow: 'var(--game-yellow)',
+    green: 'var(--game-green)',
+    blue: 'var(--game-blue)',
+    white: 'var(--text)',
+  };
   protected readonly quarters = COLORS.map((color) => ({ color, path: QUARTERS[color] }));
 
   constructor() {

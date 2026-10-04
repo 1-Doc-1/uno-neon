@@ -96,7 +96,6 @@
   animation-name: pop;
   text-align: center;
 
-  // Une phrase à la deuxième personne sous le chiffre
   .caption {
     display: block;
     margin-top: 0.12em;
@@ -104,23 +103,6 @@
     -webkit-text-stroke-width: 0.14em;
     white-space: nowrap;
   }
-}
-
-// La couleur d'un effet est celle de la carte jouée (blanc pour une carte noire) : jamais une couleur en dur
-.tone-red {
-  color: var(--game-red);
-}
-.tone-yellow {
-  color: var(--game-yellow);
-}
-.tone-green {
-  color: var(--game-green);
-}
-.tone-blue {
-  color: var(--game-blue);
-}
-.tone-white {
-  color: var(--text);
 }
 
 @keyframes pop {
@@ -178,8 +160,6 @@
   border: 2px solid currentColor;
   border-radius: var(--radius-pill);
   background: var(--panel-solid);
-  color: var(--text);
-  font-size: var(--fs-base);
 }
 
 .caught,

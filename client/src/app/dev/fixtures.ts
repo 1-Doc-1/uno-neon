@@ -12,6 +12,7 @@ export type ScenarioName =
   | 'players-6'
   | 'my-turn-2'
   | 'my-turn-3'
+  | 'my-turn-4'
   | 'my-turn-6';
 
 export const SCENARIOS: readonly ScenarioName[] = [
@@ -26,6 +27,7 @@ export const SCENARIOS: readonly ScenarioName[] = [
   'players-6',
   'my-turn-2',
   'my-turn-3',
+  'my-turn-4',
   'my-turn-6',
 ];
 
@@ -164,6 +166,7 @@ export function scenarioView(name: ScenarioName, now: number): PlayerView {
     case 'players-6':
     case 'my-turn-2':
     case 'my-turn-3':
+    case 'my-turn-4':
     case 'my-turn-6': {
       // N joueurs autour de la table (moi compris) : N - 1 adversaires ; l'un d'eux joue, ou moi (`my-turn-N`)
       const total = Number(name.slice(-1));

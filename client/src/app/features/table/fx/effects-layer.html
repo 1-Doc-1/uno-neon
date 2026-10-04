@@ -27,7 +27,8 @@
     }
     @case ('bigText') {
       <p
-        [class]="'big tone-' + item.tone"
+        class="big"
+        [style.color]="tones[item.tone]"
         [class.reduced]="item.reduced"
         [style.left.px]="item.at.cx"
         [style.top.px]="item.at.cy"
@@ -41,7 +42,8 @@
     }
     @case ('label') {
       <p
-        [class]="'label ' + item.variant + (item.tone ? ' tone-' + item.tone : '')"
+        [class]="'label ' + item.variant"
+        [style.color]="item.tone ? tones[item.tone] : null"
         [class.reduced]="item.reduced"
         [style.left.px]="item.at.cx"
         [style.top.px]="item.where === 'center' ? item.at.cy : item.at.cy - item.at.h * 0.75"
