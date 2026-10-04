@@ -91,7 +91,7 @@ describe('GameStore', () => {
             stacking: 'off',
             jumpIn: false,
             sevenZero: false,
-            drawUntilPlayable: false,
+            drawAmount: 'untilPlayable',
             wildDrawFourMode: 'officialChallenge',
             turnTimerSeconds: 0,
             matchLength: 'to500',

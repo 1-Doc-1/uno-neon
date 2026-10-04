@@ -2,6 +2,7 @@
 
 #include "uno/core/domain_error.hpp"
 #include "uno/core/domain_event.hpp"
+#include "uno/core/draw_amount.hpp"
 #include "uno/core/draw_rule.hpp"
 #include "uno/core/player_action.hpp"
 #include "uno/core/player_id.hpp"
@@ -35,7 +36,8 @@ enum class MatchLength : std::uint8_t { SingleRound, To250, To500 };
 struct MatchSettings {
     MatchLength matchLength{MatchLength::To500};
     DrawRule drawRule{DrawRule::Official};
-    bool declareUnoToWin{false}; // ADR 0019
+    DrawAmount drawAmount{DrawAmount::One}; // ADR 0024
+    bool declareUnoToWin{false};            // ADR 0019
 
     [[nodiscard]] bool operator==(const MatchSettings&) const = default;
 };

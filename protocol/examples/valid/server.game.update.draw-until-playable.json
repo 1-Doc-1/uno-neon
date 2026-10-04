@@ -5,54 +5,37 @@
     "serverTime": 1790000400000,
     "events": [
       {
-        "kind": "turnChanged",
-        "playerId": "p_Lea4f9Kx2"
+        "kind": "cardsDrawn",
+        "playerId": "p_Lea4f9Kx2",
+        "count": 1,
+        "cards": [{ "id": 2210, "color": "blue", "rank": "3" }]
+      },
+      {
+        "kind": "cardsDrawn",
+        "playerId": "p_Lea4f9Kx2",
+        "count": 1,
+        "cards": [{ "id": 2711, "color": "green", "rank": "9" }]
+      },
+      {
+        "kind": "cardsDrawn",
+        "playerId": "p_Lea4f9Kx2",
+        "count": 1,
+        "cards": [{ "id": 1843, "color": "red", "rank": "7" }]
       }
     ],
     "view": {
       "stateVersion": 33,
-      "phase": "awaitingPlay",
+      "phase": "awaitingDrawnCardDecision",
       "me": {
         "playerId": "p_Lea4f9Kx2",
         "hand": [
-          {
-            "id": 1843,
-            "color": "red",
-            "rank": "7"
-          },
-          {
-            "id": 77,
-            "color": null,
-            "rank": "wild"
-          },
-          {
-            "id": 902,
-            "color": "blue",
-            "rank": "7"
-          },
-          {
-            "id": 4410,
-            "color": "green",
-            "rank": "skip"
-          },
-          {
-            "id": 12,
-            "color": "yellow",
-            "rank": "0"
-          },
-          {
-            "id": 3301,
-            "color": "red",
-            "rank": "drawTwo"
-          },
-          {
-            "id": 650,
-            "color": null,
-            "rank": "wildDrawFour"
-          }
+          { "id": 940, "color": "yellow", "rank": "2" },
+          { "id": 2210, "color": "blue", "rank": "3" },
+          { "id": 2711, "color": "green", "rank": "9" },
+          { "id": 1843, "color": "red", "rank": "7" }
         ],
-        "playableCardIds": [1843, 77, 3301, 650],
-        "canDraw": true,
+        "playableCardIds": [1843],
+        "canDraw": false,
         "canKeepDrawnCard": false,
         "mustDeclareUno": false,
         "canCallUno": false,
@@ -64,7 +47,7 @@
           "playerId": "p_Lea4f9Kx2",
           "nickname": "Léa",
           "seat": 0,
-          "cardCount": 7,
+          "cardCount": 4,
           "score": 0,
           "isConnected": true,
           "isBot": false,
@@ -76,7 +59,7 @@
           "playerId": "p_Max8Qw3Zt",
           "nickname": "Max",
           "seat": 1,
-          "cardCount": 1,
+          "cardCount": 7,
           "score": 0,
           "isConnected": true,
           "isBot": false,
@@ -105,17 +88,11 @@
         "color": "red",
         "rank": "4"
       },
-      "drawPileCount": 86,
+      "drawPileCount": 83,
       "pendingDraw": 0,
       "turnDeadline": null,
       "nextRoundDeadline": null,
-      "unoWindows": [
-        {
-          "targetId": "p_Max8Qw3Zt",
-          "graceEndsAt": 1790000402000,
-          "expiresAt": 1790000415000
-        }
-      ],
+      "unoWindows": [],
       "round": 1,
       "settings": {
         "stacking": "off",

@@ -35,6 +35,7 @@ namespace {
             .dealer = std::move(dealer),
             .deck = std::move(deck),
             .drawRule = settings.drawRule,
+            .drawAmount = settings.drawAmount,
             .declareUnoToWin = settings.declareUnoToWin,
         },
         random);

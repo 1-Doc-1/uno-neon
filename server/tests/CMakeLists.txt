@@ -7,6 +7,7 @@ include(Catch)
 add_executable(uno_tests
     card_test.cpp
     application_declare_uno_test.cpp
+    application_draw_amount_test.cpp
     application_draw_rule_test.cpp
     application_lifecycle_test.cpp
     application_match_test.cpp
@@ -31,6 +32,7 @@ add_executable(uno_tests
     match_test.cpp
     round_apply_test.cpp
     round_declare_uno_test.cpp
+    round_draw_amount_test.cpp
     round_draw_rule_test.cpp
     round_effects_test.cpp
     round_end_test.cpp

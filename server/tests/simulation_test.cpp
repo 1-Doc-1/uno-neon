@@ -2,7 +2,9 @@
 #include "uno/core/client_event.hpp"
 #include "uno/core/deck.hpp"
 #include "uno/core/domain_event.hpp"
+#include "uno/core/draw_amount.hpp"
 #include "uno/core/match.hpp"
+#include "uno/core/playability.hpp"
 #include "uno/core/player_action.hpp"
 #include "uno/core/player_id.hpp"
 #include "uno/core/player_view.hpp"
@@ -17,6 +19,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -37,6 +40,7 @@ using uno::core::CardId;
 using uno::core::CatchUno;
 using uno::core::ChooseColor;
 using uno::core::Color;
+using uno::core::DrawAmount;
 using uno::core::DrawCard;
 using uno::core::DrawRule;
 using uno::core::Match;
@@ -93,6 +97,12 @@ constexpr std::uint32_t kColorCount = 4;
     return seed % 2 == 0 ? DrawRule::Guided : DrawRule::Official;
 }
 
+// Both draw amounts are simulated, independently of the draw rule and of the other rules.
+[[nodiscard]] DrawAmount drawAmountFor(std::uint64_t seed)
+{
+    return (seed / 4) % 2 == 0 ? DrawAmount::UntilPlayable : DrawAmount::One;
+}
+
 // The "declare UNO to win" house rule is on for half of the matches, independently of the draw rule.
 [[nodiscard]] bool declareUnoToWinFor(std::uint64_t seed)
 {
@@ -105,6 +115,7 @@ constexpr std::uint32_t kColorCount = 4;
                                 MatchSettings{
                                     .matchLength = matchLengthFor(seed),
                                     .drawRule = drawRuleFor(seed),
+                                    .drawAmount = drawAmountFor(seed),
                                     .declareUnoToWin = declareUnoToWinFor(seed),
                                 },
                                 random);
@@ -211,8 +222,32 @@ private:
                 requirePointsAreTheHandsLeft(ended->points);
             }
         }
+        requireForcedDrawIsComplete(before, actor, action);
         checkState();
         checkEvents(*result);
+    }
+
+    // ADR 0024: after an accepted draw by a player with nothing to play, they hold a playable card to decide on, or
+    // both piles are empty. A voluntary draw (something was playable) is a single card.
+    void requireForcedDrawIsComplete(const Match& before, const PlayerId& actor, const PlayerAction& action) const
+    {
+        if (!std::holds_alternative<DrawCard>(action) || before.round().drawAmount() != DrawAmount::UntilPlayable) {
+            return;
+        }
+        const auto& roundBefore = before.round();
+        const auto handBefore = roundBefore.hand(actor).value_or(std::span<const uno::core::Card>{});
+        const auto couldPlay = std::ranges::any_of(handBefore, [&](const uno::core::Card& card) {
+            return uno::core::isPlayable(card, roundBefore.discardPile().top(), roundBefore.currentColor());
+        });
+        const auto& roundAfter = match_.round();
+        const auto drawn =
+            roundAfter.hand(actor).value_or(std::span<const uno::core::Card>{}).size() - handBefore.size();
+        if (couldPlay) {
+            REQUIRE(drawn <= 1);
+        } else {
+            REQUIRE((std::holds_alternative<uno::core::AwaitingDrawnCardDecision>(roundAfter.phase()) ||
+                     (roundAfter.drawPile().empty() && roundAfter.discardPile().size() <= 1)));
+        }
     }
 
     // At the very moment a round ends, its points are exactly the value of the cards left in the hands.

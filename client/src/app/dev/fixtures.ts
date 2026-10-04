@@ -108,7 +108,7 @@ export function scenarioView(name: ScenarioName, now: number): PlayerView {
       stacking: 'off',
       jumpIn: false,
       sevenZero: false,
-      drawUntilPlayable: false,
+      drawAmount: 'untilPlayable',
       wildDrawFourMode: 'officialChallenge',
       turnTimerSeconds: 30,
       matchLength: 'to500',

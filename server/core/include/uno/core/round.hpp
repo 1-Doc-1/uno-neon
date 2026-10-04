@@ -3,6 +3,7 @@
 #include "uno/core/card.hpp"
 #include "uno/core/domain_error.hpp"
 #include "uno/core/domain_event.hpp"
+#include "uno/core/draw_amount.hpp"
 #include "uno/core/draw_rule.hpp"
 #include "uno/core/piles.hpp"
 #include "uno/core/player_action.hpp"
@@ -32,7 +33,8 @@ struct RoundSetup {
     PlayerId dealer;
     std::vector<Card> deck; // already shuffled, in draw order: front() is drawn first
     DrawRule drawRule{DrawRule::Official};
-    bool declareUnoToWin{false}; // house rule (ADR 0019): the last card needs an announcement
+    DrawAmount drawAmount{DrawAmount::One}; // ADR 0024
+    bool declareUnoToWin{false};            // house rule (ADR 0019): the last card needs an announcement
 };
 
 // Round::start returns one of these; defined below the class, since it holds a Round by value.
@@ -75,6 +77,7 @@ public:
     // Whether the player announced UNO and still holds the hand they announced it for.
     [[nodiscard]] bool hasCalledUno(const PlayerId& player) const;
     [[nodiscard]] DrawRule drawRule() const noexcept { return drawRule_; }
+    [[nodiscard]] DrawAmount drawAmount() const noexcept { return drawAmount_; }
     [[nodiscard]] bool declareUnoToWin() const noexcept { return declareUnoToWin_; }
     // Whether `player` is stuck on their last card for want of an announcement (ADR 0019): the house rule is on, it is
     // their turn to play, they hold one card that could be played, and they have not announced UNO. They can only
@@ -145,6 +148,7 @@ private:
     TurnOrder turnOrder_;
     PlayerId dealer_;
     DrawRule drawRule_{DrawRule::Official};
+    DrawAmount drawAmount_{DrawAmount::One};
     bool declareUnoToWin_{false};
     std::vector<Hand> hands_; // indexed by seat
     DrawPile drawPile_;

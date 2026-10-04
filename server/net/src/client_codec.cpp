@@ -42,7 +42,7 @@ Parsed<RoomSettingsPatch> parseSettingsPatch(const Json& value)
     patch.stacking = reader.optional<StackingMode>("stacking", detail::parseEnum<StackingMode>);
     patch.jumpIn = reader.optional<bool>("jumpIn", detail::parseBool);
     patch.sevenZero = reader.optional<bool>("sevenZero", detail::parseBool);
-    patch.drawUntilPlayable = reader.optional<bool>("drawUntilPlayable", detail::parseBool);
+    patch.drawAmount = reader.optional<core::DrawAmount>("drawAmount", detail::parseEnum<core::DrawAmount>);
     patch.wildDrawFourMode = reader.optional<WildDrawFourMode>("wildDrawFourMode", detail::parseEnum<WildDrawFourMode>);
     patch.turnTimer = reader.optional<TurnTimerSeconds>("turnTimerSeconds", parseTurnTimer);
     patch.matchLength = reader.optional<core::MatchLength>("matchLength", detail::parseEnum<core::MatchLength>);
@@ -276,8 +276,8 @@ Json encodeSettingsPatch(const RoomSettingsPatch& patch)
     if (patch.sevenZero) {
         json.emplace("sevenZero", *patch.sevenZero);
     }
-    if (patch.drawUntilPlayable) {
-        json.emplace("drawUntilPlayable", *patch.drawUntilPlayable);
+    if (patch.drawAmount) {
+        json.emplace("drawAmount", detail::toWire(*patch.drawAmount));
     }
     if (patch.wildDrawFourMode) {
         json.emplace("wildDrawFourMode", detail::toWire(*patch.wildDrawFourMode));

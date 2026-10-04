@@ -730,7 +730,7 @@ Json encodeSettings(const RoomSettings& settings)
         {"stacking", toWire(settings.stacking)},
         {"jumpIn", settings.jumpIn},
         {"sevenZero", settings.sevenZero},
-        {"drawUntilPlayable", settings.drawUntilPlayable},
+        {"drawAmount", toWire(settings.drawAmount)},
         {"wildDrawFourMode", toWire(settings.wildDrawFourMode)},
         {"turnTimerSeconds", static_cast<int>(settings.turnTimer)},
         {"matchLength", toWire(settings.matchLength)},
@@ -747,7 +747,7 @@ Parsed<RoomSettings> parseSettings(const Json& value)
     settings.stacking = reader.required<StackingMode>("stacking", parseEnum<StackingMode>);
     settings.jumpIn = reader.required<bool>("jumpIn", parseBool);
     settings.sevenZero = reader.required<bool>("sevenZero", parseBool);
-    settings.drawUntilPlayable = reader.required<bool>("drawUntilPlayable", parseBool);
+    settings.drawAmount = reader.required<core::DrawAmount>("drawAmount", parseEnum<core::DrawAmount>);
     settings.wildDrawFourMode = reader.required<WildDrawFourMode>("wildDrawFourMode", parseEnum<WildDrawFourMode>);
     settings.turnTimer = reader.required<TurnTimerSeconds>("turnTimerSeconds", parseTurnTimer);
     settings.matchLength = reader.required<MatchLength>("matchLength", parseEnum<MatchLength>);

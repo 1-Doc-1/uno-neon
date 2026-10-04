@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, type Page } from "@playwright/test";
 
 /**
  * Un joueur vu par son navigateur. Aucune attente fixe : tout passe par des états visibles (rôles, textes, libellés) ;
@@ -15,47 +15,47 @@ export class Player {
 
   // ---- Ce qu'on voit ----
   get handList() {
-    return this.page.getByRole('list', { name: 'Ta main' });
+    return this.page.getByRole("list", { name: "Ta main" });
   }
   get cards() {
-    return this.handList.getByRole('button');
+    return this.handList.getByRole("button");
   }
   /** Les cartes qu'on peut jouer (boutons actifs ; seul le tour du joueur en active). */
   get playableCards() {
     return this.page.locator('ul[aria-label="Ta main"] button:not([disabled])');
   }
   get myTurn() {
-    return this.page.getByText('À toi de jouer');
+    return this.page.getByText("À toi de jouer");
   }
   get deck() {
-    return this.page.locator('button.deck');
+    return this.page.locator("button.deck");
   }
   get colorPicker() {
-    return this.page.getByRole('dialog', { name: 'Choisir une couleur' });
+    return this.page.getByRole("dialog", { name: "Choisir une couleur" });
   }
   get acceptPenalty() {
-    return this.page.getByRole('button', { name: /^Accepter, piocher/ });
+    return this.page.getByRole("button", { name: /^Accepter, piocher/ });
   }
   get challengeButton() {
-    return this.page.getByRole('button', { name: 'Contester' });
+    return this.page.getByRole("button", { name: "Contester" });
   }
   get unoButton() {
-    return this.page.getByRole('button', { name: 'UNO !', exact: true });
+    return this.page.getByRole("button", { name: "UNO !", exact: true });
   }
   /** Le code du salon affiché dans la barre du salon (et non le champ « Code du salon » de l'accueil). */
   get roomCode() {
     return this.page.locator('span[aria-label="Code du salon"]');
   }
   get journal() {
-    return this.page.getByRole('list', { name: 'Journal de la partie' });
+    return this.page.getByRole("list", { name: "Journal de la partie" });
   }
 
   /** Le compteur de cartes d'un joueur (soi-même ou un adversaire), tel qu'affiché sur son siège. */
   cardCountOf(name: string) {
     const seat =
       name === this.name
-        ? this.page.locator('app-my-badge')
-        : this.page.locator('app-opponent-seat').filter({ hasText: name });
+        ? this.page.locator("app-my-badge")
+        : this.page.locator("app-opponent-seat").filter({ hasText: name });
     return seat.getByLabel(/^\d+ cartes$/);
   }
 
@@ -63,30 +63,30 @@ export class Player {
     return (await this.cards.all()).length === 0
       ? []
       : this.cards.evaluateAll((buttons) =>
-          buttons.map((button) => button.getAttribute('aria-label') ?? ''),
+          buttons.map((button) => button.getAttribute("aria-label") ?? ""),
         );
   }
 
   /** La carte de la main nommée comme son libellé (« 5 rouge, jouable »), la première si elle est en double. */
   card(label: string | RegExp) {
-    return this.handList.getByRole('button', { name: label }).first();
+    return this.handList.getByRole("button", { name: label }).first();
   }
 
   // ---- Ce qu'on fait ----
   async createRoom(): Promise<string> {
-    await this.page.goto('/');
-    await this.page.getByLabel('Ton pseudo').fill(this.name);
-    await this.page.getByRole('button', { name: 'Créer un salon' }).click();
+    await this.page.goto("/");
+    await this.page.getByLabel("Ton pseudo").fill(this.name);
+    await this.page.getByRole("button", { name: "Créer un salon" }).click();
     const code = this.roomCode;
     await expect(code).toHaveText(/^[A-Z0-9]{6}$/);
-    return (await code.textContent())?.trim() ?? '';
+    return (await code.textContent())?.trim() ?? "";
   }
 
   /** Rejoint par le lien d'invitation, comme un ami à qui on l'a envoyé. */
   async joinByLink(code: string): Promise<void> {
     await this.page.goto(`/r/${code}`);
-    await this.page.getByLabel('Ton pseudo').fill(this.name);
-    await this.page.getByRole('button', { name: 'Rejoindre' }).click();
+    await this.page.getByLabel("Ton pseudo").fill(this.name);
+    await this.page.getByRole("button", { name: "Rejoindre" }).click();
     await expect(this.roomCode).toHaveText(code);
   }
 
@@ -95,18 +95,20 @@ export class Player {
     return this.page.evaluate(() => {
       const text = (selector: string): string[] =>
         [...document.querySelectorAll(selector)].map(
-          (element) => element.textContent?.trim() ?? '',
+          (element) => element.textContent?.trim() ?? "",
         );
       return JSON.stringify({
-        hand: [...document.querySelectorAll('ul[aria-label="Ta main"] button')].map(
-          (button) => button.getAttribute('aria-label') ?? '',
+        hand: [
+          ...document.querySelectorAll('ul[aria-label="Ta main"] button'),
+        ].map((button) => button.getAttribute("aria-label") ?? ""),
+        turn: text("p.turn"),
+        counts: text(".count"),
+        dialogs: [...document.querySelectorAll("dialog[open]")].map((dialog) =>
+          dialog.getAttribute("aria-label"),
         ),
-        turn: text('p.turn'),
-        counts: text('.count'),
-        dialogs: [...document.querySelectorAll('dialog[open]')].map((dialog) =>
-          dialog.getAttribute('aria-label'),
-        ),
-        deck: document.querySelector('button.deck')?.getAttribute('aria-label') ?? '',
+        deck:
+          document.querySelector("button.deck")?.getAttribute("aria-label") ??
+          "",
       });
     });
   }
@@ -119,7 +121,9 @@ export class Player {
     if (await this.colorPicker.isVisible()) {
       return true;
     }
-    return (await this.myTurn.isVisible()) && (await this.playableCards.count()) > 0;
+    return (
+      (await this.myTurn.isVisible()) && (await this.playableCards.count()) > 0
+    );
   }
 
   /**
@@ -135,16 +139,21 @@ export class Player {
     if (await this.acceptPenalty.isVisible()) {
       await this.acceptPenalty.click();
     } else if (await this.colorPicker.isVisible()) {
-      await this.colorPicker.getByRole('button', { name: 'Rouge' }).click();
+      await this.colorPicker.getByRole("button", { name: "Rouge" }).click();
     } else {
       await this.playableCards.first().click();
     }
     await expect
-      .poll(() => this.snapshot(), { message: `l'écran de ${this.name} n'a pas réagi` })
+      .poll(() => this.snapshot(), {
+        message: `l'écran de ${this.name} n'a pas réagi`,
+      })
       .not.toBe(before);
     return true;
   }
 }
+
+/** Ce que `playUntil` demande à un joueur : un test peut le brider (par exemple lui interdire un coup). */
+export type Actor = Pick<Player, "actNow" | "canAct">;
 
 /**
  * Fait jouer tous les joueurs selon la politique jusqu'à ce que `done` soit vrai. Chaque tour de boucle regarde `done`
@@ -152,7 +161,7 @@ export class Player {
  * faire ou que `done` devienne vrai.
  */
 export async function playUntil(
-  players: readonly Player[],
+  players: readonly Actor[],
   done: () => Promise<boolean>,
 ): Promise<void> {
   for (;;) {
@@ -169,14 +178,14 @@ export async function playUntil(
     if (!acted) {
       await expect
         .poll(async () => (await done()) || (await anyCanAct(players)), {
-          message: 'plus personne ne peut jouer',
+          message: "plus personne ne peut jouer",
         })
         .toBe(true);
     }
   }
 }
 
-async function anyCanAct(players: readonly Player[]): Promise<boolean> {
+async function anyCanAct(players: readonly Actor[]): Promise<boolean> {
   for (const player of players) {
     if (await player.canAct()) {
       return true;

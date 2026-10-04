@@ -69,6 +69,10 @@
 - [x] J1 Retouches de la table (éventails droits, ellipse et liseré, tout plus grand, main lisible, composants découpés)
 - [x] J2 = 3.5 : `AnimationDirector` piloté par les événements, couche d'effets, démo `/dev/table?scenario=animations`
 
+#### Lot M — retour de partie : pioche, rythme, sens du jeu, mains adverses
+- [x] M1 Règle maison « pioche jusqu'à pouvoir jouer » (`drawAmount`, ADR 0024) : moteur, protocole, salon, simulation, E2E
+- [ ] M2 Rythme et animations : pioche depuis le paquet, durées centralisées, vitesse réglable, sens du jeu, mains adverses vues de dos
+
 #### Phase 1 (suite)
 - [ ] 1.6 Options maison (politiques injectables)
 
@@ -112,6 +116,7 @@
 - [0020 — L'horloge d'un tour n'est réarmée que quand le tour change](adr/0020-turn-clock.md)
 - [0023 — Tests E2E : une pile par test, graines trouvées par le protocole, aucune attente fixe](adr/0023-e2e-tests.md)
 - [0022 — Animations : pilotées par les événements, purement cosmétiques](adr/0022-event-driven-animations.md)
+- [0024 — Pioche « jusqu'à pouvoir jouer » : `drawAmount`, une action atomique, un événement par carte](adr/0024-draw-amount.md)
 - [0021 — Direction artistique « Nuit » : l'esprit du jeu de cartes, le néon en réserve](adr/0021-art-direction-v2.md)
 
 ## Journal
@@ -161,3 +166,4 @@
 - 2026-10-03 — J1 — retouches de la table : éventails adverses droits au-dessus de la pastille, ellipse plus grande et douce dont le liseré prend la couleur active (lueur qui glisse dans le sens du jeu, flèches supprimées), un seul libellé de couleur, tailles proportionnelles à la hauteur de l'écran (lisible dès 1280 × 720), badge de cartes au-dessus de l'anneau, main : jouables surélevées avec halo, autres abaissées et atténuées, tient en 375 px (container query), table découpée en `OpponentFan`, `TableCenter`, `MyBadge`, `UnoActions` (`table-view.scss` < 4 kB, budget remis à 4 kB) — `fix/table-polish` / PR #24
 - 2026-10-03 — 3.5 — animations : `planEffects` (événements → effets, pure), `AnimationDirector` (file ordonnée, un seul effet plein écran, vidage sur vue complète, retard ou onglet caché, mode réduit en fondus, vitesse réglable), `EffectsLayer` (vols de cartes FLIP en Web Animations, +2/+4, roue des couleurs, tampons Passe/UNO/Contre-UNO, projecteur, éclat de tour), pile de défausse désordonnée déterministe, impulsion d'inversion, `EventBatch` dans le store (`resync`), démo `/dev/table?scenario=animations` (Rejouer, vitesse ×0,5/×1/×2) exclue du build de production ; ADR 0022 — `feat/client-game-animations`
 - 2026-10-03 — 4.4 — tests E2E (lot K) : projet `e2e/` (Playwright + TypeScript), une pile par test (serveur à graine fixe lancé sur un port libre + client construit servi avec `/ws` relayé), un contexte de navigateur par joueur, politique de jeu commune au chercheur de graines (`npm run seeds`, par le protocole) et aux tests, aucune attente fixe, animations réduites ; 13 scénarios de moins de 6 s chacun (salon → Lancer, carte posée, pioche guidée automatique, Joker + couleur, +4 contesté à raison / à tort / accepté, UNO annoncé, contre-UNO après la grâce, UNO obligatoire, rechargement d'onglet, forfait après fermeture, fin de manche unique) ; serveur : `uno_bootstrap` (choix de l'aléa et des délais sorti de `main.cpp`), `UNO_TEST_RECONNECT_GRACE_MS`, preset `e2e`, test Catch2 qui prouve qu'un binaire sans crochets ignore `UNO_TEST_SEED`, vérification CI étendue à `UNO_TEST_` ; cinquième job CI `e2e` (traces publiées seulement en cas d'échec) ; ADR 0023 — `test/e2e`
+- 2026-10-04 — M1 — pioche « jusqu'à pouvoir jouer » : réglage de salon `drawAmount` (`untilPlayable` par défaut, `one` = règle officielle) qui remplace le booléen `drawUntilPlayable` jamais implémenté ; `Round::applyDrawCard` pioche en une action atomique jusqu'à une carte jouable (un `CardsDrawn` par carte, remélange de la défausse, arrêt quand tout est vide), pioche volontaire inchangée ; protocole (schéma, types, 2 exemples, contrat), salon (« Pioche : jusqu'à pouvoir jouer / 1 carte »), simulation avec les deux valeurs et son invariant, 10 tests ciblés, E2E `draw.spec.ts` (graine 24) et fixture `lobby` qui fixe `drawAmount` ; ADR 0024 — `feat/draw-until-playable`

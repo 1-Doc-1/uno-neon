@@ -384,6 +384,7 @@ Application::Outcome Application::startMatch(Room& room)
                                       core::MatchSettings{
                                           .matchLength = room.settings.matchLength,
                                           .drawRule = room.settings.drawRule,
+                                          .drawAmount = room.settings.drawAmount,
                                           .declareUnoToWin = room.settings.declareUnoToWin,
                                       },
                                       *random_);

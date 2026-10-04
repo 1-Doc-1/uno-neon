@@ -192,7 +192,7 @@
         "stacking": "off",
         "jumpIn": true,
         "sevenZero": true,
-        "drawUntilPlayable": false,
+        "drawAmount": "untilPlayable",
         "wildDrawFourMode": "officialChallenge",
         "turnTimerSeconds": 30,
         "matchLength": "to500",

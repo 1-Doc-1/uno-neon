@@ -111,6 +111,7 @@ std::expected<RoundStart, DomainError> Round::start(RoundSetup setup, RandomSour
     Round round{*std::move(turnOrder), std::move(setup.dealer), std::move(hands), std::move(drawPile),
                 DiscardPile{*flipped}};
     round.drawRule_ = setup.drawRule;
+    round.drawAmount_ = setup.drawAmount;
     round.declareUnoToWin_ = setup.declareUnoToWin;
 
     std::vector<DomainEvent> events{RoundStarted{.dealer = dealer, .firstCard = *flipped}};
@@ -315,20 +316,42 @@ std::expected<std::vector<DomainEvent>, DomainError> Round::applyDrawCard(const 
         return std::unexpected{DomainError::MustPlay};
     }
 
-    auto drawn = drawCards(drawPile_, discardPile_, 1, random);
-    giveCards(turnOrder_.currentSeat(), drawn.cards);
+    const auto seat = turnOrder_.currentSeat();
+    const auto isPlayableNow = [&](const Card& card) { return isPlayable(card, discardPile_.top(), currentColor_); };
+    // ADR 0024: only a player with nothing to play keeps drawing; a voluntary draw is a single card.
+    const bool untilPlayable =
+        drawAmount_ == DrawAmount::UntilPlayable && std::ranges::none_of(hands_.at(seat), isPlayableNow);
 
     std::vector<DomainEvent> events;
-    if (drawn.reshuffled) {
-        events.emplace_back(DeckReshuffled{});
+    std::optional<CardId> playableCard;
+    bool drewAnything = false;
+    // One event per card, so that the client can pace them. Stops at a playable card, or when both piles are empty.
+    while (true) {
+        auto drawn = drawCards(drawPile_, discardPile_, 1, random);
+        if (drawn.reshuffled) {
+            events.emplace_back(DeckReshuffled{});
+        }
+        if (drawn.cards.empty()) {
+            if (!drewAnything) {
+                events.emplace_back(CardsDrawn{.player = actor, .cards = {}});
+            }
+            break;
+        }
+        drewAnything = true;
+        giveCards(seat, drawn.cards);
+        events.emplace_back(CardsDrawn{.player = actor, .cards = idsOf(drawn.cards)});
+        if (isPlayableNow(drawn.cards.front())) {
+            playableCard = drawn.cards.front().id;
+        }
+        if (!untilPlayable || playableCard.has_value()) {
+            break;
+        }
     }
-    events.emplace_back(CardsDrawn{.player = actor, .cards = idsOf(drawn.cards)});
 
     // SPEC §3: the drawn card may be played immediately only if it is playable; otherwise (and
     // when nothing was left to draw) the turn ends right away instead of waiting for a Pass.
-    const bool playable = !drawn.cards.empty() && isPlayable(drawn.cards.front(), discardPile_.top(), currentColor_);
-    if (playable) {
-        phase_ = AwaitingDrawnCardDecision{.drawnCard = drawn.cards.front().id};
+    if (playableCard.has_value()) {
+        phase_ = AwaitingDrawnCardDecision{.drawnCard = *playableCard};
     } else {
         events.emplace_back(TurnPassed{.player = actor});
         turnOrder_.advance();
