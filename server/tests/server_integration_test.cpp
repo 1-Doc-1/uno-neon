@@ -11,6 +11,7 @@
 #include "uno/net/system_clock.hpp"
 #include "uno/net/uws_scheduler.hpp"
 #include "uno/net/websocket_server.hpp"
+#include "uno/testing/timeouts.hpp"
 
 #include "support/require.hpp"
 #include "support/running_server.hpp"
@@ -59,7 +60,7 @@ uno::net::WebSocketServerConfig configFor(const InMemoryRoomRepository& rooms, u
 struct Deployment {
     // `timeouts` lets a test shorten the delays of the game (grace period, inactivity...) to milliseconds: a test
     // never waits for a real minute.
-    explicit Deployment(Timeouts timeouts = {})
+    explicit Deployment(Timeouts timeouts = uno::testing::withoutPresentationDelay())
         : application(sink, rooms, random, clock, scheduler, timeouts),
           server(configFor(rooms, scheduler), application,
                  [this](uno::net::WebSocketServer& running) { sink.attach(running); })

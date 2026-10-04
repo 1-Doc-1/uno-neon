@@ -2,6 +2,7 @@
 // inactivity, session expiry) and the clocks of a match (turn timer, next round). Part of Application.
 
 #include "uno/app/application.hpp"
+#include "uno/core/detail/overloaded.hpp"
 #include "uno/core/playability.hpp"
 
 #include <spdlog/spdlog.h>
@@ -172,20 +173,47 @@ void Application::scheduleRoomExpiry(Room& room)
     room.expiryTimer = scheduler_->schedule(delay, [this, code = room.code] { onRoomExpired(code); });
 }
 
-std::chrono::milliseconds Application::drawPauseOf(std::span<const core::DomainEvent> events) const
+std::chrono::milliseconds Application::presentationBudgetOf(std::span<const core::DomainEvent> events,
+                                                            const core::Round& roundAfter) const
 {
+    std::chrono::milliseconds budget{0};
     std::size_t cards = 0;
+    bool cardPlayed = false;
+    bool penalty = false;
     for (const core::DomainEvent& event : events) {
-        if (const auto* drawn = std::get_if<core::CardsDrawn>(&event)) {
-            cards += drawn->cards.size();
-        } else if (const auto* penalty = std::get_if<core::PenaltyCardsDrawn>(&event)) {
-            cards += penalty->cards.size();
-        }
+        std::visit(core::detail::Overloaded{
+                       [&](const core::CardPlayed&) {
+                           budget += timeouts_.playStep;
+                           cardPlayed = true;
+                       },
+                       [&](const core::CardsDrawn& drawn) { cards += drawn.cards.size(); },
+                       [&](const core::PenaltyCardsDrawn& drawn) {
+                           cards += drawn.cards.size();
+                           penalty = true;
+                       },
+                       [&](const core::PlayerSkipped&) { budget += timeouts_.effectStep; },
+                       [&](const core::DirectionReversed&) { budget += timeouts_.effectStep; },
+                       [&](const core::ColorChosen&) { budget += timeouts_.effectStep; },
+                       [&](const core::ChallengeResolved&) { budget += timeouts_.effectStep; },
+                       [&](const core::UnoCaught&) { budget += timeouts_.effectStep; },
+                       [](const core::RoundStarted&) {},
+                       [](const core::DeckReshuffled&) {},
+                       [](const core::TurnPassed&) {},
+                       [](const core::TurnChanged&) {},
+                       [](const core::UnoCalled&) {},
+                       [](const core::RoundEnded&) {},
+                       [](const core::MatchEnded&) {},
+                   },
+                   event);
     }
-    return timeouts_.drawStep * static_cast<std::chrono::milliseconds::rep>(cards);
+    // A Draw Two or a Wild Draw Four played in this batch also shows its "+2" / "+4", once.
+    if (cardPlayed && (penalty || std::holds_alternative<core::AwaitingPenaltyResponse>(roundAfter.phase()))) {
+        budget += timeouts_.effectStep;
+    }
+    return budget + timeouts_.drawStep * static_cast<std::chrono::milliseconds::rep>(cards);
 }
 
-void Application::armGameTimers(Room& room, std::chrono::milliseconds drawPause)
+void Application::armGameTimers(Room& room)
 {
     scheduler_->cancel(std::exchange(room.nextRoundTimer, TimerHandle{}));
     scheduler_->cancel(std::exchange(room.forcedActionTimer, TimerHandle{}));
@@ -201,6 +229,7 @@ void Application::armGameTimers(Room& room, std::chrono::milliseconds drawPause)
     }
     const std::int64_t now = clock_->nowMillis();
     const std::uint64_t version = room.stateVersion;
+    const std::chrono::milliseconds untilOpen{std::max<std::int64_t>(0, room.actionsOpenAt - now)};
     if (std::holds_alternative<core::RoundOver>(room.match->round().phase())) {
         stopTurnClock();
         room.nextRoundDeadline = now + timeouts_.nextRound.count();
@@ -211,7 +240,7 @@ void Application::armGameTimers(Room& room, std::chrono::milliseconds drawPause)
     // A move the engine says nobody can choose is played after a short pause, like the player would have (ADR 0017).
     if (room.match->round().forcedAction().has_value()) {
         room.forcedActionTimer =
-            scheduler_->schedule(drawPause + timeouts_.forcedAction,
+            scheduler_->schedule(untilOpen + timeouts_.forcedAction,
                                  [this, code = room.code, version] { onForcedActionDue(code, version); });
     }
     const auto turnLength = std::chrono::seconds(static_cast<int>(room.settings.turnTimer));
@@ -222,6 +251,7 @@ void Application::armGameTimers(Room& room, std::chrono::milliseconds drawPause)
     const core::Round& round = room.match->round();
     const TurnKey key{
         .round = room.match->roundNumber(),
+        .turn = room.turnCount,
         .player = round.currentPlayer(),
         .phase = round.phase().index(),
     };
@@ -230,8 +260,8 @@ void Application::armGameTimers(Room& room, std::chrono::milliseconds drawPause)
     }
     stopTurnClock();
     room.turnKey = key;
-    // The player cannot act before the cards just drawn have been shown: their clock starts after them.
-    const auto turnTime = std::chrono::duration_cast<std::chrono::milliseconds>(turnLength) + drawPause;
+    // The player cannot act before the effect in progress has been shown: their clock starts after it (ADR 0027).
+    const auto turnTime = std::chrono::duration_cast<std::chrono::milliseconds>(turnLength) + untilOpen;
     room.turnDeadline = now + turnTime.count();
     const std::uint64_t epoch = ++room.turnEpoch;
     room.turnTimer = scheduler_->schedule(turnTime, [this, code = room.code, epoch] { onTurnExpired(code, epoch); });

@@ -20,4 +20,9 @@ export const SEEDS = {
    * Alice se retrouve avec 8 cartes.
    */
   multiDraw: 24,
+  /**
+   * Défausse : passe-tour rouge (couleur rouge). Bob joue en premier : 8 rouge et +2 rouge sont jouables. À deux, un +2
+   * fait sauter Alice : Bob rejouerait aussitôt si le serveur n'attendait pas la fin de la distribution (ADR 0027).
+   */
+  drawTwoFirst: 42,
 } as const;

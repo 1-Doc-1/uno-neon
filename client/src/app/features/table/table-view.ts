@@ -112,12 +112,28 @@ export class TableView {
       cardCount: seat.cardCount - (this.director.unarrived().get(seat.playerId) ?? 0),
     })),
   );
+  /** Ma main telle qu'on la montre : seules les cartes arrivées, celles d'une pioche en cours prennent place à leur tour. */
+  protected readonly shownHand = computed(() => {
+    const hidden = this.director.hiddenCardIds();
+    return this.view().me.hand.filter((card) => !hidden.has(card.id));
+  });
+  protected readonly incomingCardIds = computed(() => {
+    const hidden = this.director.hiddenCardIds();
+    return this.view()
+      .me.hand.filter((card) => hidden.has(card.id))
+      .map((card) => card.id);
+  });
   protected readonly mySeat = computed(() =>
     this.seats().find((p) => p.playerId === this.view().me.playerId),
   );
   protected readonly shownDrawPileCount = computed(
     () => this.view().drawPileCount + this.director.unlaunched(),
   );
+  /**
+   * Vrai quand l'effet en cours est montré en entier : jusque-là la main est neutre et le paquet muet, car le serveur
+   * refuse tout coup de tour reçu avant `actionsOpenAt` (ADR 0027). Annoncer UNO et contrer restent permis.
+   */
+  protected readonly actionsOpen = computed(() => this.serverNow() >= this.view().actionsOpenAt);
   protected readonly myTurn = computed(
     () => this.view().currentPlayerId === this.view().me.playerId,
   );
@@ -244,6 +260,14 @@ export class TableView {
     effect(() => {
       const color = this.view().currentColor;
       untracked(() => (this.previousColor = color));
+    });
+    // La main s'ouvre à l'heure dite, sans attendre le prochain battement de l'horloge
+    effect((onCleanup) => {
+      const wait = this.view().actionsOpenAt - this.serverNow();
+      if (wait > 0) {
+        const timer = setTimeout(() => this.now.set(Date.now()), wait);
+        onCleanup(() => clearTimeout(timer));
+      }
     });
     effect((onCleanup) => {
       const timer = setInterval(() => this.now.set(Date.now()), CLOCK_TICK_MS);

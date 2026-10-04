@@ -11,6 +11,7 @@ add_executable(uno_tests
     application_draw_rule_test.cpp
     application_lifecycle_test.cpp
     application_match_test.cpp
+    application_presentation_test.cpp
     application_rooms_test.cpp
     application_uno_test.cpp
     client_event_test.cpp
@@ -45,6 +46,7 @@ add_executable(uno_tests
     smoke_test.cpp
     test_hooks_test.cpp
     websocket_server_test.cpp
+    no_dialogs.cpp
     support/test_client.cpp)
 target_link_libraries(uno_tests PRIVATE
     uno_core uno_app uno_net uno_bootstrap uno_testing Catch2::Catch2WithMain nlohmann_json::nlohmann_json spdlog::spdlog)

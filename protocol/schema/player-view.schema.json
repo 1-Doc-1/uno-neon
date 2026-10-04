@@ -39,6 +39,10 @@
       "description": "In phase roundOver: when the next round starts automatically (server clock).",
       "anyOf": [{ "$ref": "common.schema.json#/$defs/EpochMillis" }, { "type": "null" }]
     },
+    "actionsOpenAt": {
+      "description": "When the current turn may be played (server clock, ADR 0027): the server refuses every turn action (playCard, drawCard, pass, chooseColor, respondPenalty) received before, with EFFECT_IN_PROGRESS, until the effect in progress (card played, special effect, cards being drawn) has been shown. A value in the past, or the server clock itself, means nothing is in progress. Announcing UNO and catching are never held back. The clock of the turn starts at this time.",
+      "$ref": "common.schema.json#/$defs/EpochMillis"
+    },
     "drawStepMs": {
       "description": "Pace of drawn cards, set by the server (ADR 0026): every card takes at least this long to show. The forced move that follows a draw and the clock of a new turn wait for N cards x drawStepMs, so a client paces its animations on this value, never on a constant of its own.",
       "type": "integer",
@@ -73,6 +77,7 @@
     "pendingDraw",
     "turnDeadline",
     "nextRoundDeadline",
+    "actionsOpenAt",
     "drawStepMs",
     "unoWindows",
     "round",

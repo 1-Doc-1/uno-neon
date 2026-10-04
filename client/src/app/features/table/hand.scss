@@ -15,7 +15,9 @@
     8px,
     min(var(--max-step), calc((100cqw - 2 * var(--gutter) - var(--card-w)) / max(var(--n) - 1, 1)))
   );
+  // Toutes les cartes dans la même cellule, décalées par `--step` : l'éventail se réorganise en douceur (transition)
   display: grid;
+  justify-items: center;
   justify-content: center;
   margin: 0;
   // De la place pour la surélévation des cartes jouables, sans rogner l'éventail
@@ -23,20 +25,18 @@
   list-style: none;
 
   li {
+    grid-area: 1 / 1;
     position: relative;
     min-width: 0;
     // Éventail : chaque carte tourne autour d'un pivot sous la main et suit une légère courbe
     transform-origin: 50% 160%;
-    transform: translateY(calc(var(--d) * var(--d) * 0.45px))
+    transform: translateX(calc(var(--d) * var(--step)))
+      translateY(calc(var(--d) * var(--d) * 0.45px))
       rotate(calc(var(--d) * var(--rot) * var(--fan)));
+    transition: transform var(--dur-base) var(--ease-out);
   }
 
   // La carte survolée, touchée ou focalisée passe devant ses voisines
-  // Une carte encore en vol vers ma main n'apparaît qu'à son arrivée (sa place reste réservée)
-  li.flying {
-    visibility: hidden;
-  }
-
   li:hover,
   li:focus-within,
   li:active {

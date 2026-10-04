@@ -27,8 +27,11 @@ export interface StackOptions {
   readonly seed: number;
   /** Délai de grâce avant le forfait d'un joueur déconnecté (UNO_TEST_RECONNECT_GRACE_MS). */
   readonly reconnectGraceMs?: number;
-  /** Rythme des cartes piochées (UNO_TEST_DRAW_STEP_MS) : court par défaut, pour des scénarios rapides. */
-  readonly drawStepMs?: number;
+  /**
+   * Rythme du jeu (UNO_TEST_PACE_MS, ADR 0027) : une carte posée, un effet, une carte piochée prennent chacun ce temps.
+   * Court par défaut, pour des scénarios rapides.
+   */
+  readonly paceMs?: number;
 }
 
 export interface Stack {
@@ -139,7 +142,7 @@ export async function startStack(options: StackOptions): Promise<Stack> {
       UNO_ALLOWED_ORIGINS: url,
       UNO_TEST_SEED: String(options.seed),
       UNO_TEST_RECONNECT_GRACE_MS: String(options.reconnectGraceMs ?? 60_000),
-      UNO_TEST_DRAW_STEP_MS: String(options.drawStepMs ?? 40),
+      UNO_TEST_PACE_MS: String(options.paceMs ?? 40),
       UNO_LOG_LEVEL: 'error',
     },
   });

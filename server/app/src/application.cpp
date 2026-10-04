@@ -531,6 +531,15 @@ Application::Outcome Application::play(ConnectionId connection, const core::Play
         return fail(ErrorCode::InvalidPhase, "No match is running");
     }
 
+    // Nobody acts while the effect in progress is being shown. Announcing UNO and catching are not turn actions.
+    // A player who is not on turn is told so by the engine, whatever the time.
+    const bool turnAction =
+        !std::holds_alternative<core::CallUno>(action) && !std::holds_alternative<core::CatchUno>(action);
+    if (turnAction && current.match->round().currentPlayer() == (*session)->playerId &&
+        clock_->nowMillis() < current.actionsOpenAt) {
+        return fail(ErrorCode::EffectInProgress, "The effect in progress is not over");
+    }
+
     const auto events = current.match->apply((*session)->playerId, action, *random_);
     if (!events) {
         switch (events.error()) {
@@ -607,9 +616,15 @@ void Application::broadcastGame(Room& room, std::span<const core::DomainEvent> e
     }
     const core::Match& match = *room.match;
     ++room.stateVersion;
+    if (std::ranges::any_of(
+            events, [](const core::DomainEvent& event) { return std::holds_alternative<core::TurnChanged>(event); })) {
+        ++room.turnCount;
+    }
     syncUnoWindows(room);
-    armGameTimers(room, drawPauseOf(events));
     const std::int64_t serverTime = clock_->nowMillis();
+    const auto budget = presentationBudgetOf(events, match.round());
+    room.actionsOpenAt = std::max(room.actionsOpenAt, serverTime + budget.count());
+    armGameTimers(room);
     for (const Member& member : room.members) {
         auto projected = core::project(events, member.id, match.round(), match.roundNumber());
         projected.insert(projected.end(), extraEvents.begin(), extraEvents.end());
@@ -628,6 +643,7 @@ response::GameView Application::viewOf(const Room& room, const core::Match& matc
     view.settings = room.settings;
     view.turnDeadline = room.turnDeadline;
     view.nextRoundDeadline = room.nextRoundDeadline;
+    view.actionsOpenAt = room.actionsOpenAt;
     view.drawStepMs = static_cast<std::uint32_t>(timeouts_.drawStep.count());
     for (const UnoWindowTiming& window : room.unoWindows) {
         view.unoWindows.push_back(response::UnoWindowInfo{

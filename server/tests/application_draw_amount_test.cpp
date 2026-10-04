@@ -33,7 +33,10 @@ using uno::testing::toRequest;
 
 // A table where the current player has nothing to play and the top two cards of the draw pile do not fit either, so
 // that drawing takes at least three cards.
-std::unique_ptr<Table> longDrawAtSeed(std::uint64_t seed, core::DrawRule rule)
+// `timeouts`: the pace of the table once the search is over; while searching, the clock jumps over every pause so that
+// the scripted players are never refused for acting too early (ADR 0027).
+std::unique_ptr<Table> longDrawAtSeed(std::uint64_t seed, core::DrawRule rule,
+                                      const Timeouts& timeouts = uno::testing::withoutPresentationDelay())
 {
     const auto longDraw = [](const core::Round& round) {
         if (!std::holds_alternative<core::AwaitingPlay>(round.phase()) || round.drawPile().cards().size() < 3) {
@@ -46,8 +49,8 @@ std::unique_ptr<Table> longDrawAtSeed(std::uint64_t seed, core::DrawRule rule)
         const auto cards = round.drawPile().cards();
         return std::ranges::none_of(hand, playable) && !playable(cards.back()) && !playable(*(cards.end() - 2));
     };
-    auto table =
-        std::make_unique<Table>(3, seed, core::MatchLength::SingleRound, rule, false, core::DrawAmount::UntilPlayable);
+    auto table = std::make_unique<Table>(3, seed, core::MatchLength::SingleRound, rule, false,
+                                         core::DrawAmount::UntilPlayable, timeouts);
     table->start();
     for (std::size_t step = 0; step < 3000; ++step) {
         const auto& round = table->room().match->round();
@@ -58,6 +61,7 @@ std::unique_ptr<Table> longDrawAtSeed(std::uint64_t seed, core::DrawRule rule)
             break;
         }
         const auto actions = uno::testing::legalActionsOfCurrentPlayer(round);
+        table->harness.clock.advanceMillis(60'000);
         table->currentPlayer().send(toRequest(actions.at(step % actions.size())));
     }
     return nullptr;
@@ -152,7 +156,7 @@ struct PacedDraw {
 PacedDraw tableWithAForcedLongDrawThenPlay()
 {
     for (std::uint64_t seed = 1; seed < 300; ++seed) {
-        auto table = longDrawAtSeed(seed, core::DrawRule::Guided);
+        auto table = longDrawAtSeed(seed, core::DrawRule::Guided, Timeouts{});
         if (table == nullptr) {
             continue;
         }

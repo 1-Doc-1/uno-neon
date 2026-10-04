@@ -26,7 +26,7 @@ test.describe('pioche jusqu’à pouvoir jouer', () => {
 });
 
 test.describe('pioche rythmée par le serveur', () => {
-  test.use({ seed: SEEDS.multiDraw, drawAmount: 'untilPlayable', drawStepMs: 400 });
+  test.use({ seed: SEEDS.multiDraw, drawAmount: 'untilPlayable', paceMs: 400 });
 
   test('les autres voient le compteur d’Alice monter d’une carte à la fois', async ({ lobby }) => {
     const { host, guest } = lobby;

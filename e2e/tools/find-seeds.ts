@@ -23,6 +23,8 @@ interface Finding {
   discard: string;
   firstPlayable: number;
   firstHand: string[];
+  /** Le premier joueur a un +2 jouable dès le premier tour (une pénalité ouvre la résolution : ADR 0027). */
+  drawTwo: boolean;
   /** Le premier joueur a un +4 : bluff (il a la couleur active) ou légal ? */
   wildDrawFour: 'none' | 'bluff' | 'legal';
   /** Version de la vue où quelqu'un n'a plus qu'une carte pour la première fois, et qui. */
@@ -66,6 +68,8 @@ async function run(seed: number, port: number): Promise<Finding> {
       UNO_PORT: String(port),
       UNO_ALLOWED_ORIGINS: 'http://127.0.0.1:1',
       UNO_TEST_SEED: String(seed),
+      // Les bots ne savent pas attendre la fin d'un effet (ADR 0027) : ici rien n'est rythmé
+      UNO_TEST_PACE_MS: '0',
       UNO_LOG_LEVEL: 'off',
     },
   });
@@ -110,6 +114,9 @@ async function run(seed: number, port: number): Promise<Finding> {
       discard: label(firstView.discardTop) + ` (couleur ${firstView.currentColor})`,
       firstPlayable: firstView.me.playableCardIds.length,
       firstHand: hand.map(label),
+      drawTwo: hand.some(
+        (card) => card.rank === 'drawTwo' && firstView.me.playableCardIds.includes(card.id),
+      ),
       wildDrawFour: !wd4 ? 'none' : hasActiveColor ? 'bluff' : 'legal',
       oneCard: null,
       noPlayable: null,

@@ -60,8 +60,9 @@ inline std::optional<IllegalMoveReason> refusalReason(const Messages& messages)
 struct Table {
     explicit Table(std::size_t count, std::uint64_t seed = 7, core::MatchLength length = core::MatchLength::SingleRound,
                    core::DrawRule drawRule = core::DrawRule::Guided, bool declareUnoToWin = false,
-                   core::DrawAmount drawAmount = core::DrawAmount::One)
-        : harness(seed)
+                   core::DrawAmount drawAmount = core::DrawAmount::One,
+                   app::Timeouts timeouts = withoutPresentationDelay())
+        : harness(seed, timeouts)
     {
         players.push_back(harness.helloPlayer());
         players.front().send(request::CreateRoom{

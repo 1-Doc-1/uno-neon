@@ -1,7 +1,8 @@
 import { Component, computed, DestroyRef, inject, signal } from '@angular/core';
 import { playedCards } from '../features/table/fx/discard-pile';
+import { INITIAL_PLAN_STATE, planEffects, timingOf } from '../features/table/fx/effect-plan';
 import { TableView } from '../features/table/table-view';
-import type { ClientEvent } from '../protocol/generated/protocol';
+import type { ClientEvent, PlayerView } from '../protocol/generated/protocol';
 import type { EventBatch } from '../state/game-store';
 import { asSpectator, buildDemoFrames, DemoFrame } from './animation-script';
 
@@ -10,6 +11,14 @@ const FRAME_GAP_MS = 5000;
 /** Rythme des cartes piochées dans la démo : celui que le serveur annonce dans `drawStepMs` (fixtures). */
 const DRAW_STEP_MS = 1000;
 const LOOP_PAUSE_MS = 3000;
+
+/** Ce que les clients mettent à montrer ces événements, à vitesse normale : le budget que le serveur annoncerait. */
+function presentationMs(events: readonly ClientEvent[]): number {
+  return planEffects(events, INITIAL_PLAN_STATE).specs.reduce(
+    (total, spec) => total + timingOf(spec, false, DRAW_STEP_MS).stepMs,
+    0,
+  );
+}
 
 /**
  * `/dev/table?scenario=animations` : rejoue en boucle une séquence scriptée de tous les effets de jeu, à travers le
@@ -20,7 +29,7 @@ const LOOP_PAUSE_MS = 3000;
   imports: [TableView],
   template: `
     <app-table-view
-      [view]="frame().view"
+      [view]="view()"
       [batch]="batch()"
       [played]="played()"
       [animationSpeed]="speed()"
@@ -104,6 +113,12 @@ export class AnimationDemo {
   protected readonly batch = signal<EventBatch | null>(null);
   protected readonly played = signal<ReturnType<typeof playedCards>>([]);
   protected readonly frame = computed<DemoFrame>(() => this.frames()[this.index()]);
+  /** Quand la main s'ouvre : le serveur le dit dans chaque vue (ADR 0027), la démo le calcule d'après les effets montrés. */
+  private readonly actionsOpenAt = signal(0);
+  protected readonly view = computed<PlayerView>(() => ({
+    ...this.frame().view,
+    actionsOpenAt: this.actionsOpenAt(),
+  }));
 
   constructor() {
     inject(DestroyRef).onDestroy(() => clearTimeout(this.timer));
@@ -133,6 +148,7 @@ export class AnimationDemo {
     this.events = resync ? [] : [...this.events, ...frame.events];
     this.played.set(playedCards(this.events));
     this.index.set(index);
+    this.actionsOpenAt.set(resync ? 0 : Date.now() + presentationMs(frame.events) / this.speed());
     this.batch.set({ id: this.batchId++, events: frame.events, resync });
     const last = index === this.frames().length - 1;
     // Une pioche rythmée dure une seconde par carte : la démo laisse le temps de la voir en entier

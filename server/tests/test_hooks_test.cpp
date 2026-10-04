@@ -29,6 +29,9 @@ uno::bootstrap::EnvironmentLookup withTestVariables()
         if (std::string_view{name} == "UNO_TEST_RECONNECT_GRACE_MS") {
             return "1500";
         }
+        if (std::string_view{name} == "UNO_TEST_PACE_MS") {
+            return "40";
+        }
         return std::nullopt;
     };
 }
@@ -74,5 +77,23 @@ TEST_CASE("The reconnection grace is only shortened by a binary built with test 
     REQUIRE(timeouts.reconnectGrace == std::chrono::milliseconds(1500));
 #else
     REQUIRE(timeouts.reconnectGrace == std::chrono::seconds(60));
+#endif
+}
+
+TEST_CASE("The pace of the game is only shortened by a binary built with test hooks", "[bootstrap]")
+{
+    const auto timeouts = uno::bootstrap::makeTimeouts(withTestVariables());
+    const auto defaults = uno::bootstrap::makeTimeouts(emptyEnvironment());
+
+    REQUIRE(defaults.playStep == std::chrono::milliseconds(1100));
+    REQUIRE(defaults.effectStep == std::chrono::milliseconds(1200));
+    REQUIRE(defaults.drawStep == std::chrono::milliseconds(1000));
+#ifdef UNO_ENABLE_TEST_HOOKS
+    REQUIRE(timeouts.playStep == std::chrono::milliseconds(40));
+    REQUIRE(timeouts.effectStep == std::chrono::milliseconds(40));
+    REQUIRE(timeouts.drawStep == std::chrono::milliseconds(40));
+#else
+    REQUIRE(timeouts.playStep == defaults.playStep);
+    REQUIRE(timeouts.drawStep == defaults.drawStep);
 #endif
 }
