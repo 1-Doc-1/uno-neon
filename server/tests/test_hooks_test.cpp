@@ -86,14 +86,17 @@ TEST_CASE("The pace of the game is only shortened by a binary built with test ho
     const auto defaults = uno::bootstrap::makeTimeouts(emptyEnvironment());
 
     REQUIRE(defaults.playStep == std::chrono::milliseconds(1100));
-    REQUIRE(defaults.effectStep == std::chrono::milliseconds(1200));
+    REQUIRE(defaults.effectStep == std::chrono::milliseconds(1500));
     REQUIRE(defaults.drawStep == std::chrono::milliseconds(1000));
+    REQUIRE(defaults.actionCooldown == std::chrono::milliseconds(1500));
 #ifdef UNO_ENABLE_TEST_HOOKS
     REQUIRE(timeouts.playStep == std::chrono::milliseconds(40));
     REQUIRE(timeouts.effectStep == std::chrono::milliseconds(40));
     REQUIRE(timeouts.drawStep == std::chrono::milliseconds(40));
+    REQUIRE(timeouts.actionCooldown == std::chrono::milliseconds(40));
 #else
     REQUIRE(timeouts.playStep == defaults.playStep);
     REQUIRE(timeouts.drawStep == defaults.drawStep);
+    REQUIRE(timeouts.actionCooldown == defaults.actionCooldown);
 #endif
 }

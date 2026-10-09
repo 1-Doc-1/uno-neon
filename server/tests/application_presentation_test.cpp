@@ -31,23 +31,22 @@ using uno::testing::refusal;
 using uno::testing::Table;
 using uno::testing::toRequest;
 
-// A Draw Two the player on turn can play, if they hold one.
-std::optional<core::Card> playableDrawTwo(const core::Round& round)
+// A card of this rank the player on turn can play, if they hold one.
+std::optional<core::Card> playableOfRank(const core::Round& round, core::Rank rank)
 {
     if (!std::holds_alternative<core::AwaitingPlay>(round.phase())) {
         return std::nullopt;
     }
     const auto hand = round.hand(round.currentPlayer()).value_or(std::span<const core::Card>{});
-    const auto found = std::ranges::find_if(hand, [&round](const core::Card& card) {
-        return card.rank == core::Rank::DrawTwo &&
-               core::isPlayable(card, round.discardPile().top(), round.currentColor());
+    const auto found = std::ranges::find_if(hand, [&round, rank](const core::Card& card) {
+        return card.rank == rank && core::isPlayable(card, round.discardPile().top(), round.currentColor());
     });
     return found == hand.end() ? std::nullopt : std::optional<core::Card>(*found);
 }
 
-// `players` players, the real pace of the game, and the player on turn about to play a Draw Two. While searching, the
-// clock jumps over every pause so that the scripted players are never refused for acting too early.
-std::unique_ptr<Table> tableAboutToPlayDrawTwo(std::size_t players)
+// `players` players, the real pace of the game, and the player on turn about to play a card of this rank. While
+// searching, the clock jumps over every pause so that the scripted players are never refused for acting too early.
+std::unique_ptr<Table> tableAboutToPlay(core::Rank rank, std::size_t players)
 {
     for (std::uint64_t seed = 1; seed < 300; ++seed) {
         auto table = std::make_unique<Table>(players, seed, core::MatchLength::SingleRound, core::DrawRule::Guided,
@@ -55,7 +54,7 @@ std::unique_ptr<Table> tableAboutToPlayDrawTwo(std::size_t players)
         table->start();
         for (std::size_t step = 0; step < 3000; ++step) {
             const auto& round = table->room().match->round();
-            if (playableDrawTwo(round)) {
+            if (playableOfRank(round, rank)) {
                 table->harness.clock.advanceMillis(60'000);
                 return table;
             }
@@ -67,7 +66,7 @@ std::unique_ptr<Table> tableAboutToPlayDrawTwo(std::size_t players)
             table->currentPlayer().send(toRequest(actions.at(step % actions.size())));
         }
     }
-    throw std::logic_error{"no seed reached a playable Draw Two"};
+    throw std::logic_error{"no seed reached a playable card of this rank"};
 }
 
 // The first legal action that is a turn action (not an announcement or a catch).
@@ -89,9 +88,9 @@ struct DrawTwoPlayed {
 
 DrawTwoPlayed drawTwoPlayed(std::size_t players = 3)
 {
-    auto table = tableAboutToPlayDrawTwo(players);
+    auto table = tableAboutToPlay(core::Rank::DrawTwo, players);
     const auto attacker = table->room().match->round().currentPlayer();
-    const auto card = playableDrawTwo(table->room().match->round());
+    const auto card = playableOfRank(table->room().match->round(), core::Rank::DrawTwo);
     const auto playedAt = table->harness.clock.nowMillis();
     table->clearInboxes();
     table->currentPlayer().send(request::PlayCard{
@@ -104,7 +103,7 @@ DrawTwoPlayed drawTwoPlayed(std::size_t players = 3)
 }
 
 // What presenting a Draw Two takes: the card, the "+2", the skipped victim and the two cards they draw.
-constexpr auto kDrawTwoBudget = 1100ms + 1200ms + 1200ms + 2 * 1000ms;
+constexpr auto kDrawTwoBudget = 1100ms + 1500ms + 1500ms + 2 * 1000ms;
 
 } // namespace
 
@@ -218,4 +217,77 @@ TEST_CASE("Nothing is held back when the pace is zero", "[app][presentation]")
 
     REQUIRE(table.room().actionsOpenAt == table.harness.clock.nowMillis());
     REQUIRE_FALSE(refusal(actor.received()).has_value());
+}
+
+namespace {
+
+// How long the table is given to look at a card of this rank once it is played (three players, the real pace).
+std::chrono::milliseconds presentationOf(core::Rank rank)
+{
+    auto table = tableAboutToPlay(rank, 3);
+    const auto card = playableOfRank(table->room().match->round(), rank);
+    const auto playedAt = table->harness.clock.nowMillis();
+    table->currentPlayer().send(request::PlayCard{
+        .cardId = card->id,
+        .chosenColor = core::isWild(rank) ? std::optional<core::Color>(core::Color::Red) : std::nullopt,
+        .swapTargetId = std::nullopt,
+    });
+    return std::chrono::milliseconds(table->room().actionsOpenAt - playedAt);
+}
+
+} // namespace
+
+// What each card costs to present (ADR 0027) must cover what the client shows for it: the client side checks its own
+// durations against these figures (presentation-budget.spec.ts), so the two stay in step.
+TEST_CASE("Every special card leaves the table the time to see its effect", "[app][presentation]")
+{
+    SECTION("a Skip: the card, then the skipped player")
+    {
+        REQUIRE(presentationOf(core::Rank::Skip) == 1100ms + 1500ms);
+    }
+    SECTION("a Reverse: the card, then the wheel of the direction")
+    {
+        REQUIRE(presentationOf(core::Rank::Reverse) == 1100ms + 1500ms);
+    }
+    SECTION("a Draw Two: the card, the +2, the skipped victim and the two cards drawn")
+    {
+        REQUIRE(presentationOf(core::Rank::DrawTwo) == kDrawTwoBudget);
+    }
+    SECTION("a Wild: the card, then the colour wheel")
+    {
+        REQUIRE(presentationOf(core::Rank::Wild) == 1100ms + 1500ms);
+    }
+    SECTION("a Wild Draw Four: the card, the colour wheel and the +4 (the victim answers before drawing)")
+    {
+        REQUIRE(presentationOf(core::Rank::WildDrawFour) == 1100ms + 1500ms + 1500ms);
+    }
+}
+
+TEST_CASE("Every turn action leaves the table the same minimum time, whatever it showed", "[app][presentation]")
+{
+    const auto cooldown = Timeouts{}.actionCooldown;
+
+    SECTION("a plain card, whose presentation is shorter than the cooldown")
+    {
+        REQUIRE(presentationOf(core::Rank::Five) == cooldown);
+    }
+    SECTION("a card that shows more than the cooldown keeps its own presentation")
+    {
+        REQUIRE(presentationOf(core::Rank::DrawTwo) > cooldown);
+    }
+    SECTION("a voluntary draw of one card")
+    {
+        auto table = tableAboutToPlay(core::Rank::Five, 3);
+        const auto drawnAt = table->harness.clock.nowMillis();
+        table->currentPlayer().send(request::DrawCard{});
+        REQUIRE(table->room().actionsOpenAt >= drawnAt + cooldown.count());
+    }
+}
+
+TEST_CASE("Announcing UNO opens no cooldown", "[app][presentation]")
+{
+    auto table = tableAboutToPlay(core::Rank::Five, 3);
+    table->currentPlayer().send(request::CallUno{});
+
+    REQUIRE(table->room().actionsOpenAt <= table->harness.clock.nowMillis());
 }

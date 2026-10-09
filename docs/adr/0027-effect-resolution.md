@@ -37,8 +37,14 @@ cliquer pendant l'animation. Griser l'interface ne suffit pas (toute entrée ré
 - **Refuser aussi UNO / contre-UNO** : le contre-UNO a sa propre fenêtre (ADR 0018) et doit rester possible.
 
 ## Conséquences
-- Le budget est une **estimation prudente** des animations normales du client : un client en vitesse « Rapide » ou en
+- Le budget est une **estimation prudente** des animations normales du client : un client en
   mouvement réduit finit avant l'ouverture, un client très en retard (onglet en arrière-plan) la voit passer.
 - Chaque coup rend la main plus tard (une carte posée : 1,1 s), y compris pour une pose simple : c'est le prix d'une
   table où l'on voit ce qui vient de se passer.
 - Les tests d'application jouent sans délai (`withoutPresentationDelay`) ; ceux du rythme utilisent les vraies durées.
+
+## Amendement (lot Q) : un délai fixe après chaque action, un budget qui couvre chaque carte
+- **Constat** : en partie réelle, le joueur suivant jouait parfois avant la fin de l'animation d'un Passe. Le budget est une estimation ; une estimation trop juste (latence, onglet lent) ne suffit pas.
+- **`actionCooldown` (1500 ms, injectable)** : après CHAQUE action de tour (pose, pioche, passe, choix de couleur, réponse à une pénalité), `actionsOpenAt = max(ancienne valeur, maintenant + max(budget de présentation, actionCooldown))`. Identique pour tous les joueurs. Annoncer UNO et contrer n'ouvrent pas ce délai. Le crochet de test `UNO_TEST_PACE_MS` le fixe aussi.
+- **`effectStep` passe de 1,2 s à 1,5 s** : le client montre l'Inversion pendant 1,4 s (plus la carte, 1,08 s) ; 1,2 s ne la couvrait pas. Le test `presentation-budget.spec.ts` (client) vérifie, pour Passe, Inversion, +2, +4 et Joker, que la durée réelle de l'animation tient dans le budget, et `application_presentation_test.cpp` (serveur) verrouille les sommes du budget par carte. L'éclat de tour (0,5 s), qui accompagne l'ouverture du tour, n'est pas compté.
+- **Plus de vitesse réglable côté client** : le réglage « Normale / Rapide » est supprimé (le serveur dicte le rythme).
