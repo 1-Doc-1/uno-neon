@@ -16,14 +16,23 @@ namespace uno::testing {
 
 namespace {
 
-void addPlaysOf(const core::Card& card, std::vector<core::PlayerAction>& actions)
+void addPlaysOf(const core::Round& round, const core::Card& card, std::vector<core::PlayerAction>& actions)
 {
-    if (core::isWild(card.rank)) {
+    if (card.rank == core::Rank::WildDrawFive) {
+        // A colour and a target among the other players
         for (const auto color : core::kColors) {
-            actions.emplace_back(core::PlayCard{.cardId = card.id, .chosenColor = color});
+            for (const auto& seated : round.seats()) {
+                if (seated != round.currentPlayer()) {
+                    actions.emplace_back(core::PlayCard{.cardId = card.id, .chosenColor = color, .target = seated});
+                }
+            }
+        }
+    } else if (core::isWild(card.rank)) {
+        for (const auto color : core::kColors) {
+            actions.emplace_back(core::PlayCard{.cardId = card.id, .chosenColor = color, .target = std::nullopt});
         }
     } else {
-        actions.emplace_back(core::PlayCard{.cardId = card.id, .chosenColor = std::nullopt});
+        actions.emplace_back(core::PlayCard{.cardId = card.id, .chosenColor = std::nullopt, .target = std::nullopt});
     }
 }
 
@@ -33,7 +42,7 @@ void addPlayableCards(const core::Round& round, std::vector<core::PlayerAction>&
     REQUIRE(hand.has_value());
     for (const auto& card : *hand) {
         if (core::isPlayable(card, round.discardPile().top(), round.currentColor())) {
-            addPlaysOf(card, actions);
+            addPlaysOf(round, card, actions);
         }
     }
 }
@@ -58,7 +67,7 @@ std::vector<core::PlayerAction> legalActionsOfCurrentPlayer(const core::Round& r
         REQUIRE(hand.has_value());
         for (const auto& card : *hand) {
             if (card.id == drawn->drawnCard) {
-                addPlaysOf(card, actions);
+                addPlaysOf(round, card, actions);
             }
         }
         if (round.canKeepDrawnCard(round.currentPlayer())) {
@@ -67,6 +76,16 @@ std::vector<core::PlayerAction> legalActionsOfCurrentPlayer(const core::Round& r
     } else if (std::holds_alternative<core::AwaitingColorChoice>(round.phase())) {
         for (const auto color : core::kColors) {
             actions.emplace_back(core::ChooseColor{.color = color});
+        }
+    } else if (std::holds_alternative<core::AwaitingPlusFiveResponse>(round.phase())) {
+        // Accept, or answer with a Wild Draw Five (a challenge is not offered: it cannot be made)
+        actions.emplace_back(core::RespondPenalty{.response = core::PenaltyResponse::Accept});
+        const auto hand = round.hand(round.currentPlayer());
+        REQUIRE(hand.has_value());
+        for (const auto& card : *hand) {
+            if (card.rank == core::Rank::WildDrawFive) {
+                addPlaysOf(round, card, actions);
+            }
         }
     } else if (std::holds_alternative<core::AwaitingPenaltyResponse>(round.phase())) {
         actions.emplace_back(core::RespondPenalty{.response = core::PenaltyResponse::Accept});

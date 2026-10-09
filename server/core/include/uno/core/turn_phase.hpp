@@ -3,6 +3,7 @@
 #include "uno/core/card.hpp"
 #include "uno/core/player_id.hpp"
 
+#include <cstddef>
 #include <cstdint>
 #include <variant>
 
@@ -42,6 +43,15 @@ struct AwaitingPenaltyResponse {
     bool operator==(const AwaitingPenaltyResponse&) const = default;
 };
 
+// A Wild Draw Five was played: the turn already moved to its target, who must accept the penalty (draw `total`, lose
+// the turn) or answer with a Wild Draw Five of their own, which names a new target and raises the total by five
+// (ADR 0028). A Wild Draw Five cannot be challenged. The target is the current player.
+struct AwaitingPlusFiveResponse {
+    std::size_t total{};
+
+    bool operator==(const AwaitingPlusFiveResponse&) const = default;
+};
+
 // A player played their last card (SPEC §3). `points` is what the winner scores: the value of every
 // card left in the other hands, counted after the penalty draw of a last Draw Two or Wild Draw Four.
 // Final for this round: every action is rejected with DomainError::InvalidPhase.
@@ -52,7 +62,7 @@ struct RoundOver {
     bool operator==(const RoundOver&) const = default;
 };
 
-using TurnPhase =
-    std::variant<AwaitingPlay, AwaitingDrawnCardDecision, AwaitingColorChoice, AwaitingPenaltyResponse, RoundOver>;
+using TurnPhase = std::variant<AwaitingPlay, AwaitingDrawnCardDecision, AwaitingColorChoice, AwaitingPenaltyResponse,
+                               AwaitingPlusFiveResponse, RoundOver>;
 
 } // namespace uno::core

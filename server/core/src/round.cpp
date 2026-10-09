@@ -38,9 +38,10 @@ namespace {
     return detail::hasDuplicates(std::move(ids));
 }
 
-[[nodiscard]] bool isWildDrawFour(const Card& card)
+// A Wild Draw Four or Five cannot open a round: nobody has played it, so nobody could be targeted by it.
+[[nodiscard]] bool cannotStartRound(const Card& card)
 {
-    return card.rank == Rank::WildDrawFour;
+    return card.rank == Rank::WildDrawFour || card.rank == Rank::WildDrawFive;
 }
 
 [[nodiscard]] std::vector<CardId> idsOf(const std::vector<Card>& cards)
@@ -61,15 +62,15 @@ namespace {
     return *seat;
 }
 
-// SPEC §3: a Wild Draw Four flipped first goes back into the draw pile, which is reshuffled, and a
+// SPEC §3: a Wild Draw Four (or Five, ADR 0028) flipped first goes back into the draw pile, which is reshuffled, and a
 // new card is flipped. The loop ends as soon as the pile holds another kind of card.
 [[nodiscard]] std::expected<Card, DomainError> flipStartingCard(DrawPile& drawPile, RandomSource& random)
 {
     for (auto flipped = drawPile.drawTop(); flipped.has_value(); flipped = drawPile.drawTop()) {
-        if (!isWildDrawFour(*flipped)) {
+        if (!cannotStartRound(*flipped)) {
             return *flipped;
         }
-        if (std::ranges::all_of(drawPile.cards(), isWildDrawFour)) {
+        if (std::ranges::all_of(drawPile.cards(), cannotStartRound)) {
             break;
         }
         drawPile.shuffleIn({*flipped}, random);
@@ -140,12 +141,30 @@ bool Round::hasCalledUno(const PlayerId& player) const
 
 bool Round::mustDeclareUno(const PlayerId& player) const
 {
-    if (!declareUnoToWin_ || player != turnOrder_.current() || !std::holds_alternative<AwaitingPlay>(phase_)) {
+    if (!declareUnoToWin_ || player != turnOrder_.current()) {
         return false;
     }
     const auto& hand = hands_.at(turnOrder_.currentSeat());
-    return hand.size() == 1 && !unoCalled_.at(turnOrder_.currentSeat()) &&
-           isPlayable(hand.front(), discardPile_.top(), currentColor_);
+    if (hand.size() != 1 || unoCalled_.at(turnOrder_.currentSeat())) {
+        return false;
+    }
+    if (std::holds_alternative<AwaitingPlusFiveResponse>(phase_)) {
+        return hand.front().rank == Rank::WildDrawFive; // the only card that can answer
+    }
+    return std::holds_alternative<AwaitingPlay>(phase_) && isPlayable(hand.front(), discardPile_.top(), currentColor_);
+}
+
+bool Round::awaitsPenaltyAnswer() const noexcept
+{
+    return std::holds_alternative<AwaitingPenaltyResponse>(phase_) ||
+           std::holds_alternative<AwaitingPlusFiveResponse>(phase_);
+}
+
+bool Round::holdsWildDrawFive(const PlayerId& player) const
+{
+    const auto seat = turnOrder_.seatOf(player);
+    return seat.has_value() &&
+           std::ranges::any_of(hands_.at(*seat), [](const Card& card) { return card.rank == Rank::WildDrawFive; });
 }
 
 bool Round::canDraw(const PlayerId& player) const
@@ -188,9 +207,15 @@ std::optional<PlayerAction> Round::forcedAction() const
             hand, [&](const Card& card) { return isPlayable(card, discardPile_.top(), currentColor_); });
         return nothingPlayable ? std::optional<PlayerAction>{DrawCard{}} : std::nullopt;
     }
+    // A target with no Wild Draw Five to answer with has no choice left but to draw (ADR 0028).
+    if (std::holds_alternative<AwaitingPlusFiveResponse>(phase_)) {
+        return holdsWildDrawFive(turnOrder_.current())
+                   ? std::nullopt
+                   : std::optional<PlayerAction>{RespondPenalty{.response = PenaltyResponse::Accept}};
+    }
     const auto* drawn = std::get_if<AwaitingDrawnCardDecision>(&phase_);
     if (drawn != nullptr && !canKeepDrawnCard(turnOrder_.current())) {
-        return PlayCard{.cardId = drawn->drawnCard, .chosenColor = std::nullopt};
+        return PlayCard{.cardId = drawn->drawnCard, .chosenColor = std::nullopt, .target = std::nullopt};
     }
     return std::nullopt;
 }
@@ -229,11 +254,12 @@ std::expected<std::vector<DomainEvent>, DomainError> Round::applyPlayCard(const 
     if (actor != turnOrder_.current()) {
         return std::unexpected{DomainError::NotYourTurn};
     }
+    const auto* answering = std::get_if<AwaitingPlusFiveResponse>(&phase_);
     if (const auto* awaitingDrawn = std::get_if<AwaitingDrawnCardDecision>(&phase_)) {
         if (awaitingDrawn->drawnCard != action.cardId) {
             return std::unexpected{DomainError::OnlyDrawnCardPlayable};
         }
-    } else if (!std::holds_alternative<AwaitingPlay>(phase_)) {
+    } else if (!std::holds_alternative<AwaitingPlay>(phase_) && answering == nullptr) {
         return std::unexpected{DomainError::InvalidPhase};
     }
 
@@ -244,6 +270,10 @@ std::expected<std::vector<DomainEvent>, DomainError> Round::applyPlayCard(const 
         return std::unexpected{DomainError::CardNotInHand};
     }
     const Card card = *found;
+    // ADR 0028: the target of a Wild Draw Five can only answer with another one.
+    if (answering != nullptr && card.rank != Rank::WildDrawFive) {
+        return std::unexpected{DomainError::OnlyPlusFivePlayable};
+    }
 
     if (isWild(card.rank)) {
         if (!action.chosenColor.has_value()) {
@@ -251,6 +281,16 @@ std::expected<std::vector<DomainEvent>, DomainError> Round::applyPlayCard(const 
         }
     } else if (action.chosenColor.has_value()) {
         return std::unexpected{DomainError::ColorNotAllowed};
+    }
+    if (card.rank == Rank::WildDrawFive) {
+        if (!action.target.has_value()) {
+            return std::unexpected{DomainError::TargetRequired};
+        }
+        if (*action.target == actor || !turnOrder_.seatOf(*action.target).has_value()) {
+            return std::unexpected{DomainError::InvalidTarget};
+        }
+    } else if (action.target.has_value()) {
+        return std::unexpected{DomainError::TargetNotAllowed};
     }
 
     if (!isPlayable(card, discardPile_.top(), currentColor_)) {
@@ -262,6 +302,11 @@ std::expected<std::vector<DomainEvent>, DomainError> Round::applyPlayCard(const 
     }
 
     const auto previousColor = currentColor_;
+    // What the target of a Wild Draw Five owes once this card is down: five more than what was already pending.
+    const std::size_t plusFiveTotal =
+        card.rank == Rank::WildDrawFive
+            ? kWildDrawFivePenaltyCards + (answering != nullptr ? answering->total : std::size_t{0})
+            : std::size_t{0};
 
     hand.erase(found);
     discardPile_.place(card);
@@ -277,13 +322,21 @@ std::expected<std::vector<DomainEvent>, DomainError> Round::applyPlayCard(const 
     } else {
         currentColor_ = card.color;
     }
+    if (action.target.has_value()) {
+        events.emplace_back(PlusFiveTargeted{.player = actor, .target = *action.target, .total = plusFiveTotal});
+    }
 
     if (hand.empty()) {
-        endRound(actor, card.rank, random, events);
+        endRound(actor, card.rank, action.target, plusFiveTotal, random, events);
         return events;
     }
 
-    if (card.rank == Rank::WildDrawFour) {
+    if (action.target.has_value()) {
+        // The target must answer before anything else happens: the turn moves to them right away, wherever they sit.
+        turnOrder_.moveTo(*action.target);
+        phase_ = AwaitingPlusFiveResponse{.total = plusFiveTotal};
+        events.emplace_back(TurnChanged{.player = turnOrder_.current()});
+    } else if (card.rank == Rank::WildDrawFour) {
         // previousColor is only ever empty while awaiting the very first color choice (ADR 0007),
         // a phase that never accepts PlayCard: it is always set here. Same pattern as the
         // chosenColor re-check above, for the same clang-tidy reason.
@@ -403,6 +456,9 @@ Round::applyRespondPenalty(const PlayerId& actor, const RespondPenalty& action, 
     if (actor != turnOrder_.current()) {
         return std::unexpected{DomainError::NotYourTurn};
     }
+    if (const auto* plusFive = std::get_if<AwaitingPlusFiveResponse>(&phase_)) {
+        return answerPlusFive(actor, action, plusFive->total, random);
+    }
     const auto* awaiting = std::get_if<AwaitingPenaltyResponse>(&phase_);
     if (awaiting == nullptr) {
         return std::unexpected{DomainError::InvalidPhase};
@@ -463,6 +519,22 @@ Round::applyRespondPenalty(const PlayerId& actor, const RespondPenalty& action, 
     return events;
 }
 
+std::expected<std::vector<DomainEvent>, DomainError>
+Round::answerPlusFive(const PlayerId& target, const RespondPenalty& action, std::size_t total, RandomSource& random)
+{
+    // Nothing is left to contest: a Wild Draw Five is what it says it is (ADR 0028). Answering it is a PlayCard.
+    if (action.response == PenaltyResponse::Challenge) {
+        return std::unexpected{DomainError::CannotChallenge};
+    }
+    std::vector<DomainEvent> events;
+    drawPenalty(target, total, random, events);
+    turnOrder_.advance();
+    events.emplace_back(PlayerSkipped{.skippedPlayer = target});
+    phase_ = AwaitingPlay{};
+    events.emplace_back(TurnChanged{.player = turnOrder_.current()});
+    return events;
+}
+
 bool Round::canCallUno(const PlayerId& player) const
 {
     const auto seat = turnOrder_.seatOf(player);
@@ -472,7 +544,8 @@ bool Round::canCallUno(const PlayerId& player) const
     const bool downToOneCard = hands_.at(*seat).size() == 1;
     const bool aboutToPlayWithTwoCards =
         player == turnOrder_.current() && hands_.at(*seat).size() == 2 &&
-        (std::holds_alternative<AwaitingPlay>(phase_) || std::holds_alternative<AwaitingDrawnCardDecision>(phase_));
+        (std::holds_alternative<AwaitingPlay>(phase_) || std::holds_alternative<AwaitingDrawnCardDecision>(phase_) ||
+         std::holds_alternative<AwaitingPlusFiveResponse>(phase_));
     return downToOneCard || aboutToPlayWithTwoCards;
 }
 
@@ -550,7 +623,8 @@ void Round::drawPenalty(const PlayerId& player, std::size_t count, RandomSource&
     events.emplace_back(PenaltyCardsDrawn{.player = player, .cards = idsOf(drawn.cards)});
 }
 
-void Round::endRound(const PlayerId& winner, Rank rank, RandomSource& random, std::vector<DomainEvent>& events)
+void Round::endRound(const PlayerId& winner, Rank rank, const std::optional<PlayerId>& plusFiveTarget,
+                     std::size_t plusFiveTotal, RandomSource& random, std::vector<DomainEvent>& events)
 {
     // SPEC §3: the next player still draws for a last Draw Two or Wild Draw Four, and those cards
     // count in the score. A last Wild Draw Four cannot be challenged: nothing is left to contest.
@@ -558,6 +632,9 @@ void Round::endRound(const PlayerId& winner, Rank rank, RandomSource& random, st
         drawPenalty(turnOrder_.next(), kDrawTwoPenaltyCards, random, events);
     } else if (rank == Rank::WildDrawFour) {
         drawPenalty(turnOrder_.next(), kWildDrawFourPenaltyCards, random, events);
+    } else if (plusFiveTarget.has_value()) {
+        // The whole chain falls on the last target: nobody is left to answer (ADR 0028).
+        drawPenalty(*plusFiveTarget, plusFiveTotal, random, events);
     }
     std::uint32_t points = 0;
     for (const auto& hand : hands_) {
@@ -667,7 +744,9 @@ std::expected<std::vector<DomainEvent>, DomainError> Round::removePlayer(const P
     std::vector<DomainEvent> events;
     const auto* penalty = std::get_if<AwaitingPenaltyResponse>(&phase_);
     const bool penaltyVoid = penalty != nullptr && (wasCurrent || penalty->wildDrawFourPlayer == player);
-    if (penaltyVoid) {
+    // A chain of Wild Draw Five is void when its target leaves: play resumes with whoever follows them (ADR 0028)
+    const bool plusFiveVoid = wasCurrent && std::holds_alternative<AwaitingPlusFiveResponse>(phase_);
+    if (penaltyVoid || plusFiveVoid) {
         phase_ = AwaitingPlay{};
     }
     if (wasCurrent && !std::holds_alternative<RoundOver>(phase_)) {

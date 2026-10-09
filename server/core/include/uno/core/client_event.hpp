@@ -88,6 +88,15 @@ struct ChallengeResolvedEvent {
     bool operator==(const ChallengeResolvedEvent&) const = default;
 };
 
+// A Wild Draw Five was played or answered (ADR 0028): `targetId` must draw `total` cards or answer with another one.
+struct PlusFiveTargetedEvent {
+    PlayerId playerId; // who played the Wild Draw Five
+    PlayerId targetId;
+    std::size_t total{};
+
+    bool operator==(const PlusFiveTargetedEvent&) const = default;
+};
+
 struct UnoCalledEvent {
     PlayerId playerId;
 
@@ -153,11 +162,11 @@ struct HostChangedEvent {
     bool operator==(const HostChangedEvent&) const = default;
 };
 
-using ClientEvent =
-    std::variant<RoundStartedEvent, CardPlayedEvent, CardsDrawnEvent, TurnChangedEvent, PlayerSkippedEvent,
-                 DirectionChangedEvent, ColorChosenEvent, PenaltyStackedEvent, ChallengeResolvedEvent, UnoCalledEvent,
-                 UnoCaughtEvent, HandsSwappedEvent, HandsRotatedEvent, DeckReshuffledEvent, RoundEndedEvent,
-                 MatchEndedEvent, PlayerDisconnectedEvent, PlayerReconnectedEvent, HostChangedEvent>;
+using ClientEvent = std::variant<RoundStartedEvent, CardPlayedEvent, CardsDrawnEvent, TurnChangedEvent,
+                                 PlayerSkippedEvent, DirectionChangedEvent, ColorChosenEvent, PenaltyStackedEvent,
+                                 ChallengeResolvedEvent, PlusFiveTargetedEvent, UnoCalledEvent, UnoCaughtEvent,
+                                 HandsSwappedEvent, HandsRotatedEvent, DeckReshuffledEvent, RoundEndedEvent,
+                                 MatchEndedEvent, PlayerDisconnectedEvent, PlayerReconnectedEvent, HostChangedEvent>;
 
 // Projects the events a Round or Match just produced for `viewer` (SPEC §7.2; ADR 0015). `roundAfter`
 // is the round as it stands right after those events, which is how the card of a CardPlayed (the top

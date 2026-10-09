@@ -1,5 +1,6 @@
 #pragma once
 
+#include "uno/core/deck.hpp"
 #include "uno/core/domain_error.hpp"
 #include "uno/core/domain_event.hpp"
 #include "uno/core/draw_amount.hpp"
@@ -38,6 +39,7 @@ struct MatchSettings {
     DrawRule drawRule{DrawRule::Official};
     DrawAmount drawAmount{DrawAmount::One}; // ADR 0024
     bool declareUnoToWin{false};            // ADR 0019
+    DeckSettings deck{};                    // ADR 0028: how many of the special cards the deck holds
 
     [[nodiscard]] bool operator==(const MatchSettings&) const = default;
 };
@@ -58,7 +60,7 @@ struct MatchStart;
 // The winner of a round is the only one to score, so at most one player can cross the target.
 class Match {
 public:
-    // Picks the first dealer at random among `seats` (listed clockwise), shuffles a standard deck and
+    // Picks the first dealer at random among `seats` (listed clockwise), shuffles the deck of the settings and
     // starts the first round. Rejects fewer than 2 or more than 10 players, or duplicates.
     [[nodiscard]] static std::expected<MatchStart, DomainError> start(std::vector<PlayerId> seats,
                                                                       MatchSettings settings, RandomSource& random);

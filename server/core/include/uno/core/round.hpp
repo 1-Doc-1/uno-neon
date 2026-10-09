@@ -25,6 +25,7 @@ inline constexpr std::size_t kDrawTwoPenaltyCards = 2;
 inline constexpr std::size_t kWildDrawFourPenaltyCards = 4;
 inline constexpr std::size_t kFailedChallengePenaltyCards = 6; // a challenge lost against a legal +4
 inline constexpr std::size_t kUnoPenaltyCards = 2;
+inline constexpr std::size_t kWildDrawFivePenaltyCards = 5; // each Wild Draw Five of a chain adds this much
 
 using Hand = std::vector<Card>;
 
@@ -83,6 +84,11 @@ public:
     // their turn to play, they hold one card that could be played, and they have not announced UNO. They can only
     // CallUno. Never a reason to draw: the card is playable, so neither the guided draw nor forcedAction() moves on.
     [[nodiscard]] bool mustDeclareUno(const PlayerId& player) const;
+    // Whether the current player is the target of a penalty they may still answer: a Wild Draw Four (accept or
+    // challenge) or a Wild Draw Five (accept or answer with another, ADR 0028).
+    [[nodiscard]] bool awaitsPenaltyAnswer() const noexcept;
+    // Whether `player` holds a Wild Draw Five, the only card that answers one.
+    [[nodiscard]] bool holdsWildDrawFive(const PlayerId& player) const;
     // Whether DrawCard would be accepted from `player` right now: their turn, nothing else to answer, and the draw
     // rule lets them draw (ADR 0017).
     [[nodiscard]] bool canDraw(const PlayerId& player) const;
@@ -125,9 +131,14 @@ private:
     // Makes `player` draw `count` cards as a penalty (fewer if the piles run short, SPEC §3), appending
     // DeckReshuffled if needed, then PenaltyCardsDrawn, to `events`.
     void drawPenalty(const PlayerId& player, std::size_t count, RandomSource& random, std::vector<DomainEvent>& events);
-    // `winner` just played their last card, `rank`: resolves the penalty of a last Draw Two or Wild
-    // Draw Four, scores the hands and moves to RoundOver, appending the events to `events`.
-    void endRound(const PlayerId& winner, Rank rank, RandomSource& random, std::vector<DomainEvent>& events);
+    // `winner` just played their last card, `rank`: resolves the penalty of a last Draw Two, Wild Draw Four or Wild
+    // Draw Five (whose target, if any, draws `plusFiveTotal`), scores the hands and moves to RoundOver, appending the
+    // events to `events`.
+    void endRound(const PlayerId& winner, Rank rank, const std::optional<PlayerId>& plusFiveTarget,
+                  std::size_t plusFiveTotal, RandomSource& random, std::vector<DomainEvent>& events);
+    // The target of a Wild Draw Five accepts the pending total (a challenge is refused): ADR 0028.
+    [[nodiscard]] std::expected<std::vector<DomainEvent>, DomainError>
+    answerPlusFive(const PlayerId& target, const RespondPenalty& action, std::size_t total, RandomSource& random);
 
     // Adds drawn or penalty cards to a hand. A player who receives cards is no longer in the UNO
     // situation they announced, or could be caught in.

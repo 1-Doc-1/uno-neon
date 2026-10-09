@@ -15,6 +15,9 @@ struct PlayCard {
     CardId cardId;
     // Required when the played card is a Wild, and forbidden otherwise.
     std::optional<Color> chosenColor;
+    // Required when the played card is a Wild Draw Five (any other player of the round), forbidden otherwise (ADR
+    // 0028).
+    std::optional<PlayerId> target;
 
     bool operator==(const PlayCard&) const = default;
 };

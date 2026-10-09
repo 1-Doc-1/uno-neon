@@ -29,6 +29,12 @@ enum class DomainError : std::uint8_t {
     MustPlay, // ILLEGAL_MOVE / MUST_PLAY: the player has to play a card instead of drawing, or to play the drawn one
     // ADR 0019: declare UNO to win.
     MustDeclareUno, // ILLEGAL_MOVE / MUST_DECLARE_UNO: the last card cannot be played before UNO is announced
+    // ADR 0028: Wild Draw Five.
+    TargetRequired,       // ILLEGAL_MOVE / TARGET_REQUIRED: a Wild Draw Five needs a target
+    TargetNotAllowed,     // ILLEGAL_MOVE / TARGET_NOT_ALLOWED: only a Wild Draw Five has a target
+    InvalidTarget,        // ILLEGAL_MOVE / INVALID_TARGET: not a player of the round, or the actor themselves
+    OnlyPlusFivePlayable, // ILLEGAL_MOVE / ONLY_PLUS_FIVE_PLAYABLE: a Wild Draw Five can only be answered with another
+    CannotChallenge,      // ILLEGAL_MOVE / CANNOT_CHALLENGE: a Wild Draw Five cannot be contested
 };
 
 } // namespace uno::core

@@ -27,7 +27,7 @@ TEST_CASE("The production random source stays below the bound and reaches every 
     REQUIRE(random.uniform(1) == 0);
 }
 
-TEST_CASE("Two decks shuffled by the production source differ and each holds 108 distinct cards", "[net][random]")
+TEST_CASE("Two decks shuffled by the production source differ and each holds 110 distinct cards", "[net][random]")
 {
     REQUIRE(uno::net::initializeCryptoRuntime());
     uno::net::CryptoRandomSource random;
@@ -35,11 +35,11 @@ TEST_CASE("Two decks shuffled by the production source differ and each holds 108
     const auto first = uno::core::createStandardDeck(random);
     const auto second = uno::core::createStandardDeck(random);
 
-    REQUIRE(first.size() == 108);
+    REQUIRE(first.size() == 110);
     REQUIRE(first != second);
     std::set<std::uint32_t> ids;
     for (const auto& card : first) {
         ids.insert(card.id.value);
     }
-    REQUIRE(ids.size() == 108);
+    REQUIRE(ids.size() == 110);
 }
