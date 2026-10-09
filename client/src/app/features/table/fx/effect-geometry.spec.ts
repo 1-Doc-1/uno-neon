@@ -236,6 +236,36 @@ describe('placeEffect', () => {
     });
   });
 
+  describe('a Wild Draw Five', () => {
+    const aimedAt = (targetId: string, total: number) =>
+      effect({ kind: 'plusFive', playerId: 'loic', targetId, total });
+
+    it('is shown big and gold at the centre to its target, in the second person', () => {
+      expect(placeEffect(aimedAt('me', 5), anchors())).toMatchObject({
+        kind: 'bigText',
+        text: '+5',
+        caption: 'Tu pioches 5',
+        tone: 'gold',
+      });
+    });
+
+    it('shows the total of a chain of Wild Draw Five to its target', () => {
+      expect(placeEffect(aimedAt('me', 15), anchors())).toMatchObject({
+        kind: 'bigText',
+        text: '+15',
+        caption: 'Tu pioches 15',
+      });
+    });
+
+    it("is shown on the target's seat, with their name and the total, to everybody else", () => {
+      const placed = placeEffect(aimedAt('zoe', 10), anchors());
+
+      expect(placed).toMatchObject({ kind: 'label', variant: 'seat', tone: 'gold', where: 'seat' });
+      expect(placed?.kind === 'label' ? placed.text : '').toContain('10');
+      expect(placed?.kind === 'label' ? placed.text : '').toContain(anchors().nameOf('zoe'));
+    });
+  });
+
   it('plays the effects that concern the whole table at the centre, for everybody', () => {
     const wheel = placeEffect(effect({ kind: 'wheel', color: 'red' }), anchors());
     const wheelElsewhere = placeEffect(

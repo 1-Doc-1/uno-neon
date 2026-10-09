@@ -8,7 +8,6 @@
           [flight]="flight"
           [reduced]="item.reduced"
           [class.swap]="flight.look === 'back-to-face' && !item.reduced"
-          [class.lands]="flight.vanishOnLanding && !item.reduced"
           [style.width.px]="flight.to.w"
           [style.height.px]="flight.to.h"
           [style.--card-w.px]="flight.to.w"
@@ -29,6 +28,7 @@
     @case ('bigText') {
       <p
         class="big"
+        [style.text-shadow]="item.tone === 'gold' ? 'var(--gold-halo)' : null"
         [style.color]="tones[item.tone]"
         [class.reduced]="item.reduced"
         [style.left.px]="item.at.cx"

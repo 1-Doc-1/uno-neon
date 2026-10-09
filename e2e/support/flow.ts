@@ -20,3 +20,12 @@ export async function startMatch({ host, guest }: Lobby): Promise<void> {
     await expect(player.cards).toHaveCount(7);
   }
 }
+
+/** L'hôte règle le nombre d'une carte du paquet (« Nombre de jokers +5 », « ×5 ») et l'attend coché. */
+export async function chooseMultiplier(host: Player, group: string, option: string): Promise<void> {
+  const radio = host.page
+    .getByRole('radiogroup', { name: group })
+    .getByRole('radio', { name: option });
+  await radio.click();
+  await expect(radio).toHaveAttribute('aria-checked', 'true');
+}

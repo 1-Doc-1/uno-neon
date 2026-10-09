@@ -37,7 +37,7 @@ interface Base {
 export type LabelVariant = 'uno' | 'caught' | 'challenge' | 'seat';
 
 /** La couleur d'un effet : celle de la carte jouée, ou le blanc d'une carte noire. */
-export type Tone = Color | 'white';
+export type Tone = Color | 'white' | 'gold';
 
 export type Placed =
   | (Base & { readonly kind: 'flights'; readonly flights: readonly Flight[] })
@@ -242,6 +242,36 @@ export function placeEffect(effect: ActiveEffect, anchors: Anchors): Placed | nu
       const table = at('table');
       const caption = spec.victimId === null ? null : `Tu pioches ${spec.amount}`;
       return table && { ...base, kind: 'bigText', text: spec.text, caption, tone, at: table };
+    }
+    case 'plusFive': {
+      // En or. Chez la cible : en grand au centre (« +5 : tu pioches 5 », ou le total d'une chaîne) ; chez les autres, sur son siège
+      if (spec.targetId !== anchors.meId) {
+        const seat = seatOf(anchors, spec.targetId);
+        const text = `+5 sur ${anchors.nameOf(spec.targetId)} : ${spec.total} cartes`;
+        return (
+          seat && {
+            ...base,
+            kind: 'label',
+            variant: 'seat',
+            text,
+            tone: 'gold',
+            where: 'seat',
+            at: seat,
+          }
+        );
+      }
+      const table = at('table');
+      const text = spec.total > 5 ? `+${spec.total}` : '+5';
+      return (
+        table && {
+          ...base,
+          kind: 'bigText',
+          text,
+          caption: `Tu pioches ${spec.total}`,
+          tone: 'gold',
+          at: table,
+        }
+      );
     }
     case 'wheel': {
       const table = at('table');

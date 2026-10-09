@@ -1,5 +1,27 @@
 <svg viewBox="0 0 100 140" aria-hidden="true">
-  <rect class="body" x="2" y="2" width="96" height="136" rx="10" />
+  @if (gold()) {
+    <defs>
+      <linearGradient [attr.id]="goldId + '-metal'" x1="0" y1="0" x2="1" y2="1">
+        <stop class="g-light" offset="0" />
+        <stop class="g-mid" offset="0.32" />
+        <stop class="g-deep" offset="0.55" />
+        <stop class="g-mid" offset="0.78" />
+        <stop class="g-light" offset="1" />
+      </linearGradient>
+      <clipPath [attr.id]="goldId + '-clip'">
+        <rect x="2" y="2" width="96" height="136" rx="10" />
+      </clipPath>
+    </defs>
+  }
+  <rect
+    class="body"
+    x="2"
+    y="2"
+    width="96"
+    height="136"
+    rx="10"
+    [style.fill]="gold() ? 'url(#' + goldId + '-metal)' : null"
+  />
   <path class="shine" d="M12 2 H98 V10 L10 100 L2 92 V12 Q2 2 12 2Z" />
   @if (card().color) {
     <ellipse class="oval" cx="50" cy="70" rx="33" ry="47" transform="rotate(-20 50 70)" />
@@ -60,6 +82,32 @@
     }
     @case ('wild') {
       <ng-container *ngTemplateOutlet="ring" />
+    }
+    @case ('wildDrawFive') {
+      <rect class="frame" x="9" y="9" width="82" height="122" rx="6" />
+      @for (angle of goldRays; track angle) {
+        <polygon
+          class="ray"
+          points="50,72 45,22 55,22"
+          [attr.transform]="'rotate(' + angle + ' 50 72)'"
+        />
+      }
+      <g transform="translate(50 36) scale(0.4) translate(-50 -70)">
+        <ng-container *ngTemplateOutlet="ring" />
+      </g>
+      <text class="gold-value" x="50" y="104" text-anchor="middle" font-size="46">+5</text>
+      <g [attr.clip-path]="'url(#' + goldId + '-clip)'">
+        <g class="glint-move">
+          <rect
+            class="glint"
+            x="-40"
+            y="-30"
+            width="22"
+            height="210"
+            transform="rotate(24 50 70)"
+          />
+        </g>
+      </g>
     }
     @case ('wildDrawFour') {
       <g transform="translate(50 56) scale(0.7) translate(-50 -70)">

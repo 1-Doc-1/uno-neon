@@ -22,9 +22,11 @@ import { MyBadge } from './my-badge';
 import { MAX_FAN_BACKS } from './opponent-fan';
 import { OpponentSeat } from './opponent-seat';
 import { Piles } from './piles';
+import { PlusFivePrompt } from './plus-five-prompt';
 import { RoundOverDialog } from './round-over-dialog';
 import { opponentsInViewOrder, seatLayout } from './seat-layout';
 import { TableCenter } from './table-center';
+import { TargetPicker } from './target-picker';
 import { Size, tableGeometry } from './table-geometry';
 import { CatchButton, UnoActions } from './uno-actions';
 
@@ -38,6 +40,8 @@ const JOURNAL_LINES = 2;
 export interface CardPlay {
   readonly cardId: number;
   readonly color?: Color;
+  /** Le joueur visé par un Joker +5. */
+  readonly targetId?: string;
 }
 
 /**
@@ -56,6 +60,8 @@ export interface CardPlay {
     EffectsLayer,
     ChallengeDialog,
     ColorPicker,
+    TargetPicker,
+    PlusFivePrompt,
     RoundOverDialog,
     MatchOverDialog,
   ],
@@ -96,6 +102,19 @@ export class TableView {
 
   /** Joker choisi dans la main, en attente de sa couleur. */
   protected readonly pendingWild = signal<number | null>(null);
+  /** Joker +5 choisi dans la main, en attente de sa cible. */
+  protected readonly pendingTarget = signal<number | null>(null);
+  /** La cible déjà choisie du Joker +5 qui attend sa couleur. */
+  private readonly chosenTarget = signal<string | null>(null);
+  /** Le Joker +5 qui me vise attend ma réponse : accepter ou répliquer (une pénalité sans contestation possible). */
+  protected readonly plusFiveAnswer = computed(() => {
+    const options = this.view().me.penaltyResponse;
+    return options && !options.canChallenge ? options : null;
+  });
+  protected readonly challengeOptions = computed(() => {
+    const options = this.view().me.penaltyResponse;
+    return options?.canChallenge ? options : null;
+  });
   private readonly now = signal(Date.now());
   /** Écran étroit (portrait) : arc compact en haut, ou bande défilante au-delà de quatre adversaires. */
   protected readonly narrow = signal(
@@ -285,18 +304,40 @@ export class TableView {
 
   protected play(cardId: number): void {
     const card = this.view().me.hand.find((c) => c.id === cardId);
-    if (card?.color === null) {
+    if (card?.rank === 'wildDrawFive') {
+      this.pendingTarget.set(cardId);
+    } else if (card?.color === null) {
       this.pendingWild.set(cardId);
     } else {
       this.cardPlayed.emit({ cardId });
     }
   }
 
+  /** La cible du Joker +5 est choisie (dans la liste ou sur un siège) : reste sa couleur. */
+  protected chooseTarget(playerId: string): void {
+    const cardId = this.pendingTarget();
+    if (cardId === null) {
+      return;
+    }
+    this.chosenTarget.set(playerId);
+    this.pendingTarget.set(null);
+    this.pendingWild.set(cardId);
+  }
+
+  protected cancelPlay(): void {
+    this.pendingTarget.set(null);
+    this.pendingWild.set(null);
+    this.chosenTarget.set(null);
+  }
+
   protected playWild(color: Color): void {
     const cardId = this.pendingWild();
-    this.pendingWild.set(null);
+    const targetId = this.chosenTarget() ?? undefined;
+    this.cancelPlay();
     if (cardId !== null) {
-      this.cardPlayed.emit({ cardId, color });
+      this.cardPlayed.emit(
+        targetId === undefined ? { cardId, color } : { cardId, color, targetId },
+      );
     }
   }
 

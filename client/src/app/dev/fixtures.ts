@@ -4,6 +4,7 @@ export type ScenarioName =
   | 'uno-window'
   | 'two-windows'
   | 'challenge'
+  | 'plus-five-response'
   | 'must-declare'
   | 'full-table'
   | 'players-2'
@@ -19,6 +20,7 @@ export const SCENARIOS: readonly ScenarioName[] = [
   'uno-window',
   'two-windows',
   'challenge',
+  'plus-five-response',
   'must-declare',
   'full-table',
   'players-2',
@@ -44,6 +46,7 @@ const HAND: readonly Card[] = [
   card(8, 'green', 'reverse'),
   card(9, 'red', '0'),
   card(10, null, 'wildDrawFour'),
+  card(30, null, 'wildDrawFive'),
 ];
 
 const seat = (
@@ -87,7 +90,7 @@ export function scenarioView(name: ScenarioName, now: number): PlayerView {
     me: {
       playerId: 'me',
       hand: [...HAND],
-      playableCardIds: [1, 2, 9, 6, 10],
+      playableCardIds: [1, 2, 9, 6, 10, 30],
       canDraw: true,
       canKeepDrawnCard: false,
       canCallUno: false,
@@ -119,6 +122,9 @@ export function scenarioView(name: ScenarioName, now: number): PlayerView {
       maxPlayers: 6,
       drawRule: 'guided',
       declareUnoToWin: false,
+      drawTwoMultiplier: 1,
+      wildDrawFourMultiplier: 1,
+      wildDrawFiveMultiplier: 1,
     },
     roundResult: null,
     matchWinnerId: null,
@@ -145,6 +151,21 @@ export function scenarioView(name: ScenarioName, now: number): PlayerView {
           canDraw: false,
           playableCardIds: [],
           penaltyResponse: { amount: 4, canChallenge: true, canStack: false },
+        },
+      };
+    case 'plus-five-response':
+      // Un Joker +5 de Loïc me vise : je peux accepter ou répondre avec le mien
+      return {
+        ...base,
+        phase: 'awaitingPenaltyResponse',
+        currentColor: 'green',
+        discardTop: card(52, null, 'wildDrawFive'),
+        pendingDraw: 10,
+        me: {
+          ...base.me,
+          canDraw: false,
+          playableCardIds: [30],
+          penaltyResponse: { amount: 10, canChallenge: false, canStack: true },
         },
       };
     case 'must-declare':

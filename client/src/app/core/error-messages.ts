@@ -42,6 +42,10 @@ const ILLEGAL_REASONS: Record<IllegalMoveReason, string> = {
   CANNOT_CHALLENGE: 'Tu ne peux pas contester ici.',
   MUST_PLAY: 'Tu dois jouer une carte : la pioche n’est pas permise ici.',
   MUST_DECLARE_UNO: 'Annonce UNO avant de poser ta dernière carte.',
+  TARGET_REQUIRED: 'Choisis le joueur que vise ce Joker +5.',
+  TARGET_NOT_ALLOWED: 'Seul le Joker +5 vise un joueur.',
+  INVALID_TARGET: 'Ce joueur ne peut pas être visé.',
+  ONLY_PLUS_FIVE_PLAYABLE: 'Tu ne peux répliquer qu’avec un Joker +5.',
 };
 
 export function describeError(code: ErrorCode, reason?: IllegalMoveReason): string {

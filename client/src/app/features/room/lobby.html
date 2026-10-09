@@ -141,9 +141,38 @@
             (selected)="setLastCardRule($event)"
           />
         </div>
+        <div class="setting">
+          <span class="setting-label">Cartes +2 dans le paquet</span>
+          <app-segmented
+            label="Nombre de cartes +2"
+            [options]="multipliers"
+            [value]="room().settings.drawTwoMultiplier"
+            (selected)="store.updateSettings({ drawTwoMultiplier: $event })"
+          />
+        </div>
+        <div class="setting">
+          <span class="setting-label">Jokers +4 dans le paquet</span>
+          <app-segmented
+            label="Nombre de jokers +4"
+            [options]="multipliers"
+            [value]="room().settings.wildDrawFourMultiplier"
+            (selected)="store.updateSettings({ wildDrawFourMultiplier: $event })"
+          />
+        </div>
+        <div class="setting">
+          <span class="setting-label">Jokers +5 dans le paquet</span>
+          <app-segmented
+            label="Nombre de jokers +5"
+            [options]="multipliers"
+            [value]="room().settings.wildDrawFiveMultiplier"
+            (selected)="store.updateSettings({ wildDrawFiveMultiplier: $event })"
+          />
+          <p class="hint">Paquet de {{ deckCards() }} cartes.</p>
+        </div>
       } @else {
         <p class="summary">{{ summary().first }}</p>
         <p class="summary">{{ summary().second }}</p>
+        <p class="summary">{{ summary().third }}</p>
         <p class="hint">Seul l’hôte modifie les réglages.</p>
       }
     </section>

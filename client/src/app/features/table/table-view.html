@@ -31,6 +31,8 @@
             [yaw]="placements()[index].yaw"
             [maxBacks]="maxBacks()"
             [timerFraction]="seat.playerId === view().currentPlayerId ? turnFraction() : null"
+            [targetable]="pendingTarget() !== null"
+            (targeted)="chooseTarget($event)"
           />
         </div>
       }
@@ -109,7 +111,7 @@
   />
 </div>
 
-@if (actionsOpen() && view().me.penaltyResponse; as penalty) {
+@if (actionsOpen() && challengeOptions(); as penalty) {
   <app-challenge-dialog
     [card]="view().discardTop"
     [color]="view().currentColor"
@@ -118,8 +120,18 @@
     (challenged)="penaltyAnswered.emit('challenge')"
   />
 }
+@if (actionsOpen() && plusFiveAnswer(); as answer) {
+  <app-plus-five-prompt [options]="answer" (accepted)="penaltyAnswered.emit('accept')" />
+}
+@if (pendingTarget() !== null) {
+  <app-target-picker
+    [targets]="opponents()"
+    (picked)="chooseTarget($event)"
+    (cancelled)="cancelPlay()"
+  />
+}
 @if (pendingWild() !== null) {
-  <app-color-picker (picked)="playWild($event)" (cancelled)="pendingWild.set(null)" />
+  <app-color-picker (picked)="playWild($event)" (cancelled)="cancelPlay()" />
 }
 @if (actionsOpen() && view().me.canChooseColor) {
   <app-color-picker [cancellable]="false" (picked)="colorChosen.emit($event)" />

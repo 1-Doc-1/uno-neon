@@ -156,8 +156,13 @@ export class GameStore {
 
   // ---- Partie ----
 
-  playCard(cardId: number, chosenColor?: Color): Promise<boolean> {
-    return this.request('game.playCard', chosenColor ? { cardId, chosenColor } : { cardId });
+  /** Poser une carte : un Joker porte sa couleur, un Joker +5 aussi la cible qu'il vise. */
+  playCard(cardId: number, chosenColor?: Color, targetId?: string): Promise<boolean> {
+    return this.request('game.playCard', {
+      cardId,
+      ...(chosenColor ? { chosenColor } : {}),
+      ...(targetId ? { targetId } : {}),
+    });
   }
 
   chooseColor(color: Color): Promise<boolean> {

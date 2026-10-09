@@ -99,7 +99,10 @@ export class Bot {
 export type Move =
   | { readonly type: 'game.respondPenalty'; readonly payload: { response: 'accept' | 'challenge' } }
   | { readonly type: 'game.chooseColor'; readonly payload: { color: Color } }
-  | { readonly type: 'game.playCard'; readonly payload: { cardId: number; chosenColor?: Color } };
+  | {
+      readonly type: 'game.playCard';
+      readonly payload: { cardId: number; chosenColor?: Color; targetId?: string };
+    };
 
 /** La couleur que la politique choisit toujours : la première tuile du sélecteur. */
 export const POLICY_COLOR: Color = 'red';
@@ -122,6 +125,14 @@ export function choosePlay(view: PlayerView): Move | null {
   const card = me.hand.find((candidate) => me.playableCardIds.includes(candidate.id));
   if (!card) {
     return null;
+  }
+  if (card.rank === 'wildDrawFive') {
+    // Un Joker +5 vise le premier autre joueur de la table (le seul adversaire, à deux)
+    const target = view.players.find((seat) => seat.playerId !== me.playerId);
+    return {
+      type: 'game.playCard',
+      payload: { cardId: card.id, chosenColor: POLICY_COLOR, targetId: target?.playerId },
+    };
   }
   return {
     type: 'game.playCard',

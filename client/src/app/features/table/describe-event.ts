@@ -26,6 +26,8 @@ export function describeEvent(
       return `${nameOf(event.playerId)} choisit ${COLOR_NAME[event.color]} ${SHAPE_CHAR[event.color]}.`;
     case 'penaltyStacked':
       return `${nameOf(event.playerId)} empile : ${event.pendingDraw} cartes à piocher.`;
+    case 'plusFiveTargeted':
+      return `${nameOf(event.playerId)} vise ${nameOf(event.targetId)} : ${event.total} cartes à piocher.`;
     case 'challengeResolved':
       return event.wasBluff
         ? `${nameOf(event.challengerId)} conteste : c’était un bluff, ${nameOf(event.penalizedPlayerId)} pioche ${event.penaltyAmount}.`

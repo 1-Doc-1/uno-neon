@@ -36,6 +36,9 @@ function roomOf(players: RoomMember[]): RoomView {
       maxPlayers: 6,
       drawRule: 'guided',
       declareUnoToWin: false,
+      drawTwoMultiplier: 1,
+      wildDrawFourMultiplier: 1,
+      wildDrawFiveMultiplier: 1,
     },
     players,
   };
@@ -113,6 +116,47 @@ describe('Lobby', () => {
     start?.click();
 
     expect(transport.sent.at(-1)).toMatchObject({ type: 'match.start' });
+  });
+
+  it('lets the host choose how many Draw Two, Wild Draw Four and Wild Draw Five the deck holds', () => {
+    const { host } = render('lea', [
+      member('lea', 'Léa', { isHost: true }),
+      member('loic', 'Loïc'),
+    ]);
+    const radio = (group: string, label: string) =>
+      Array.from(host.querySelectorAll<HTMLButtonElement>(`[aria-label="${group}"] button`)).find(
+        (b) => b.textContent?.trim() === label,
+      );
+
+    radio('Nombre de jokers +5', '×5')?.click();
+    expect(transport.sent.at(-1)).toMatchObject({
+      type: 'room.updateSettings',
+      payload: { settings: { wildDrawFiveMultiplier: 5 } },
+    });
+    radio('Nombre de cartes +2', '×2')?.click();
+    expect(transport.sent.at(-1)).toMatchObject({
+      payload: { settings: { drawTwoMultiplier: 2 } },
+    });
+    radio('Nombre de jokers +4', '×3')?.click();
+    expect(transport.sent.at(-1)).toMatchObject({
+      payload: { settings: { wildDrawFourMultiplier: 3 } },
+    });
+    expect(
+      Array.from(host.querySelectorAll('[aria-label="Nombre de jokers +5"] button')).map((b) =>
+        b.textContent?.trim(),
+      ),
+    ).toEqual(['×1', '×2', '×3', '×5']);
+    expect(host.textContent).toContain('Paquet de 110 cartes');
+  });
+
+  it('shows a guest the composition of the deck without letting them change it', () => {
+    const { host } = render('loic', [
+      member('lea', 'Léa', { isHost: true }),
+      member('loic', 'Loïc'),
+    ]);
+
+    expect(host.textContent).toContain('Paquet de 110 cartes');
+    expect(host.querySelector('[aria-label="Nombre de jokers +5"]')).toBeNull();
   });
 
   it('gives a guest a toggle "Prêt", a read-only summary, and no kick button', () => {

@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { GAME_TRANSPORT } from '../../core/game-transport';
-import type { PlayerView, SeatView, UnoWindow } from '../../protocol/generated/protocol';
+import type { Card, PlayerView, SeatView, UnoWindow } from '../../protocol/generated/protocol';
 import { GameStore } from '../../state/game-store';
 import { FakeTransport } from '../../testing/fake-transport';
 import { Table } from './table';
@@ -61,6 +61,9 @@ function viewWith(
       maxPlayers: 6,
       drawRule: 'guided',
       declareUnoToWin: false,
+      drawTwoMultiplier: 1,
+      wildDrawFourMultiplier: 1,
+      wildDrawFiveMultiplier: 1,
     },
     roundResult: null,
     matchWinnerId: null,
@@ -254,6 +257,129 @@ describe('Table', () => {
       );
 
       expect(host.querySelector('app-uno-actions')).not.toBeNull();
+    });
+  });
+
+  describe('the Wild Draw Five', () => {
+    const plusFive: Card = { id: 50, color: null, rank: 'wildDrawFive' };
+    const mineToPlay: Partial<PlayerView['me']> = {
+      hand: [plusFive, { id: 1, color: 'red', rank: '5' }],
+      playableCardIds: [50],
+    };
+    const myTurn: Partial<PlayerView> = { currentPlayerId: 'me' };
+
+    beforeEach(() => {
+      HTMLDialogElement.prototype.showModal = function showModal(): void {
+        this.setAttribute('open', '');
+      };
+      HTMLDialogElement.prototype.show = function show(): void {
+        this.setAttribute('open', '');
+      };
+    });
+
+    const click = (host: HTMLElement, selector: string, index = 0): void =>
+      host.querySelectorAll<HTMLElement>(selector)[index]?.click();
+
+    it('asks for a target, then a colour, then plays the card with both', () => {
+      const { host, fixture } = render(viewWith(myTurn, mineToPlay));
+
+      click(host, '.slot'); // the Wild Draw Five
+      fixture.detectChanges();
+      expect(host.querySelector('app-target-picker')).not.toBeNull();
+      expect(host.querySelector('app-color-picker')).toBeNull();
+
+      click(host, 'app-target-picker .target', 1); // Léa
+      fixture.detectChanges();
+      expect(host.querySelector('app-target-picker')).toBeNull();
+      expect(host.querySelector('app-color-picker')).not.toBeNull();
+
+      click(host, 'app-color-picker .tile', 2);
+      fixture.detectChanges();
+
+      expect(transport.sent.at(-1)).toMatchObject({
+        type: 'game.playCard',
+        payload: { cardId: 50, chosenColor: 'green', targetId: 'lea' },
+      });
+      expect(host.querySelector('app-color-picker')).toBeNull();
+    });
+
+    it('also takes the target from a click on a seat of the table', () => {
+      const { host, fixture } = render(viewWith(myTurn, mineToPlay));
+      expect(host.querySelector('app-opponent-seat .seat.targetable')).toBeNull();
+
+      click(host, '.slot');
+      fixture.detectChanges();
+      const seats = host.querySelectorAll<HTMLElement>('app-opponent-seat .seat.targetable');
+      expect(seats).toHaveLength(2);
+      expect(seats[0].getAttribute('role')).toBe('button');
+      expect(seats[0].getAttribute('aria-label')).toBe('Viser Max');
+      seats[0].click();
+      fixture.detectChanges();
+
+      expect(host.querySelector('app-color-picker')).not.toBeNull();
+      click(host, 'app-color-picker .tile', 0);
+
+      expect(transport.sent.at(-1)).toMatchObject({
+        type: 'game.playCard',
+        payload: { cardId: 50, chosenColor: 'red', targetId: 'max' },
+      });
+      fixture.detectChanges();
+      expect(host.querySelector('app-opponent-seat .seat.targetable')).toBeNull();
+    });
+
+    it('plays nothing when the target is cancelled', () => {
+      const { host, fixture } = render(viewWith(myTurn, mineToPlay));
+      const sent = transport.sent.length;
+
+      click(host, '.slot');
+      fixture.detectChanges();
+      click(host, 'app-target-picker button[appButton]'); // Annuler
+      fixture.detectChanges();
+
+      expect(host.querySelector('app-target-picker')).toBeNull();
+      expect(host.querySelector('app-color-picker')).toBeNull();
+      expect(transport.sent).toHaveLength(sent);
+    });
+
+    it('does not offer to challenge a Wild Draw Five aimed at me: accept, or answer with one', () => {
+      const penalty = { amount: 5, canChallenge: false, canStack: true };
+      const { host } = render(viewWith(myTurn, { ...mineToPlay, penaltyResponse: penalty }));
+
+      expect(host.querySelector('app-challenge-dialog')).toBeNull();
+      expect(host.querySelector('app-plus-five-prompt')?.textContent).toContain('piocher 5');
+
+      click(host, 'app-plus-five-prompt button');
+
+      expect(transport.sent.at(-1)).toMatchObject({
+        type: 'game.respondPenalty',
+        payload: { response: 'accept' },
+      });
+    });
+
+    it('lets me answer a Wild Draw Five with the one in my hand', () => {
+      const penalty = { amount: 5, canChallenge: false, canStack: true };
+      const { host, fixture } = render(
+        viewWith(myTurn, { ...mineToPlay, penaltyResponse: penalty }),
+      );
+
+      click(host, '.slot');
+      fixture.detectChanges();
+      click(host, 'app-target-picker .target', 0);
+      fixture.detectChanges();
+      click(host, 'app-color-picker .tile', 3);
+
+      expect(transport.sent.at(-1)).toMatchObject({
+        type: 'game.playCard',
+        payload: { cardId: 50, chosenColor: 'blue', targetId: 'max' },
+      });
+    });
+
+    it('keeps the +4 challenge dialog for a Wild Draw Four', () => {
+      const penalty = { amount: 4, canChallenge: true, canStack: false };
+      const { host } = render(viewWith(myTurn, { penaltyResponse: penalty }));
+
+      expect(host.querySelector('app-challenge-dialog')).not.toBeNull();
+      expect(host.querySelector('app-plus-five-prompt')).toBeNull();
     });
   });
 

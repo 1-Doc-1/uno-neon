@@ -38,5 +38,9 @@ export class UiPreview {
     color,
     cards: [...NUMBER_RANKS, ...ACTION_RANKS].map((rank) => card(color, rank)),
   }));
-  protected readonly wilds = [card(null, 'wild'), card(null, 'wildDrawFour')];
+  protected readonly wilds = [
+    card(null, 'wild'),
+    card(null, 'wildDrawFour'),
+    card(null, 'wildDrawFive'),
+  ];
 }

@@ -86,6 +86,17 @@ describe('the time the server leaves to present each special card', () => {
     expect(ms).toBeLessThanOrEqual(SERVER.playStep + SERVER.effectStep);
   });
 
+  it('covers a Wild Draw Five: the card, the colour wheel and the gold "+5"', () => {
+    const ms = presentation([
+      played('wildDrawFive', null, 'blue'),
+      { kind: 'colorChosen', playerId: 'a', color: 'blue' },
+      { kind: 'plusFiveTargeted', playerId: 'a', targetId: 'c', total: 5 },
+      { kind: 'turnChanged', playerId: 'c' },
+    ]);
+
+    expect(ms).toBeLessThanOrEqual(SERVER.playStep + 2 * SERVER.effectStep);
+  });
+
   it('covers a Wild Draw Four: the card, the "+4" and the colour wheel', () => {
     const ms = presentation([
       played('wildDrawFour', null, 'blue'),

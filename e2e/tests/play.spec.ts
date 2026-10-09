@@ -10,19 +10,19 @@ test.describe('poser une carte', () => {
     const { host, guest } = lobby;
     await startMatch(lobby);
 
-    await expect(guest.card('5 vert, jouable')).toBeEnabled();
-    await expect(guest.card('6 rouge')).toBeDisabled(); // pas de la couleur active, pas le même chiffre
-    await guest.card('5 vert, jouable').click();
+    await expect(guest.card('1 jaune, jouable')).toBeEnabled();
+    await expect(guest.card('8 vert')).toBeDisabled(); // pas de la couleur active, pas le même chiffre
+    await guest.card('1 jaune, jouable').click();
 
     for (const player of [host, guest]) {
       await expect(
-        player.page.locator('[data-anchor="discard"]').getByRole('img', { name: '5 vert' }),
+        player.page.locator('[data-anchor="discard"]').getByRole('img', { name: '1 jaune' }),
       ).toBeVisible();
       await expect(player.cardCountOf('Bob')).toHaveText('6');
     }
     await expect(host.myTurn).toBeVisible();
     await expect(guest.myTurn).toBeHidden();
-    await expect(guest.card('5 vert')).toHaveCount(0);
+    await expect(guest.card('1 jaune')).toHaveCount(0);
   });
 });
 
@@ -57,9 +57,9 @@ test.describe('pioche guidée', () => {
     const { host, guest } = lobby;
     await startMatch(lobby);
 
-    // Bob joue son Joker et choisit rouge (la politique des tests) : Alice n'a ni rouge ni Joker
+    // Bob joue son 1 jaune (la politique des tests) : Alice n'a ni jaune ni 1
     await playUntil([guest], async () => host.myTurn.isVisible());
-    await expect(host.page.locator('app-piles .color')).toContainText('Rouge');
+    await expect(host.page.locator('app-piles .color')).toContainText('Jaune');
 
     // Alice ne clique sur rien : le serveur pioche pour elle après un court instant
     await expect(host.journal).toContainText('Alice pioche 1 carte.');

@@ -146,3 +146,80 @@ svg {
 .chosen-shape {
   fill: var(--text-on-neon);
 }
+
+// ---- Le Joker +5 : l'or, rare et précieux ----
+:host(.tint-gold) {
+  .body {
+    // Le dégradé métallique vient du SVG (propriété `fill` en ligne) ; ce repli couvre un rendu sans dégradé
+    fill: var(--gold-mid);
+  }
+
+  .edge {
+    stroke-width: 3.5;
+    filter: drop-shadow(0 0 3px currentColor) drop-shadow(0 0 8px currentColor);
+  }
+
+  .corner {
+    fill: var(--gold-ink);
+    stroke: var(--gold-light);
+  }
+
+  .mark {
+    fill: var(--gold-ink);
+    stroke: var(--gold-light);
+  }
+}
+
+.g-light {
+  stop-color: var(--gold-light);
+}
+.g-mid {
+  stop-color: var(--gold-mid);
+}
+.g-deep {
+  stop-color: var(--gold-deep);
+}
+
+.frame {
+  fill: none;
+  stroke: var(--gold-deep);
+  stroke-width: 1.5;
+  opacity: 0.7;
+}
+
+.ray {
+  fill: var(--gold-light);
+  opacity: 0.32;
+}
+
+.gold-value {
+  font-family: var(--font-display);
+  font-weight: 700;
+  fill: var(--gold-ink);
+  stroke: var(--gold-light);
+  stroke-width: 0.1em;
+  paint-order: stroke;
+  stroke-linejoin: round;
+}
+
+// Le reflet qui passe lentement sur l'or ; coupé par prefers-reduced-motion (règle globale de base.scss)
+.glint {
+  fill: var(--gold-glint);
+}
+
+.glint-move {
+  // Au repos (et en mouvement réduit) le reflet reste hors de la carte
+  transform: translateX(-80px);
+  animation: glint 7s ease-in-out infinite;
+}
+
+@keyframes glint {
+  0%,
+  55% {
+    transform: translateX(-80px);
+  }
+  85%,
+  100% {
+    transform: translateX(190px);
+  }
+}

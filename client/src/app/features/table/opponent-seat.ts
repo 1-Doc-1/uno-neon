@@ -1,4 +1,4 @@
-import { Component, input } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 import type { SeatView } from '../../protocol/generated/protocol';
 import { Avatar } from '../../ui/avatar';
 import { MAX_FAN_BACKS, OpponentFan } from './opponent-fan';
@@ -17,6 +17,13 @@ import { MAX_FAN_BACKS, OpponentFan } from './opponent-fan';
       [class.compact]="compact()"
       [class.facing]="facing()"
       [class.offline]="!seat().isConnected"
+      [class.targetable]="targetable()"
+      [attr.role]="targetable() ? 'button' : null"
+      [attr.tabindex]="targetable() ? 0 : null"
+      [attr.aria-label]="targetable() ? 'Viser ' + seat().nickname : null"
+      (click)="onTarget()"
+      (keydown.enter)="onTarget()"
+      (keydown.space)="onTarget(); $event.preventDefault()"
     >
       <app-opponent-fan
         class="fan"
@@ -66,4 +73,13 @@ export class OpponentSeat {
   readonly maxBacks = input(MAX_FAN_BACKS);
   /** Part du temps de tour qu'il reste (0 à 1) si c'est son tour et qu'il y a un minuteur, sinon `null`. */
   readonly timerFraction = input<number | null>(null);
+  /** Un Joker +5 cherche sa cible : ce siège se vise d'un clic (ou d'Entrée au clavier). */
+  readonly targetable = input(false);
+  readonly targeted = output<string>();
+
+  protected onTarget(): void {
+    if (this.targetable()) {
+      this.targeted.emit(this.seat().playerId);
+    }
+  }
 }

@@ -24,6 +24,13 @@ export type EffectSpec =
       readonly victimId: string | null;
       readonly color: Color | null;
     }
+  /** Un Joker +5 vise `targetId` pour `total` cartes (la somme de toute la chaîne de réponses) : en or, chez la cible en grand. */
+  | {
+      readonly kind: 'plusFive';
+      readonly playerId: string;
+      readonly targetId: string;
+      readonly total: number;
+    }
   | { readonly kind: 'skip'; readonly playerId: string }
   | { readonly kind: 'reverse'; readonly direction: Direction }
   | { readonly kind: 'wheel'; readonly color: Color }
@@ -43,6 +50,7 @@ export type EffectKind = EffectSpec['kind'];
 /** Un seul effet plein écran à la fois : ces effets occupent le centre de la table, leur durée visible est leur durée. */
 const FULLSCREEN: ReadonlySet<EffectKind> = new Set([
   'bigText',
+  'plusFive',
   'reverse',
   'wheel',
   'challenge',
@@ -65,6 +73,7 @@ export const REDUCED_MS = MOTION_MS.reduced;
 const FIXED_TIMING: Record<Exclude<EffectKind, 'draw'>, Timing> = {
   play: { stepMs: MOTION_MS.playFlight + MOTION_MS.playRest, visibleMs: MOTION_MS.playFlight },
   bigText: { stepMs: MOTION_MS.bigText, visibleMs: MOTION_MS.bigText },
+  plusFive: { stepMs: MOTION_MS.bigText, visibleMs: MOTION_MS.bigText },
   skip: { stepMs: MOTION_MS.specialGap, visibleMs: MOTION_MS.skip },
   reverse: { stepMs: MOTION_MS.reverse, visibleMs: MOTION_MS.reverse },
   wheel: { stepMs: MOTION_MS.wheel, visibleMs: MOTION_MS.wheel },
@@ -153,6 +162,15 @@ export function planEffects(
       }
       case 'colorChosen':
         specs.push({ kind: 'wheel', color: event.color });
+        break;
+      case 'plusFiveTargeted':
+        specs.push({
+          kind: 'plusFive',
+          playerId: event.playerId,
+          targetId: event.targetId,
+          total: event.total,
+        });
+        penaltyPending = true;
         break;
       case 'cardsDrawn':
         if (event.count > 0) {
