@@ -97,6 +97,7 @@ DrawTwoPlayed drawTwoPlayed(std::size_t players = 3)
         .cardId = card->id,
         .chosenColor = std::nullopt,
         .swapTargetId = std::nullopt,
+        .targetId = std::nullopt,
     });
     const auto next = table->room().match->round().currentPlayer();
     return {.table = std::move(table), .attacker = attacker, .next = next, .playedAt = playedAt};
@@ -231,6 +232,7 @@ std::chrono::milliseconds presentationOf(core::Rank rank)
         .cardId = card->id,
         .chosenColor = core::isWild(rank) ? std::optional<core::Color>(core::Color::Red) : std::nullopt,
         .swapTargetId = std::nullopt,
+        .targetId = std::nullopt,
     });
     return std::chrono::milliseconds(table->room().actionsOpenAt - playedAt);
 }
@@ -277,10 +279,14 @@ TEST_CASE("Every turn action leaves the table the same minimum time, whatever it
     }
     SECTION("a voluntary draw of one card")
     {
-        auto table = tableAboutToPlay(core::Rank::Five, 3);
-        const auto drawnAt = table->harness.clock.nowMillis();
-        table->currentPlayer().send(request::DrawCard{});
-        REQUIRE(table->room().actionsOpenAt >= drawnAt + cooldown.count());
+        // The official rule lets anybody draw, whatever they hold
+        Table table(3, 7, core::MatchLength::SingleRound, core::DrawRule::Official, false, core::DrawAmount::One,
+                    Timeouts{});
+        table.start();
+        table.harness.clock.advanceMillis(60'000);
+        const auto drawnAt = table.harness.clock.nowMillis();
+        table.currentPlayer().send(request::DrawCard{});
+        REQUIRE(table.room().actionsOpenAt >= drawnAt + cooldown.count());
     }
 }
 

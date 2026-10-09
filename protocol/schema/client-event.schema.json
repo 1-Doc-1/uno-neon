@@ -32,6 +32,9 @@
       "$ref": "#/$defs/ChallengeResolvedEvent"
     },
     {
+      "$ref": "#/$defs/PlusFiveTargetedEvent"
+    },
+    {
       "$ref": "#/$defs/UnoCalledEvent"
     },
     {
@@ -259,6 +262,28 @@
         "penalizedPlayerId",
         "penaltyAmount"
       ],
+      "additionalProperties": false
+    },
+    "PlusFiveTargetedEvent": {
+      "title": "PlusFiveTargetedEvent",
+      "description": "A Wild Draw Five was played or answered (ADR 0028): `targetId` must draw `total` cards, or answer with another Wild Draw Five. Public: everybody sees who is targeted and how much is at stake.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "plusFiveTargeted"
+        },
+        "playerId": {
+          "$ref": "common.schema.json#/$defs/PlayerId"
+        },
+        "targetId": {
+          "$ref": "common.schema.json#/$defs/PlayerId"
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 5
+        }
+      },
+      "required": ["kind", "playerId", "targetId", "total"],
       "additionalProperties": false
     },
     "UnoCalledEvent": {

@@ -47,8 +47,12 @@ enum class IllegalMoveReason : std::uint8_t {
     JumpInTooLate,
     CannotStack,
     CannotChallenge,
-    MustPlay,       // guided draw: play a card instead of drawing, or play the drawn one (ADR 0017)
-    MustDeclareUno, // house rule: announce UNO before the last card (ADR 0019)
+    MustPlay,             // guided draw: play a card instead of drawing, or play the drawn one (ADR 0017)
+    MustDeclareUno,       // house rule: announce UNO before the last card (ADR 0019)
+    TargetRequired,       // a Wild Draw Five needs a target (ADR 0028)
+    TargetNotAllowed,     // only a Wild Draw Five has a target
+    InvalidTarget,        // the target is not another player of the round
+    OnlyPlusFivePlayable, // the target of a Wild Draw Five can only answer with another
 };
 
 } // namespace uno::app

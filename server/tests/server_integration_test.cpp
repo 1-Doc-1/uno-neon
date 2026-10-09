@@ -146,6 +146,13 @@ std::optional<request::Body> decide(const response::GameView& view)
             .cardId = card.id,
             .chosenColor = card.color ? std::nullopt : std::optional<core::Color>(core::Color::Red),
             .swapTargetId = std::nullopt,
+            // A Wild Draw Five names a player: the first one who is not me
+            .targetId = card.rank == core::Rank::WildDrawFive
+                            ? std::optional<core::PlayerId>(
+                                  std::ranges::find_if(view.game.players,
+                                                       [&me](const auto& seat) { return seat.playerId != me.playerId; })
+                                      ->playerId)
+                            : std::nullopt,
         };
     }
     if (me.canDraw) {

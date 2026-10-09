@@ -112,6 +112,22 @@ inline Parsed<TurnTimerSeconds> parseTurnTimer(const Json& value)
     }
 }
 
+// The multiplier of a special card of the deck (ADR 0028): the integers 1, 2, 3 and 5, nothing else.
+inline Parsed<core::CardMultiplier> parseCardMultiplier(const Json& value)
+{
+    const auto times = detail::parseInteger(value, 1, 5);
+    if (!times) {
+        return std::unexpected(times.error());
+    }
+    const auto found = std::ranges::find_if(core::kCardMultipliers, [&](core::CardMultiplier candidate) {
+        return static_cast<std::int64_t>(candidate) == *times;
+    });
+    if (found == core::kCardMultipliers.end()) {
+        return std::unexpected("is not an allowed value");
+    }
+    return *found;
+}
+
 inline Parsed<std::uint8_t> parseMaxPlayers(const Json& value)
 {
     const auto count = detail::parseInteger(value, kMinRoomPlayers, kMaxRoomPlayers);

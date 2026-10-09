@@ -2,24 +2,38 @@
   "v": 1,
   "type": "game.update",
   "payload": {
-    "serverTime": 1790000400000,
+    "serverTime": 1790000200000,
     "events": [
       {
-        "kind": "playerDisconnected",
-        "playerId": "p_Lea4f9Kx2"
+        "kind": "cardPlayed",
+        "playerId": "p_Max8Qw3Zt",
+        "card": {
+          "id": 905,
+          "color": null,
+          "rank": "wildDrawFive"
+        },
+        "chosenColor": "green",
+        "isJumpIn": false
       },
       {
-        "kind": "hostChanged",
-        "playerId": "p_Max8Qw3Zt"
+        "kind": "colorChosen",
+        "playerId": "p_Max8Qw3Zt",
+        "color": "green"
       },
       {
-        "kind": "playerReconnected",
+        "kind": "plusFiveTargeted",
+        "playerId": "p_Max8Qw3Zt",
+        "targetId": "p_Lea4f9Kx2",
+        "total": 5
+      },
+      {
+        "kind": "turnChanged",
         "playerId": "p_Lea4f9Kx2"
       }
     ],
     "view": {
-      "stateVersion": 32,
-      "phase": "awaitingPlay",
+      "stateVersion": 20,
+      "phase": "awaitingPenaltyResponse",
       "me": {
         "playerId": "p_Lea4f9Kx2",
         "hand": [
@@ -29,43 +43,27 @@
             "rank": "7"
           },
           {
-            "id": 77,
-            "color": null,
-            "rank": "wild"
-          },
-          {
-            "id": 902,
-            "color": "blue",
-            "rank": "7"
-          },
-          {
-            "id": 4410,
-            "color": "green",
-            "rank": "skip"
-          },
-          {
             "id": 12,
             "color": "yellow",
             "rank": "0"
           },
           {
-            "id": 3301,
-            "color": "red",
-            "rank": "drawTwo"
-          },
-          {
-            "id": 650,
+            "id": 906,
             "color": null,
-            "rank": "wildDrawFour"
+            "rank": "wildDrawFive"
           }
         ],
-        "playableCardIds": [1843, 77, 3301, 650],
-        "canDraw": true,
+        "playableCardIds": [906],
+        "canDraw": false,
         "canKeepDrawnCard": false,
         "mustDeclareUno": false,
         "canCallUno": false,
         "canChooseColor": false,
-        "penaltyResponse": null
+        "penaltyResponse": {
+          "amount": 5,
+          "canChallenge": false,
+          "canStack": true
+        }
       },
       "players": [
         {
@@ -76,7 +74,7 @@
           "score": 0,
           "isConnected": true,
           "isBot": false,
-          "isHost": false,
+          "isHost": true,
           "hasCalledUno": false,
           "isReadyForNextRound": false
         },
@@ -88,7 +86,7 @@
           "score": 0,
           "isConnected": true,
           "isBot": false,
-          "isHost": true,
+          "isHost": false,
           "hasCalledUno": false,
           "isReadyForNextRound": false
         },
@@ -107,27 +105,27 @@
       ],
       "currentPlayerId": "p_Lea4f9Kx2",
       "direction": "clockwise",
-      "currentColor": "red",
+      "currentColor": "green",
       "discardTop": {
-        "id": 5120,
+        "id": 3310,
         "color": "red",
-        "rank": "4"
+        "rank": "drawTwo"
       },
       "drawPileCount": 86,
-      "pendingDraw": 0,
-      "turnDeadline": null,
+      "pendingDraw": 5,
+      "turnDeadline": 1790000030000,
       "nextRoundDeadline": null,
-      "actionsOpenAt": 1790000400000,
+      "actionsOpenAt": 1790000200000,
       "drawStepMs": 1000,
       "unoWindows": [],
       "round": 1,
       "settings": {
-        "stacking": "off",
+        "stacking": "mixed",
         "jumpIn": false,
         "sevenZero": false,
         "drawAmount": "untilPlayable",
         "wildDrawFourMode": "officialChallenge",
-        "turnTimerSeconds": 0,
+        "turnTimerSeconds": 30,
         "matchLength": "to500",
         "maxPlayers": 6,
         "drawRule": "guided",

@@ -1,0 +1,10 @@
+{
+  "v": 1,
+  "id": "c-33",
+  "type": "room.updateSettings",
+  "payload": {
+    "settings": {
+      "wildDrawFiveMultiplier": 4
+    }
+  }
+}

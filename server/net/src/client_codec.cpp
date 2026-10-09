@@ -49,6 +49,11 @@ Parsed<RoomSettingsPatch> parseSettingsPatch(const Json& value)
     patch.maxPlayers = reader.optional<std::uint8_t>("maxPlayers", parseMaxPlayers);
     patch.drawRule = reader.optional<core::DrawRule>("drawRule", detail::parseEnum<core::DrawRule>);
     patch.declareUnoToWin = reader.optional<bool>("declareUnoToWin", detail::parseBool);
+    patch.drawTwoMultiplier = reader.optional<core::CardMultiplier>("drawTwoMultiplier", detail::parseCardMultiplier);
+    patch.wildDrawFourMultiplier =
+        reader.optional<core::CardMultiplier>("wildDrawFourMultiplier", detail::parseCardMultiplier);
+    patch.wildDrawFiveMultiplier =
+        reader.optional<core::CardMultiplier>("wildDrawFiveMultiplier", detail::parseCardMultiplier);
     if (auto finished = reader.finish(); !finished) {
         return std::unexpected(finished.error());
     }
@@ -159,6 +164,7 @@ Parsed<request::Body> decodePlayCard(const Json& payload)
     play.cardId = reader.required<core::CardId>("cardId", parseCardId);
     play.chosenColor = reader.optional<core::Color>("chosenColor", detail::parseEnum<core::Color>);
     play.swapTargetId = reader.optional<core::PlayerId>("swapTargetId", parsePlayerId);
+    play.targetId = reader.optional<core::PlayerId>("targetId", parsePlayerId);
     if (auto finished = reader.finish(); !finished) {
         return std::unexpected(finished.error());
     }
@@ -297,6 +303,15 @@ Json encodeSettingsPatch(const RoomSettingsPatch& patch)
     if (patch.maxPlayers) {
         json.emplace("maxPlayers", *patch.maxPlayers);
     }
+    if (patch.drawTwoMultiplier) {
+        json.emplace("drawTwoMultiplier", static_cast<int>(*patch.drawTwoMultiplier));
+    }
+    if (patch.wildDrawFourMultiplier) {
+        json.emplace("wildDrawFourMultiplier", static_cast<int>(*patch.wildDrawFourMultiplier));
+    }
+    if (patch.wildDrawFiveMultiplier) {
+        json.emplace("wildDrawFiveMultiplier", static_cast<int>(*patch.wildDrawFiveMultiplier));
+    }
     return json;
 }
 
@@ -376,6 +391,9 @@ Description describe(const request::PlayCard& body)
     }
     if (body.swapTargetId) {
         payload.emplace("swapTargetId", body.swapTargetId->value);
+    }
+    if (body.targetId) {
+        payload.emplace("targetId", body.targetId->value);
     }
     return {.type = "game.playCard", .payload = std::move(payload)};
 }

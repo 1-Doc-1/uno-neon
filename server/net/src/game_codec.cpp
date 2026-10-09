@@ -93,6 +93,13 @@ struct EventEncoder {
     {
         return Json{{"kind", "penaltyStacked"}, {"playerId", event.playerId.value}, {"pendingDraw", event.pendingDraw}};
     }
+    Json operator()(const PlusFiveTargetedEvent& event) const
+    {
+        return Json{{"kind", "plusFiveTargeted"},
+                    {"playerId", event.playerId.value},
+                    {"targetId", event.targetId.value},
+                    {"total", event.total}};
+    }
     Json operator()(const ChallengeResolvedEvent& event) const
     {
         Json json{
@@ -451,6 +458,20 @@ Parsed<ClientEvent> parsePenaltyStacked(const Json& value)
     return event;
 }
 
+Parsed<ClientEvent> parsePlusFiveTargeted(const Json& value)
+{
+    ObjectReader reader(value, "event");
+    static_cast<void>(reader.requiredRaw("kind"));
+    PlusFiveTargetedEvent event;
+    event.playerId = reader.required<PlayerId>("playerId", parsePlayerId);
+    event.targetId = reader.required<PlayerId>("targetId", parsePlayerId);
+    event.total = reader.required<std::size_t>("total", parseCount);
+    if (auto finished = reader.finish(); !finished) {
+        return std::unexpected(finished.error());
+    }
+    return event;
+}
+
 Parsed<ClientEvent> parseChallengeResolved(const Json& value)
 {
     ObjectReader reader(value, "event");
@@ -558,6 +579,7 @@ constexpr std::array kEventKinds{
     EventKind{.name = "directionChanged", .parse = parseDirectionChanged},
     EventKind{.name = "colorChosen", .parse = parseColorChosen},
     EventKind{.name = "penaltyStacked", .parse = parsePenaltyStacked},
+    EventKind{.name = "plusFiveTargeted", .parse = parsePlusFiveTargeted},
     EventKind{.name = "challengeResolved", .parse = parseChallengeResolved},
     EventKind{.name = "unoCalled", .parse = parsePlayerEvent<UnoCalledEvent>},
     EventKind{.name = "unoCaught", .parse = parseUnoCaught},
@@ -741,6 +763,9 @@ Json encodeSettings(const RoomSettings& settings)
         {"maxPlayers", settings.maxPlayers},
         {"drawRule", toWire(settings.drawRule)},
         {"declareUnoToWin", settings.declareUnoToWin},
+        {"drawTwoMultiplier", static_cast<int>(settings.drawTwoMultiplier)},
+        {"wildDrawFourMultiplier", static_cast<int>(settings.wildDrawFourMultiplier)},
+        {"wildDrawFiveMultiplier", static_cast<int>(settings.wildDrawFiveMultiplier)},
     };
 }
 
@@ -758,6 +783,11 @@ Parsed<RoomSettings> parseSettings(const Json& value)
     settings.maxPlayers = reader.required<std::uint8_t>("maxPlayers", parseMaxPlayers);
     settings.drawRule = reader.required<core::DrawRule>("drawRule", parseEnum<core::DrawRule>);
     settings.declareUnoToWin = reader.required<bool>("declareUnoToWin", parseBool);
+    settings.drawTwoMultiplier = reader.required<core::CardMultiplier>("drawTwoMultiplier", parseCardMultiplier);
+    settings.wildDrawFourMultiplier =
+        reader.required<core::CardMultiplier>("wildDrawFourMultiplier", parseCardMultiplier);
+    settings.wildDrawFiveMultiplier =
+        reader.required<core::CardMultiplier>("wildDrawFiveMultiplier", parseCardMultiplier);
     if (auto finished = reader.finish(); !finished) {
         return std::unexpected(finished.error());
     }

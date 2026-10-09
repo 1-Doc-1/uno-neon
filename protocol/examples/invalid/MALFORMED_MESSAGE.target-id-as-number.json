@@ -1,0 +1,10 @@
+{
+  "v": 1,
+  "id": "c-34",
+  "type": "game.playCard",
+  "payload": {
+    "cardId": 905,
+    "chosenColor": "green",
+    "targetId": 7
+  }
+}
