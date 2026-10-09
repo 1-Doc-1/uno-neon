@@ -22,7 +22,7 @@ trop tôt. Le serveur ne sait pas ce que le client affiche, il doit donc dicter 
   pour cause de retard (le serveur attend sa fin). Chaque carte part du paquet à `i × drawStepMs`. À sa partie, le
   compteur du joueur (siège adverse, pastille, éventail) et la carte de ma main n'apparaissent qu'à l'arrivée
   (`unarrived`), et le compteur du paquet ne baisse qu'au départ (`unlaunched`).
-- **Vitesse « Rapide »** : seul le vol de chaque carte raccourcit ; l'écart entre deux cartes reste celui du serveur.
+- ~~**Vitesse « Rapide »**~~ : réglage supprimé au lot Q (ADR 0027) ; la vitesse est unique.
 - **Mouvement réduit** : même rythme, le vol devient un fondu (les compteurs, eux, ne bougent pas : ils comptent).
 
 ## Alternatives écartées

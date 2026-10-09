@@ -9,12 +9,7 @@ import {
   REDUCED_MS,
   timingOf,
 } from './effect-plan';
-import {
-  CATCH_UP_MIN_FACTOR,
-  CATCH_UP_THRESHOLD,
-  MOTION_MS,
-  MotionPreferences,
-} from '../../../ui/motion';
+import { CATCH_UP_MIN_FACTOR, CATCH_UP_THRESHOLD, MOTION_MS } from '../../../ui/motion';
 
 /** Au-delà de ce retard cumulé, la file est abandonnée : mieux vaut l'état final que des effets qui n'ont plus de sens. */
 export const MAX_BACKLOG_MS = MOTION_MS.maxBacklog;
@@ -59,7 +54,6 @@ interface QueuedStep {
 @Injectable()
 export class AnimationDirector {
   private readonly document = inject(DOCUMENT);
-  private readonly motion = inject(MotionPreferences);
   private readonly timers = new Set<ReturnType<typeof setTimeout>>();
   private queue: QueuedStep[] = [];
   private running = false;
@@ -203,16 +197,14 @@ export class AnimationDirector {
       this.running = false;
       return;
     }
-    // Réglage du joueur (Normale/Rapide), vitesse de la démo, et rattrapage si trop d'étapes attendent
+    // Vitesse de la démo de développement, et rattrapage si trop d'étapes attendent
     const factor = this.timeFactor();
     const reduced = this.reduced();
     const { spec } = step;
     const drawing = spec.kind === 'draw';
-    // Une pioche garde le rythme du serveur : seul le vol des cartes suit la vitesse choisie, jamais l'écart entre elles
+    // Une pioche garde le rythme du serveur : seul le vol des cartes suit la vitesse de la démo, jamais l'écart entre elles
     const staggerMs = step.drawStepMs / this.speed();
-    const flightMs = reduced
-      ? REDUCED_MS
-      : MOTION_MS.drawFlight * (this.motion.scale() / this.speed());
+    const flightMs = reduced ? REDUCED_MS : MOTION_MS.drawFlight / this.speed();
     const visibleMs = drawing ? (spec.count - 1) * staggerMs + flightMs : step.visibleMs * factor;
     const effect: ActiveEffect = {
       id: this.nextId++,
@@ -243,14 +235,14 @@ export class AnimationDirector {
     }
   }
 
-  /** Multiplicateur des durées : le réglage du joueur, la vitesse de la démo, et un rattrapage quand la file s'allonge. */
+  /** Multiplicateur des durées : la vitesse de la démo, et un rattrapage quand la file s'allonge. */
   private timeFactor(): number {
     const waiting = this.queue.length;
     const catchUp =
       waiting > CATCH_UP_THRESHOLD
         ? Math.max(CATCH_UP_MIN_FACTOR, CATCH_UP_THRESHOLD / waiting)
         : 1;
-    return (this.motion.scale() / this.speed()) * catchUp;
+    return catchUp / this.speed();
   }
 
   private finish(effect: ActiveEffect): void {

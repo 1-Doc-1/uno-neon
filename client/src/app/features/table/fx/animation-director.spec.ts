@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, vi } from 'vitest';
 import type { Card, ClientEvent } from '../../../protocol/generated/protocol';
-import { MOTION_MS, MotionPreferences } from '../../../ui/motion';
+import { MOTION_MS } from '../../../ui/motion';
 import { AnimationDirector, MAX_BACKLOG_MS } from './animation-director';
 import { planEffects, INITIAL_PLAN_STATE, REDUCED_MS } from './effect-plan';
 
@@ -136,7 +136,6 @@ describe('AnimationDirector', () => {
       Array.from({ length: 12 }, (_, index) =>
         drew(playerId, 1, cards ? [{ ...red7, id: 300 + index }] : undefined),
       );
-    const mine = Array.from({ length: 12 }, (_, index) => ({ ...red7, id: 300 + index }));
 
     it('is one single effect lasting one drawStepMs per card', () => {
       director.enqueue(twelve('me', []), live);
@@ -202,15 +201,6 @@ describe('AnimationDirector', () => {
       expect(kinds()).toEqual(['draw']);
       expect(director.active()[0].staggerMs).toBe(DRAW_STEP);
       expect(director.active()[0].durationMs).toBe(11 * DRAW_STEP + MOTION_MS.drawFlight);
-    });
-
-    it('keeps the server pace at the fast setting, where only the flight of a card gets shorter', () => {
-      TestBed.inject(MotionPreferences).set('fast');
-
-      director.enqueue(twelve('me', mine), live);
-
-      expect(director.active()[0].staggerMs).toBe(DRAW_STEP);
-      expect(director.active()[0].flightMs).toBeLessThan(MOTION_MS.drawFlight);
     });
 
     it('follows a different pace announced by the server', () => {
@@ -346,14 +336,6 @@ describe('AnimationDirector', () => {
     vi.advanceTimersByTime((MOTION_MS.playFlight + MOTION_MS.playRest) / 2);
 
     expect(kinds()).toContain('turn');
-  });
-
-  it("follows the player's animation speed setting", () => {
-    TestBed.inject(MotionPreferences).set('fast');
-
-    director.enqueue([played('loic', red7)], live);
-
-    expect(director.active()[0].durationMs).toBeLessThan(MOTION_MS.playFlight);
   });
 
   it('speeds up to catch up when more than three steps are waiting', () => {

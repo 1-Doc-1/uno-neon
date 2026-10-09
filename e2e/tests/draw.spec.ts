@@ -69,7 +69,12 @@ test.describe('pioche rythmée par le serveur', () => {
 
 test.describe('main pendant une pioche, à vitesse réelle', () => {
   // Animations activées et rythme de production (1 s par carte) : c'est là que les cartes volantes se voient vraiment
-  test.use({ seed: SEEDS.multiDraw, drawAmount: 'untilPlayable', paceMs: 1000, motion: 'no-preference' });
+  test.use({
+    seed: SEEDS.multiDraw,
+    drawAmount: 'untilPlayable',
+    paceMs: 1000,
+    motion: 'no-preference',
+  });
   test.setTimeout(60_000);
 
   test('les cartes piochées rejoignent la main, sans couche volante ni dos qui reste', async ({
@@ -89,16 +94,22 @@ test.describe('main pendant une pioche, à vitesse réelle', () => {
       w.__overlaps = [];
       const watch = (): void => {
         const hand = document.querySelectorAll('ul[aria-label="Ta main"] li').length;
-        const landed = [...document.querySelectorAll('app-effects-layer .flight')].filter((flight) => {
-          const style = getComputedStyle(flight);
-          const resting = flight.getAnimations().every((animation) => animation.playState === 'finished');
-          return resting && style.visibility !== 'hidden' && Number(style.opacity) > 0.9;
-        });
+        const landed = [...document.querySelectorAll('app-effects-layer .flight')].filter(
+          (flight) => {
+            const style = getComputedStyle(flight);
+            const resting = flight
+              .getAnimations()
+              .every((animation) => animation.playState === 'finished');
+            return resting && style.visibility !== 'hidden' && Number(style.opacity) > 0.9;
+          },
+        );
         const target = document.querySelector('ul[aria-label="Ta main"]')?.getBoundingClientRect();
         for (const flight of landed) {
           const box = flight.getBoundingClientRect();
           if (target && box.top > target.top - 20 && box.bottom < target.bottom + 20) {
-            w.__overlaps.push(`main ${hand} cartes, vol à ${Math.round(box.left)},${Math.round(box.top)}`);
+            w.__overlaps.push(
+              `main ${hand} cartes, vol à ${Math.round(box.left)},${Math.round(box.top)}`,
+            );
           }
         }
         requestAnimationFrame(watch);
@@ -113,9 +124,9 @@ test.describe('main pendant une pioche, à vitesse réelle', () => {
     await expect(host.page.locator('app-effects-layer app-card-back')).toHaveCount(0);
 
     // Toutes les cartes de la main sont sur le même arc (on mesure les emplacements : une carte jouable est surélevée à dessein)
-    const tops = await host.handList.locator('li').evaluateAll((slots) =>
-      slots.map((slot) => slot.getBoundingClientRect().top),
-    );
+    const tops = await host.handList
+      .locator('li')
+      .evaluateAll((slots) => slots.map((slot) => slot.getBoundingClientRect().top));
     expect(Math.max(...tops) - Math.min(...tops)).toBeLessThanOrEqual(8);
 
     const overlaps = await host.page.evaluate(

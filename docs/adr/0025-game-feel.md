@@ -21,7 +21,7 @@ pas le défaut, car une pose précédait toujours la pioche et laissait le temps
   `--dur-base` en dépendent). La TS reste la source : les effets reçoivent leur durée par propriété inline `--dur`.
 - **Rythme** : pose ~700 ms avec un rebond, ~380 ms de pause ; effets spéciaux 1 à 1,4 s ; cartes d'une pioche à
   ~150 ms d'écart. Le serveur laisse 1,2 s (au lieu de 700 ms, toujours injectable) avant un coup forcé.
-- **Vitesse** : réglage « Normale / Rapide » (×0,6) propre au navigateur (`localStorage`, jamais envoyé au serveur).
+- **Vitesse** : ~~réglage « Normale / Rapide »~~ supprimé au lot Q (le rythme est dicté par le serveur, ADR 0027 : un réglage local ne pouvait que désynchroniser le joueur de la table).
   Au-delà de 3 étapes en attente, la file accélère (au plus ×0,4) pour rattraper son retard ; elle est abandonnée
   au-delà de 9 s de retard à vitesse normale.
 - **Sens du jeu** : la lueur du liseré a pour tête une flèche, pilotée par la même animation CSS (`@property
