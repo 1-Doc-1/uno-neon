@@ -24,3 +24,6 @@ chaque changement d'état.
 ## Conséquences
 - Un joueur qui n'est pas le joueur courant ne peut plus prolonger un tour en contrant ou en annonçant.
 - Un joueur qui pioche puis décide reçoit toujours une horloge neuve pour sa décision (comportement inchangé).
+
+## Complément (ADR 0027)
+La clé de tour compte aussi les changements de tour (`TurnChanged`) et l'horloge d'un nouveau tour démarre à `actionsOpenAt`, quand l'effet en cours a été montré.

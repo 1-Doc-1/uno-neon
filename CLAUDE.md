@@ -68,6 +68,15 @@ Pas de code mort, pas de TODO sans ticket/étape dans PROGRESS.md.
 - Jamais de `innerHTML` / `bypassSecurityTrust*` avec une donnée venant d'un joueur.
 - Styles : SCSS + design tokens en CSS custom properties (`client/src/styles/tokens.scss`). Aucune couleur/ombre codée en dur dans un composant.
 
+## Dépôt public (non négociable)
+
+Le dépôt est **public** : tout ce qui est poussé est visible immédiatement et pour toujours (l'historique git et les
+caches y survivent même après suppression). Aucun secret, aucun jeton, aucune donnée personnelle (adresse, chemin
+absolu, nom réel) dans un commit, un test, un exemple, un log ou une capture. Si la protection contre les secrets
+(GitHub push protection, gitleaks) bloque un push, **arrête-toi et préviens-moi** : ne la contourne jamais (pas de
+`--no-verify`, pas de lien « autoriser le secret », pas de réécriture d'historique pour la dissimuler).
+Les faux positifs connus sont dans `.gitleaksignore`, chacun avec la raison.
+
 ## Invariants de sécurité (non négociables)
 
 1. Le serveur est la seule autorité : le client envoie des **intentions**, le serveur valide TOUT (tour, possession de la carte, légalité, phase).
@@ -80,6 +89,7 @@ Pas de code mort, pas de TODO sans ticket/étape dans PROGRESS.md.
 
 - `main` protégée : on n'y pousse jamais directement, jamais de `--force`.
 - Une branche et une pull request par lot de 2 ou 3 étapes : `feat/core-deck`, `feat/server-rooms`, `fix/…`, `chore/…`.
+- **Un seul push par lot**, à la fin, une fois build, tests et lint verts en local (et `scripts/linux-check.sh` pour `server/`). Le CI (déclenché par la PR seulement, jamais par un push de branche) confirme ; il n'est pas un banc d'essai.
 - Conventional Commits (`feat(core): add wild draw four legality check`).
 - Une pull request fusionnée seulement si le CI est vert ; `/code-review` (plugin) une fois en fin de phase ; pas de relecture humaine — je travaille seul.
 - Ne jamais committer : `build/`, `node_modules/`, `.env`, `.claude/settings.local.json`.

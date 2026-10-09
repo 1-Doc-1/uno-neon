@@ -56,8 +56,8 @@
           [currentColor]="view().currentColor"
           [direction]="view().direction"
           [pendingDraw]="view().pendingDraw"
-          [canDraw]="view().me.canDraw"
-          [canKeepDrawnCard]="view().me.canKeepDrawnCard"
+          [canDraw]="view().me.canDraw && actionsOpen()"
+          [canKeepDrawnCard]="view().me.canKeepDrawnCard && actionsOpen()"
           (deckClicked)="deckClicked.emit()"
         />
       </app-table-center>
@@ -95,10 +95,10 @@
     </p>
 
     <app-hand
-      [cards]="view().me.hand"
+      [cards]="shownHand()"
       [playableIds]="view().me.playableCardIds"
-      [myTurn]="myTurn()"
-      [hiddenIds]="director.hiddenCardIds()"
+      [myTurn]="myTurn() && actionsOpen()"
+      [incoming]="incomingCardIds()"
       (played)="play($event)"
     />
   </section>
@@ -111,7 +111,7 @@
   />
 </div>
 
-@if (view().me.penaltyResponse; as penalty) {
+@if (actionsOpen() && view().me.penaltyResponse; as penalty) {
   <app-challenge-dialog
     [card]="view().discardTop"
     [color]="view().currentColor"
@@ -123,7 +123,7 @@
 @if (pendingWild() !== null) {
   <app-color-picker (picked)="playWild($event)" (cancelled)="pendingWild.set(null)" />
 }
-@if (view().me.canChooseColor) {
+@if (actionsOpen() && view().me.canChooseColor) {
   <app-color-picker [cancellable]="false" (picked)="colorChosen.emit($event)" />
 }
 @if (view().phase === 'roundOver' && !director.dialogsHeld() && view().roundResult; as result) {

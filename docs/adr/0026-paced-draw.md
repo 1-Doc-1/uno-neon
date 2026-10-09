@@ -1,6 +1,6 @@
 # 0026 — Pioche rythmée : le serveur décide du rythme, les clients le suivent
 
-- **Statut** : accepté
+- **Statut** : accepté (le calcul du délai est généralisé par l'ADR 0027)
 - **Date** : 2026-10-04
 
 ## Contexte
@@ -10,7 +10,7 @@ de tour tourne et où le coup forcé du serveur (pose automatique de la dernièr
 trop tôt. Le serveur ne sait pas ce que le client affiche, il doit donc dicter le rythme, et le client le suivre.
 
 ## Décision
-- **Un délai injectable** `Timeouts::drawStep` (1000 ms par défaut ; `UNO_TEST_DRAW_STEP_MS` dans un binaire de test).
+- **Un délai injectable** `Timeouts::drawStep` (1000 ms par défaut ; `UNO_TEST_PACE_MS` dans un binaire de test depuis l'ADR 0027).
 - **Après une action qui fait piocher N cartes** (pioche, pénalité +2/+4, contestation, contre-UNO), le serveur compte
   les cartes des événements du lot (`drawPauseOf`) : le prochain coup forcé attend `N × drawStep + forcedAction`, et
   l'horloge d'un tour qui commence là démarre après ce temps (`turnDeadline` prolongé d'autant). Ce temps est une
@@ -35,4 +35,4 @@ trop tôt. Le serveur ne sait pas ce que le client affiche, il doit donc dicter 
 - Une pioche de 12 cartes immobilise le jeu 12 s pour tout le monde, voulu : c'est le temps de la regarder.
 - Les tests de timing de l'application qui attendaient exactement 1,2 s après une pioche ajoutent désormais le temps
   des cartes ; le test `[pace]` fixe les bornes exactes.
-- Les E2E raccourcissent le rythme (`UNO_TEST_DRAW_STEP_MS`, 40 ms par défaut dans la pile de test).
+- Les E2E raccourcissent le rythme (`UNO_TEST_PACE_MS`, 40 ms par défaut dans la pile de test).

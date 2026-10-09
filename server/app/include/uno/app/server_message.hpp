@@ -120,6 +120,7 @@ struct GameView {
     std::optional<std::int64_t> turnDeadline;      // epoch ms, server clock
     std::optional<std::int64_t> nextRoundDeadline; // epoch ms, server clock
     std::vector<UnoWindowInfo> unoWindows;         // oldest first
+    std::int64_t actionsOpenAt{};                  // epoch ms, server clock: turn actions are refused before (ADR 0027)
     std::uint32_t drawStepMs{};                    // the pace at which every client shows drawn cards (ADR 0026)
     RoomSettings settings;
 

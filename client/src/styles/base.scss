@@ -109,3 +109,17 @@ select {
   inherits: true;
   initial-value: 0deg;
 }
+
+// Mesures de l'éventail de ma main (hand.scss) : typées pour que la main puisse lire leur valeur en pixels et
+// prévoir la place d'une carte avant son arrivée.
+@property --gutter {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
+
+@property --max-step {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}

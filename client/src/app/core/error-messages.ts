@@ -26,6 +26,7 @@ const MESSAGES: Record<ErrorCode, string> = {
   ILLEGAL_MOVE: 'Coup interdit.',
   UNO_WINDOW_CLOSED: 'Trop tard : on ne peut plus annoncer UNO ni contrer.',
   UNO_GRACE_PERIOD: 'Trop tôt : ce joueur peut encore annoncer UNO.',
+  EFFECT_IN_PROGRESS: 'Patience : l’effet en cours n’est pas terminé.',
 };
 
 const ILLEGAL_REASONS: Record<IllegalMoveReason, string> = {

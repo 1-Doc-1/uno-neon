@@ -26,9 +26,12 @@ struct UnoWindowTiming {
 };
 
 // What identifies one turn for its clock (ADR 0020): a broadcast that changes none of this (a counter-UNO, an
-// announcement, a UNO window that ran out) does not give the player on turn a fresh clock.
+// announcement, a UNO window that ran out) does not give the player on turn a fresh clock. `turn` counts the turns
+// the engine passed (`TurnChanged`), so a player who gets the turn again right after their own move (a Draw Two or a
+// Skip with two players) starts a new clock too.
 struct TurnKey {
     std::uint32_t round{};
+    std::uint64_t turn{};
     core::PlayerId player;
     std::size_t phase{}; // index of the TurnPhase alternative
 
@@ -81,10 +84,12 @@ public:
     TimerHandle turnTimer;
     std::optional<TurnKey> turnKey; // the turn the running turn timer was armed for
     std::uint64_t turnEpoch{0};     // bumped each time a turn timer is armed: an older one does nothing
+    std::uint64_t turnCount{0};     // bumped each time the engine passes the turn
     TimerHandle nextRoundTimer;
     TimerHandle forcedActionTimer; // plays the move a player has no choice about (guided draw)
     std::unordered_map<std::string, TimerHandle> graceTimers; // by player id: disconnected, waiting to come back
     std::optional<std::int64_t> turnDeadline;                 // epoch ms, shown in the views
+    std::int64_t actionsOpenAt{0}; // epoch ms: turn actions are refused before (ADR 0027); never moves backwards
     std::optional<std::int64_t> nextRoundDeadline;
     std::vector<UnoWindowTiming> unoWindows; // mirrors Round::unoWindows(), with times
 

@@ -104,6 +104,7 @@ export function scenarioView(name: ScenarioName, now: number): PlayerView {
     pendingDraw: 0,
     turnDeadline: now + 24_000,
     nextRoundDeadline: null,
+    actionsOpenAt: now,
     drawStepMs: 1000,
     unoWindows: [],
     round: 2,

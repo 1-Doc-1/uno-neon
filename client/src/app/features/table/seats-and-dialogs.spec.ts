@@ -45,24 +45,52 @@ describe('OpponentSeat', () => {
 });
 
 describe('Hand', () => {
-  it('packs the cards tighter as the hand grows, the last one keeping its full width', () => {
-    const cards = (count: number): Card[] =>
-      Array.from({ length: count }, (_, id) => ({ id, color: 'red', rank: '5' }));
-    const columnsOf = (count: number): string => {
-      const fixture = TestBed.createComponent(Hand);
-      fixture.componentRef.setInput('cards', cards(count));
-      fixture.componentRef.setInput('playableIds', []);
-      fixture.componentRef.setInput('myTurn', true);
-      fixture.detectChanges();
-      return (
-        (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('.hand')?.style
-          .gridTemplateColumns ?? ''
-      );
-    };
+  const cards = (count: number): Card[] =>
+    Array.from({ length: count }, (_, id) => ({ id, color: 'red', rank: '5' }));
 
-    expect(columnsOf(1)).toBe('var(--card-w)');
-    expect(columnsOf(8)).toContain('repeat(7,');
-    expect(columnsOf(8)).toMatch(/var\(--card-w\)$/);
+  function render(shown: Card[]) {
+    const fixture = TestBed.createComponent(Hand);
+    fixture.componentRef.setInput('cards', shown);
+    fixture.componentRef.setInput('playableIds', []);
+    fixture.componentRef.setInput('myTurn', true);
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+    const slots = (): HTMLElement[] => Array.from(host.querySelectorAll<HTMLElement>('li'));
+    return { fixture, host, slots };
+  }
+
+  it('spreads the cards around the centre of the fan, one offset per card', () => {
+    const { host, slots } = render(cards(4));
+
+    expect(slots().map((slot) => slot.style.getPropertyValue('--d'))).toEqual([
+      '-1.5',
+      '-0.5',
+      '0.5',
+      '1.5',
+    ]);
+    expect(host.querySelector<HTMLElement>('.hand')?.style.getPropertyValue('--n')).toBe('4');
+  });
+
+  it('lays out only the cards that have arrived, and re-spreads the fan when one more arrives', () => {
+    const { fixture, host, slots } = render(cards(2));
+    fixture.componentRef.setInput('incoming', [2, 3]);
+    fixture.detectChanges();
+
+    expect(slots()).toHaveLength(2);
+    expect(host.querySelector('[data-anchor="card:2"]')).toBeNull();
+
+    fixture.componentRef.setInput('cards', cards(3));
+    fixture.componentRef.setInput('incoming', [3]);
+    fixture.detectChanges();
+
+    expect(slots().map((slot) => slot.style.getPropertyValue('--d'))).toEqual(['-1', '0', '1']);
+    expect(host.querySelector<HTMLElement>('.hand')?.style.getPropertyValue('--n')).toBe('3');
+  });
+
+  it('knows no place for a card that is neither in the hand nor on its way', () => {
+    const { fixture } = render(cards(2));
+
+    expect(fixture.componentInstance.lastRect(42)).toBeNull();
   });
 });
 

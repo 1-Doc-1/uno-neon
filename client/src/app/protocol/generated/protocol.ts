@@ -123,7 +123,8 @@ export type ErrorCode =
   | 'CARD_NOT_IN_HAND'
   | 'ILLEGAL_MOVE'
   | 'UNO_WINDOW_CLOSED'
-  | 'UNO_GRACE_PERIOD';
+  | 'UNO_GRACE_PERIOD'
+  | 'EFFECT_IN_PROGRESS';
 /**
  * Detail of an ILLEGAL_MOVE error.
  */
@@ -191,6 +192,10 @@ export type GamePhase =
   | 'awaitingColorChoice'
   | 'roundOver'
   | 'matchOver';
+/**
+ * Server clock, milliseconds since the Unix epoch.
+ */
+export type EpochMillis1 = number;
 
 /**
  * First message of every connection. Without a token a new session is created; with a valid token the session (and its room) is resumed.
@@ -723,6 +728,7 @@ export interface PlayerView {
    * In phase roundOver: when the next round starts automatically (server clock).
    */
   nextRoundDeadline: EpochMillis | null;
+  actionsOpenAt: EpochMillis1;
   /**
    * Pace of drawn cards, set by the server (ADR 0026): every card takes at least this long to show. The forced move that follows a draw and the clock of a new turn wait for N cards x drawStepMs, so a client paces its animations on this value, never on a constant of its own.
    */

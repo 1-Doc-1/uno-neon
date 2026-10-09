@@ -46,6 +46,7 @@ function viewWith(
     pendingDraw: 0,
     turnDeadline: null,
     nextRoundDeadline: null,
+    actionsOpenAt: 0,
     drawStepMs: 1000,
     unoWindows: [],
     round: 1,
@@ -198,6 +199,62 @@ describe('Table', () => {
     expect(button('.deck')?.getAttribute('aria-label')).toBe('Garder la carte');
     button('.deck')?.click();
     expect(transport.sent.at(-1)).toMatchObject({ type: 'game.pass' });
+  });
+
+  describe('while the effect in progress is shown (actionsOpenAt in the future)', () => {
+    const closed = (): number => Date.now() + 60_000;
+    const mine = { canDraw: true, playableCardIds: [1] };
+
+    it('leaves my hand neutral and the deck inert, then opens them at the time the server gave', () => {
+      const { button, host, fixture } = render(
+        viewWith({ currentPlayerId: 'me', actionsOpenAt: closed() }, mine),
+      );
+
+      expect(button('.deck')?.disabled).toBe(true);
+      expect(host.querySelector<HTMLButtonElement>('.slot')?.disabled).toBe(true);
+      expect(host.querySelector('.slot.playable')).toBeNull();
+
+      fixture.componentRef.setInput(
+        'view',
+        viewWith({ currentPlayerId: 'me', actionsOpenAt: 0 }, mine),
+      );
+      fixture.detectChanges();
+
+      expect(button('.deck')?.disabled).toBe(false);
+      expect(host.querySelector<HTMLButtonElement>('.slot')?.disabled).toBe(false);
+    });
+
+    it('holds back the answer to a penalty, which the server would refuse', () => {
+      const penalty = { amount: 4, canChallenge: true, canStack: false };
+      const { host, fixture } = render(
+        viewWith({ currentPlayerId: 'me', actionsOpenAt: closed() }, { penaltyResponse: penalty }),
+      );
+
+      expect(host.querySelector('app-challenge-dialog')).toBeNull();
+
+      fixture.componentRef.setInput(
+        'view',
+        viewWith({ currentPlayerId: 'me', actionsOpenAt: 0 }, { penaltyResponse: penalty }),
+      );
+      fixture.detectChanges();
+
+      expect(host.querySelector('app-challenge-dialog')).not.toBeNull();
+    });
+
+    it('still lets me announce UNO and catch someone', () => {
+      const soon = Date.now() + 1000;
+      const { host } = render(
+        viewWith(
+          {
+            actionsOpenAt: closed(),
+            unoWindows: [window('max', soon - 500, soon + 14_000)],
+          },
+          { canCallUno: true },
+        ),
+      );
+
+      expect(host.querySelector('app-uno-actions')).not.toBeNull();
+    });
   });
 
   it('leaves the deck inert when the server says neither draw nor keep', () => {

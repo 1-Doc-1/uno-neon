@@ -9,9 +9,11 @@
 #include "uno/app/server_message.hpp"
 #include "uno/testing/app_doubles.hpp"
 #include "uno/testing/seeded_random_source.hpp"
+#include "uno/testing/timeouts.hpp"
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <chrono>
 #include <cstdint>
 #include <deque>
 #include <optional>
@@ -64,8 +66,8 @@ private:
 
 class AppHarness {
 public:
-    explicit AppHarness(std::uint64_t seed = 7)
-        : random(seed), scheduler(clock), application(sink, rooms, random, clock, scheduler)
+    explicit AppHarness(std::uint64_t seed = 7, app::Timeouts timeouts = withoutPresentationDelay())
+        : random(seed), scheduler(clock), application(sink, rooms, random, clock, scheduler, timeouts)
     {
     }
 

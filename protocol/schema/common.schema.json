@@ -278,7 +278,8 @@
         "CARD_NOT_IN_HAND",
         "ILLEGAL_MOVE",
         "UNO_WINDOW_CLOSED",
-        "UNO_GRACE_PERIOD"
+        "UNO_GRACE_PERIOD",
+        "EFFECT_IN_PROGRESS"
       ]
     },
     "IllegalMoveReason": {

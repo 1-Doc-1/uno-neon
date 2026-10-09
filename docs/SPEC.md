@@ -259,6 +259,8 @@ Pas de chat libre : uniquement des réactions prédéfinies. *Pourquoi* : aucune
 | `room.closed` | `{ reason: "expired" \| "kicked" \| "hostClosed" }` |
 | `ack` / `error` | voir §8.2 |
 
+**Résolution d'un effet** (ADR 0027) : après chaque action, le serveur calcule ce que les clients mettent à la montrer (carte posée, effets spéciaux, cartes piochées au rythme `drawStepMs`) et en tire `actionsOpenAt`. Avant cette heure, il refuse les actions de tour (`EFFECT_IN_PROGRESS`), l'horloge du tour et le coup forcé n'ont pas démarré, et le client garde la main neutre et le paquet muet.
+
 **Synchronisation** : après chaque action acceptée, chaque joueur reçoit un `game.update` contenant les événements (pour animer) ET sa vue complète (pour la vérité). L'état d'une partie de UNO fait quelques Ko : envoyer la vue entière à chaque fois coûte peu et évite toute logique de resynchronisation. Le client anime les événements puis s'aligne sur `view`. S'il reçoit un `stateVersion` non consécutif (message manqué, reconnexion), il saute l'animation et applique directement `view`.
 
 ### 8.5 Formes de données principales
@@ -280,6 +282,7 @@ interface PlayerView {
   currentPlayerId: string; direction: "clockwise" | "counterClockwise";
   currentColor: Color; discardTop: Card; drawPileCount: number;
   pendingDraw: number; turnDeadline: number | null; // epoch ms, horloge serveur
+  actionsOpenAt: number; // epoch ms, horloge serveur : le serveur refuse toute action de tour reçue avant (ADR 0027)
   drawStepMs: number; // rythme des cartes piochées, dicté par le serveur (ADR 0026)
   unoWindows: Array<{ targetId: string; graceEndsAt: number; expiresAt: number }>; // fenêtres de contre-UNO ouvertes (ADR 0018), heure serveur
   round: number; settings: RoomSettings;
@@ -289,7 +292,7 @@ interface PlayerView {
 `ClientEvent` (union discriminée par `kind`) : `cardPlayed`, `cardsDrawn` (`cards` présent seulement pour celui qui pioche, sinon `count`), `turnChanged`, `playerSkipped`, `directionChanged`, `colorChosen`, `penaltyStacked`, `challengeResolved`, `unoCalled`, `unoCaught`, `handsSwapped`, `handsRotated`, `deckReshuffled`, `roundEnded`, `matchEnded`, `playerDisconnected`, `playerReconnected`, `hostChanged`.
 
 ### 8.6 Codes d'erreur
-`MALFORMED_MESSAGE`, `UNKNOWN_TYPE`, `UNSUPPORTED_VERSION`, `MESSAGE_TOO_LARGE`, `RATE_LIMITED`, `SESSION_REQUIRED`, `SESSION_EXPIRED`, `NICKNAME_INVALID`, `NICKNAME_TAKEN`, `ROOM_NOT_FOUND`, `ROOM_FULL`, `MATCH_IN_PROGRESS`, `NOT_HOST`, `NOT_ENOUGH_PLAYERS`, `PLAYERS_NOT_READY`, `NOT_YOUR_TURN`, `INVALID_PHASE`, `CARD_NOT_IN_HAND`, `ILLEGAL_MOVE` (avec `details.reason` : `COLOR_MISMATCH`, `WILD_DRAW_FOUR_ILLEGAL`, `COLOR_REQUIRED`, `SWAP_TARGET_REQUIRED`, `JUMP_IN_TOO_LATE`, `CANNOT_STACK`, `MUST_PLAY`, `MUST_DECLARE_UNO`…), `UNO_WINDOW_CLOSED`, `UNO_GRACE_PERIOD`.
+`MALFORMED_MESSAGE`, `UNKNOWN_TYPE`, `UNSUPPORTED_VERSION`, `MESSAGE_TOO_LARGE`, `RATE_LIMITED`, `SESSION_REQUIRED`, `SESSION_EXPIRED`, `NICKNAME_INVALID`, `NICKNAME_TAKEN`, `ROOM_NOT_FOUND`, `ROOM_FULL`, `MATCH_IN_PROGRESS`, `NOT_HOST`, `NOT_ENOUGH_PLAYERS`, `PLAYERS_NOT_READY`, `NOT_YOUR_TURN`, `INVALID_PHASE`, `CARD_NOT_IN_HAND`, `ILLEGAL_MOVE` (avec `details.reason` : `COLOR_MISMATCH`, `WILD_DRAW_FOUR_ILLEGAL`, `COLOR_REQUIRED`, `SWAP_TARGET_REQUIRED`, `JUMP_IN_TOO_LATE`, `CANNOT_STACK`, `MUST_PLAY`, `MUST_DECLARE_UNO`…), `UNO_WINDOW_CLOSED`, `UNO_GRACE_PERIOD`, `EFFECT_IN_PROGRESS` (une action de tour reçue avant `actionsOpenAt` : l'effet en cours n'est pas terminé ; annoncer UNO et contrer ne sont jamais concernés).
 Les messages d'erreur sont en anglais technique ; **le client traduit chaque code en message français clair**.
 
 ## 9. Serveur réseau (C++)
@@ -431,7 +434,7 @@ Le logo en haut, **un seul panneau sobre** : pseudo, « Créer un salon » (prim
 - **Portrait étroit (375 px)** : jusqu'à 4 adversaires en arc compact en haut (avatar, nombre de cartes, mini-éventail de 5 dos au plus) ; au-delà, une bande défilante (focalisable au clavier). Ma pastille passe au-dessus de ma main, et ma main tient dans la largeur (chevauchement qui se resserre, la carte touchée passe devant).
 - **Centre** : une grande ellipse douce (léger dégradé) dont le **liseré fin prend la couleur active** ; une lueur discrète glisse lentement le long du liseré **dans le sens du jeu** (coupée avec `prefers-reduced-motion`) ; la lueur a pour tête une petite flèche qui montre le sens du jeu (une seule animation CSS pilote la lueur et la flèche, qui restent calées l'une sur l'autre ; elles repartent à l'envers après une inversion). La pioche (cliquable quand le serveur dit `canDraw` ou `canKeepDrawnCard`, info-bulle « Piocher » / « Garder la carte ») et la défausse au milieu, la défausse entourée d'une **lueur de la couleur active** (indispensable après un Joker), et un **seul libellé** sous elle (« ▲ Rouge », forme et nom) ; la pénalité en attente.
 - **Journal** : en haut à droite, les deux dernières lignes, petit, `aria-live="polite"`.
-- **Ma main** : en bas, en éventail ; pendant mon tour les cartes jouables sautent aux yeux (surélevées, bord néon et halo, curseur main) et les autres sont atténuées et abaissées ; hors de mon tour toute la main est neutre et un peu abaissée ; le chevauchement se resserre pour que la main tienne toujours dans la largeur.
+- **Ma main** : en bas, en éventail, qui **ne montre que les cartes arrivées** : pendant une pioche rythmée chaque carte prend sa place à son arrivée et l'éventail se réorganise en douceur (transition) ; main neutre et paquet muet jusqu'à `actionsOpenAt` ; pendant mon tour les cartes jouables sautent aux yeux (surélevées, bord néon et halo, curseur main) et les autres sont atténuées et abaissées ; hors de mon tour toute la main est neutre et un peu abaissée ; le chevauchement se resserre pour que la main tienne toujours dans la largeur.
 - **Bouton UNO** : grand, rond, jaune, centré entre le centre de la table et ma main, **visible seulement quand il sert** ; mis en avant (taille, pulsation) quand `mustDeclareUno` est vrai, avec une phrase d'explication.
 - **Contre-UNO** : plusieurs fenêtres peuvent coexister (`unoWindows`), donc **un bouton « Contre-UNO ! » par cible**, avec son nom, empilés au même endroit que le bouton UNO, en rouge néon. Chacun est **grisé avec un compte à rebours pendant la grâce**, puis actif jusqu'à l'échéance (heure serveur).
 - **Mouvement réduit** : avec `prefers-reduced-motion`, toutes les pulsations et animations sont coupées.
@@ -459,7 +462,7 @@ Toutes les cartes (108 faces + dos) et tous les composants dans tous leurs état
 | Événement | Effet |
 |---|---|
 | `cardPlayed` | la carte vole de la main (ou du siège, face cachée puis retournée) jusqu'à la défausse, avec une légère rotation à l'arrivée ; la défausse montre les 5 dernières cartes en pile désordonnée (rotation dérivée de l'identifiant) |
-| `cardsDrawn` | une carte piochée part **toujours du paquet** ; les cartes (6 au plus par événement ; une pioche « jusqu'à pouvoir jouer » envoie un événement par carte) volent une à une de la pioche vers le siège (face cachée pour un adversaire, retournée en arrivant dans ma main) ; pioche infligée : le siège tremble et clignote |
+| `cardsDrawn` | une carte piochée part **toujours du paquet** ; les cartes (6 au plus par événement ; une pioche « jusqu'à pouvoir jouer » envoie un événement par carte) volent une à une de la pioche vers le siège (face cachée pour un adversaire, retournée en arrivant dans ma main, où elle prend directement sa place : l'éventail ne contient que les cartes arrivées et se réorganise à chaque arrivée) ; pioche infligée : le siège tremble et clignote |
 | +2 / +4 | « +2 » / « +4 » en grand au centre **chez le joueur visé**, sur son siège chez les autres, puis les cartes de pénalité |
 | `playerSkipped` | symbole « interdit » : en grand au centre chez le joueur sauté (« Tu passes ton tour »), sur son siège chez les autres (« Zoé passe son tour ») |
 | `directionChanged` | une grande flèche circulaire apparaît au centre, fait un tour dans l'ancien sens et se retourne ; la lueur et sa flèche s'éteignent le temps de l'effet, puis repartent dans l'autre sens |
@@ -531,6 +534,7 @@ Qualité : clang-format, clang-tidy, ESLint, Prettier. Aucune étape n'est termi
 - `server-linux` : GCC et Clang, preset `debug-asan`, build + ctest ; cache binaire vcpkg.
 - `server-windows` : MSVC, preset `dev` (vérifie la compatibilité avec les postes de l'équipe).
 - `client` : `npm ci`, lint, tests Vitest, build de prod, `npm audit --audit-level=high`.
+- **Déclencheurs** : `pull_request` vers `main` et lancement manuel, jamais un push de branche ; PR en brouillon ignorées ; `concurrency` par PR avec annulation. Un job `changes` (script `git diff`) décide quels jobs tournent (`if:` au niveau des jobs, jamais `paths:` au niveau du workflow : un check requis jamais déclenché bloquerait la fusion) : `docs/` seul → rien ; `client/` → client + e2e ; `server/` → serveur + e2e ; `protocol/`, `.github/` et le reste → tout. Permissions `contents: read`, aucun secret, jamais `pull_request_target`, actions épinglées par SHA.
 - `e2e` : après les deux précédents ; publie le rapport Playwright en artefact en cas d'échec.
 
 **Déploiement (phase 6)**
