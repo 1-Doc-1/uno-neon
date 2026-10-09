@@ -17,7 +17,6 @@ import { ColorPicker } from './color-picker';
 import { AnimationDirector } from './fx/animation-director';
 import { EffectsLayer } from './fx/effects-layer';
 import { Hand } from './hand';
-import { MotionSetting } from '../../ui/motion-setting';
 import { MatchOverDialog } from './match-over-dialog';
 import { MyBadge } from './my-badge';
 import { MAX_FAN_BACKS } from './opponent-fan';
@@ -59,7 +58,6 @@ export interface CardPlay {
     ColorPicker,
     RoundOverDialog,
     MatchOverDialog,
-    MotionSetting,
   ],
   providers: [AnimationDirector],
   templateUrl: './table-view.html',
@@ -77,7 +75,7 @@ export class TableView {
   readonly batch = input<EventBatch | null>(null);
   /** Les cartes posées depuis le début de la manche, pour la pile désordonnée de la défausse. */
   readonly played = input<readonly Card[]>([]);
-  /** Vitesse des animations (1 = normale) : la démo de développement la fait varier. */
+  /** Vitesse des animations (1 = normale) : seule la démo de développement la fait varier. */
   readonly animationSpeed = input(1);
 
   readonly cardPlayed = output<CardPlay>();

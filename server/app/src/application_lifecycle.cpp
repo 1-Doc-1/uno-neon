@@ -180,25 +180,37 @@ std::chrono::milliseconds Application::presentationBudgetOf(std::span<const core
     std::size_t cards = 0;
     bool cardPlayed = false;
     bool penalty = false;
+    bool turnAction = false;
     for (const core::DomainEvent& event : events) {
         std::visit(core::detail::Overloaded{
                        [&](const core::CardPlayed&) {
                            budget += timeouts_.playStep;
                            cardPlayed = true;
+                           turnAction = true;
                        },
-                       [&](const core::CardsDrawn& drawn) { cards += drawn.cards.size(); },
+                       [&](const core::CardsDrawn& drawn) {
+                           cards += drawn.cards.size();
+                           turnAction = true;
+                       },
                        [&](const core::PenaltyCardsDrawn& drawn) {
                            cards += drawn.cards.size();
                            penalty = true;
+                           turnAction = true;
                        },
                        [&](const core::PlayerSkipped&) { budget += timeouts_.effectStep; },
                        [&](const core::DirectionReversed&) { budget += timeouts_.effectStep; },
-                       [&](const core::ColorChosen&) { budget += timeouts_.effectStep; },
-                       [&](const core::ChallengeResolved&) { budget += timeouts_.effectStep; },
+                       [&](const core::ColorChosen&) {
+                           budget += timeouts_.effectStep;
+                           turnAction = true;
+                       },
+                       [&](const core::ChallengeResolved&) {
+                           budget += timeouts_.effectStep;
+                           turnAction = true;
+                       },
                        [&](const core::UnoCaught&) { budget += timeouts_.effectStep; },
                        [](const core::RoundStarted&) {},
                        [](const core::DeckReshuffled&) {},
-                       [](const core::TurnPassed&) {},
+                       [&](const core::TurnPassed&) { turnAction = true; },
                        [](const core::TurnChanged&) {},
                        [](const core::UnoCalled&) {},
                        [](const core::RoundEnded&) {},
@@ -210,7 +222,9 @@ std::chrono::milliseconds Application::presentationBudgetOf(std::span<const core
     if (cardPlayed && (penalty || std::holds_alternative<core::AwaitingPenaltyResponse>(roundAfter.phase()))) {
         budget += timeouts_.effectStep;
     }
-    return budget + timeouts_.drawStep * static_cast<std::chrono::milliseconds::rep>(cards);
+    budget += timeouts_.drawStep * static_cast<std::chrono::milliseconds::rep>(cards);
+    // Whatever it showed, a turn action leaves the table the same minimum time to look (announcing UNO does not)
+    return turnAction ? std::max(budget, timeouts_.actionCooldown) : budget;
 }
 
 void Application::armGameTimers(Room& room)

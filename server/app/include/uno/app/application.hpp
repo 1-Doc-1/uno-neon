@@ -37,8 +37,11 @@ struct Timeouts {
     std::chrono::milliseconds forcedAction{std::chrono::milliseconds(1200)}; // a forced move waits for the animations
     // What the clients take to show what an action did (ADR 0027): nobody acts before the sum of these has passed.
     std::chrono::milliseconds playStep{std::chrono::milliseconds(1100)};   // a card flies to the discard pile and rests
-    std::chrono::milliseconds effectStep{std::chrono::milliseconds(1200)}; // a special effect: +2, skip, wheel...
+    std::chrono::milliseconds effectStep{std::chrono::milliseconds(1500)}; // a special effect: +2, skip, wheel...
     std::chrono::milliseconds drawStep{std::chrono::seconds(1)};           // every drawn card takes this long to show
+    // After every turn action nobody acts before this has passed, whatever the action showed: the table has time to see
+    // it.
+    std::chrono::milliseconds actionCooldown{std::chrono::milliseconds(1500)};
 };
 
 // The use cases of the server: sessions, rooms and (from step 2.4) matches. It reacts to what the

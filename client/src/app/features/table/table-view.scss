@@ -166,17 +166,3 @@
     width: fit-content;
   }
 }
-
-.motion-setting {
-  position: absolute;
-  top: var(--space-3);
-  left: var(--space-3);
-  z-index: 2;
-}
-
-// Sur un petit écran la place manque : le réglage se fait dans le salon
-@media (max-width: 639px) {
-  .motion-setting {
-    display: none;
-  }
-}

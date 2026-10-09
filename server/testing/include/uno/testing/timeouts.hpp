@@ -14,6 +14,7 @@ inline app::Timeouts withoutPresentationDelay()
     timeouts.playStep = std::chrono::milliseconds(0);
     timeouts.effectStep = std::chrono::milliseconds(0);
     timeouts.drawStep = std::chrono::milliseconds(0);
+    timeouts.actionCooldown = std::chrono::milliseconds(0);
     return timeouts;
 }
 

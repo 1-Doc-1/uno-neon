@@ -12,7 +12,6 @@ import { Avatar } from '../../ui/avatar';
 import { Button } from '../../ui/button';
 import { Icon } from '../../ui/icon';
 import { Logo } from '../../ui/logo';
-import { MotionSetting } from '../../ui/motion-setting';
 import { SegmentOption, Segmented } from '../../ui/segmented';
 
 const MATCH_LENGTHS: readonly SegmentOption<MatchLength>[] = [
@@ -60,7 +59,7 @@ const COPIED_FEEDBACK_MS = 2000;
 /** Salon avant la partie : joueurs à gauche, réglages à droite, un grand bouton en bas (SPEC §12.2). */
 @Component({
   selector: 'app-lobby',
-  imports: [Avatar, Button, Icon, Logo, MotionSetting, Segmented],
+  imports: [Avatar, Button, Icon, Logo, Segmented],
   templateUrl: './lobby.html',
   styleUrl: './lobby.scss',
 })

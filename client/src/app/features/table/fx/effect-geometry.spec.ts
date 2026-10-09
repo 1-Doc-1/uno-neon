@@ -82,6 +82,20 @@ describe('placeEffect', () => {
     expect(flights[0].to).toMatchObject({ cx: 120, cy: 800 });
   });
 
+  it('makes a drawn card vanish when it lands, but lets a played card rest on the discard pile', () => {
+    const drawn = placeEffect(
+      effect({ kind: 'draw', playerId: 'me', count: 1, cards: [card(20)], penalty: false }),
+      anchors({ handCard: () => box(100, 800) }),
+    );
+    const played = placeEffect(
+      effect({ kind: 'play', playerId: 'me', card: card(7) }),
+      anchors({ handCard: () => box(300, 790) }),
+    );
+
+    expect(drawn?.kind === 'flights' && drawn.flights.every((f) => f.vanishOnLanding)).toBe(true);
+    expect(played?.kind === 'flights' && played.flights.some((f) => f.vanishOnLanding)).toBe(false);
+  });
+
   it('lands a card whose place in my hand is not known yet on a card-sized spot, never on the whole hand', () => {
     const placed = placeEffect(
       effect({ kind: 'draw', playerId: 'me', count: 1, cards: [card(30)], penalty: false }),

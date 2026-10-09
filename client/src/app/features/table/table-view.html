@@ -3,8 +3,6 @@
     <p class="banner" role="status">{{ text }}</p>
   }
 
-  <app-motion-setting class="motion-setting" />
-
   <ul class="journal" aria-live="polite" aria-label="Journal de la partie">
     @for (line of lastLines(); track $index) {
       <li>{{ line }}</li>

@@ -24,6 +24,8 @@ export interface Flight {
   readonly look: FlightLook;
   /** La carte se pose sur la défausse : elle y rebondit légèrement. */
   readonly settle: boolean;
+  /** La carte pioche rejoint une main ou un siège : elle disparaît à son arrivée, là où le vrai compteur (ou la vraie carte) prend le relais. */
+  readonly vanishOnLanding: boolean;
 }
 
 interface Base {
@@ -126,6 +128,7 @@ function placePlay(
         card,
         look: mine ? 'face' : 'back-to-face',
         settle: true,
+        vanishOnLanding: false,
       },
     ],
   };
@@ -167,6 +170,7 @@ function placeDraw(
       card,
       look: card ? 'back-to-face' : 'back',
       settle: false,
+      vanishOnLanding: true,
     });
   }
   return {

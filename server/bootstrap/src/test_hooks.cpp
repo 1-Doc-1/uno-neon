@@ -31,12 +31,14 @@ app::Timeouts makeTimeouts([[maybe_unused]] const EnvironmentLookup& environment
     if (const auto grace = environment("UNO_TEST_RECONNECT_GRACE_MS")) {
         timeouts.reconnectGrace = std::chrono::milliseconds(std::stoll(*grace));
     }
-    // One knob for the whole pace of the game (ADR 0027): a card played, an effect and a drawn card take this long.
+    // One knob for the whole pace of the game (ADR 0027): a card played, an effect, a drawn card and the pause after
+    // every action take this long.
     if (const auto pace = environment("UNO_TEST_PACE_MS")) {
         const auto step = std::chrono::milliseconds(std::stoll(*pace));
         timeouts.playStep = step;
         timeouts.effectStep = step;
         timeouts.drawStep = step;
+        timeouts.actionCooldown = step;
     }
 #endif
     return timeouts;
