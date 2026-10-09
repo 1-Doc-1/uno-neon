@@ -54,6 +54,18 @@ export class FlightMotion {
             { transform: last },
           ]
         : [{ transform: first }, { transform: last }];
+      if (flight.vanishOnLanding) {
+        // Invisible avant son départ (le style de la classe), visible pendant son vol seulement : à l'arrivée, c'est la vraie carte de la main qui reste
+        element.animate(
+          [
+            { transform: first, opacity: 1 },
+            { transform: last, opacity: 1, offset: 0.99 },
+            { transform: last, opacity: 0 },
+          ],
+          { duration: flight.durationMs, delay: flight.delayMs, easing: EASING, fill: 'forwards' },
+        );
+        return;
+      }
       element.animate(frames, {
         duration: flight.durationMs,
         delay: flight.delayMs,

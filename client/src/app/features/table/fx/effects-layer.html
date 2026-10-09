@@ -8,6 +8,7 @@
           [flight]="flight"
           [reduced]="item.reduced"
           [class.swap]="flight.look === 'back-to-face' && !item.reduced"
+          [class.lands]="flight.vanishOnLanding && !item.reduced"
           [style.width.px]="flight.to.w"
           [style.height.px]="flight.to.h"
           [style.--card-w.px]="flight.to.w"

@@ -19,6 +19,8 @@ interface Options {
   paceMs: number;
   /** Réglage de pioche du salon, fixé explicitement pour ne pas dépendre de la valeur par défaut (ADR 0024). */
   drawAmount: 'one' | 'untilPlayable';
+  /** Les E2E tournent en mouvement réduit ; les scénarios qui mesurent les animations réelles passent 'no-preference'. */
+  motion: 'reduce' | 'no-preference';
 }
 
 interface Fixtures {
@@ -37,6 +39,7 @@ export const test = base.extend<Options & Fixtures>({
   reconnectGraceMs: [60_000, { option: true }],
   paceMs: [40, { option: true }],
   drawAmount: ['one', { option: true }],
+  motion: ['reduce', { option: true }],
 
   stack: async ({ seed, reconnectGraceMs, paceMs }, use) => {
     const stack = await startStack({ seed, reconnectGraceMs, paceMs });
@@ -44,14 +47,14 @@ export const test = base.extend<Options & Fixtures>({
     await stack.stop();
   },
 
-  lobby: async ({ browser, stack, drawAmount }, use) => {
+  lobby: async ({ browser, stack, drawAmount, motion }, use) => {
     const contexts: BrowserContext[] = [];
     const newPlayer = async (name: string): Promise<Player> => {
       const context = await browser.newContext({
         baseURL: stack.url,
         viewport: { width: 1280, height: 720 },
         locale: 'fr-FR',
-        reducedMotion: 'reduce',
+        reducedMotion: motion,
       });
       contexts.push(context);
       return new Player(await context.newPage(), name);

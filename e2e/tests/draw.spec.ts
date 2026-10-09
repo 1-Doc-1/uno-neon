@@ -66,3 +66,61 @@ test.describe('pioche rythmée par le serveur', () => {
     ).toBe(true);
   });
 });
+
+test.describe('main pendant une pioche, à vitesse réelle', () => {
+  // Animations activées et rythme de production (1 s par carte) : c'est là que les cartes volantes se voient vraiment
+  test.use({ seed: SEEDS.multiDraw, drawAmount: 'untilPlayable', paceMs: 1000, motion: 'no-preference' });
+  test.setTimeout(60_000);
+
+  test('les cartes piochées rejoignent la main, sans couche volante ni dos qui reste', async ({
+    lobby,
+  }) => {
+    const { host, guest } = lobby;
+    await startMatch(lobby);
+    const mustChoose = host.deck.and(host.page.getByLabel('Garder la carte'));
+    const alice: Actor = {
+      canAct: async () => !(await mustChoose.isVisible()) && host.canAct(),
+      actNow: async () => !(await mustChoose.isVisible()) && host.actNow(),
+    };
+
+    // Un relevé dans la page, à chaque image : jamais de carte volante arrivée et encore visible au-dessus de la main
+    await host.page.evaluate(() => {
+      const w = window as unknown as { __overlaps: string[] };
+      w.__overlaps = [];
+      const watch = (): void => {
+        const hand = document.querySelectorAll('ul[aria-label="Ta main"] li').length;
+        const landed = [...document.querySelectorAll('app-effects-layer .flight')].filter((flight) => {
+          const style = getComputedStyle(flight);
+          const resting = flight.getAnimations().every((animation) => animation.playState === 'finished');
+          return resting && style.visibility !== 'hidden' && Number(style.opacity) > 0.9;
+        });
+        const target = document.querySelector('ul[aria-label="Ta main"]')?.getBoundingClientRect();
+        for (const flight of landed) {
+          const box = flight.getBoundingClientRect();
+          if (target && box.top > target.top - 20 && box.bottom < target.bottom + 20) {
+            w.__overlaps.push(`main ${hand} cartes, vol à ${Math.round(box.left)},${Math.round(box.top)}`);
+          }
+        }
+        requestAnimationFrame(watch);
+      };
+      requestAnimationFrame(watch);
+    });
+    await playUntil([guest, alice], async () => mustChoose.isVisible());
+    await expect(host.cards).toHaveCount(8);
+
+    // Aucun élément animé ni dos de carte ne reste une fois la pioche terminée
+    await expect(host.page.locator('app-effects-layer .flight')).toHaveCount(0);
+    await expect(host.page.locator('app-effects-layer app-card-back')).toHaveCount(0);
+
+    // Toutes les cartes de la main sont sur le même arc (on mesure les emplacements : une carte jouable est surélevée à dessein)
+    const tops = await host.handList.locator('li').evaluateAll((slots) =>
+      slots.map((slot) => slot.getBoundingClientRect().top),
+    );
+    expect(Math.max(...tops) - Math.min(...tops)).toBeLessThanOrEqual(8);
+
+    const overlaps = await host.page.evaluate(
+      () => (window as unknown as { __overlaps: string[] }).__overlaps,
+    );
+    expect(overlaps).toEqual([]);
+  });
+});
