@@ -97,7 +97,8 @@
     <app-hand
       [cards]="shownHand()"
       [playableIds]="view().me.playableCardIds"
-      [myTurn]="myTurn() && actionsOpen()"
+      [myTurn]="myTurn() && (actionsOpen() || answeringPenalty())"
+      [locked]="!actionsOpen()"
       [incoming]="incomingCardIds()"
       (played)="play($event)"
     />
@@ -120,8 +121,12 @@
     (challenged)="penaltyAnswered.emit('challenge')"
   />
 }
-@if (actionsOpen() && plusFiveAnswer(); as answer) {
-  <app-plus-five-prompt [options]="answer" (accepted)="penaltyAnswered.emit('accept')" />
+@if (plusFiveAnswer(); as answer) {
+  <app-plus-five-prompt
+    [options]="answer"
+    [waiting]="!actionsOpen()"
+    (accepted)="penaltyAnswered.emit('accept')"
+  />
 }
 @if (pendingTarget() !== null) {
   <app-target-picker

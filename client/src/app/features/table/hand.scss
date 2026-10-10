@@ -64,9 +64,13 @@
     cursor: pointer;
     transform: translateY(-34px);
 
-    &:hover,
-    &:focus-visible,
-    &:active {
+    &.waiting {
+      cursor: progress;
+    }
+
+    &:not(.waiting):hover,
+    &:not(.waiting):focus-visible,
+    &:not(.waiting):active {
       transform: translateY(-52px) scale(1.06);
     }
   }

@@ -104,7 +104,8 @@ export class Piles {
       case 'keep':
         return 'Garder la carte';
       case 'draw':
-        return 'Piocher';
+        // Une pénalité en attente et la pioche cliquable : on pioche tout ce qui est dû (cumul, ADR 0029)
+        return this.pendingDraw() > 0 ? `Piocher ${this.pendingDraw()} cartes` : 'Piocher';
       case null:
         return `Pioche : ${this.drawPileCount()} cartes`;
     }

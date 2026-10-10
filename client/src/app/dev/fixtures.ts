@@ -5,6 +5,7 @@ export type ScenarioName =
   | 'two-windows'
   | 'challenge'
   | 'plus-five-response'
+  | 'ladder-stack'
   | 'must-declare'
   | 'full-table'
   | 'players-2'
@@ -21,6 +22,7 @@ export const SCENARIOS: readonly ScenarioName[] = [
   'two-windows',
   'challenge',
   'plus-five-response',
+  'ladder-stack',
   'must-declare',
   'full-table',
   'players-2',
@@ -112,7 +114,7 @@ export function scenarioView(name: ScenarioName, now: number): PlayerView {
     unoWindows: [],
     round: 2,
     settings: {
-      stacking: 'off',
+      stacking: 'official',
       jumpIn: false,
       sevenZero: false,
       drawAmount: 'untilPlayable',
@@ -167,6 +169,22 @@ export function scenarioView(name: ScenarioName, now: number): PlayerView {
           playableCardIds: [30],
           penaltyResponse: { amount: 10, canChallenge: false, canStack: true },
         },
+      };
+    case 'ladder-stack':
+      // Cumul en échelle : un +2 puis un +4 pèsent 6 cartes sur moi ; seuls mon +4 et mon +5 se posent dessus
+      return {
+        ...base,
+        phase: 'awaitingPenaltyResponse',
+        currentColor: 'green',
+        discardTop: card(53, null, 'wildDrawFour'),
+        pendingDraw: 6,
+        me: {
+          ...base.me,
+          canDraw: true,
+          playableCardIds: [10, 30],
+          penaltyResponse: { amount: 6, canChallenge: false, canStack: true },
+        },
+        settings: { ...base.settings, stacking: 'ladder' },
       };
     case 'must-declare':
       return {

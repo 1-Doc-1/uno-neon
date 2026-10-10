@@ -51,7 +51,7 @@ function viewWith(
     unoWindows: [],
     round: 1,
     settings: {
-      stacking: 'off',
+      stacking: 'official',
       jumpIn: false,
       sevenZero: false,
       drawAmount: 'untilPlayable',
@@ -244,6 +244,33 @@ describe('Table', () => {
       expect(host.querySelector('app-challenge-dialog')).not.toBeNull();
     });
 
+    it('shows the cards that answer a penalty as soon as it reaches me, but keeps them locked until the server opens', () => {
+      const penalty = { amount: 5, canChallenge: false, canStack: true };
+      const answering = { playableCardIds: [1], penaltyResponse: penalty };
+      const { host, fixture } = render(
+        viewWith({ currentPlayerId: 'me', actionsOpenAt: closed() }, answering),
+      );
+
+      const slot = host.querySelector<HTMLButtonElement>('.slot.playable');
+      expect(slot).not.toBeNull();
+      expect(slot?.disabled).toBe(true);
+      expect(host.querySelector('app-plus-five-prompt')).not.toBeNull();
+      expect(host.querySelector<HTMLButtonElement>('app-plus-five-prompt button')?.disabled).toBe(
+        true,
+      );
+
+      fixture.componentRef.setInput(
+        'view',
+        viewWith({ currentPlayerId: 'me', actionsOpenAt: 0 }, answering),
+      );
+      fixture.detectChanges();
+
+      expect(host.querySelector<HTMLButtonElement>('.slot.playable')?.disabled).toBe(false);
+      expect(host.querySelector<HTMLButtonElement>('app-plus-five-prompt button')?.disabled).toBe(
+        false,
+      );
+    });
+
     it('still lets me announce UNO and catch someone', () => {
       const soon = Date.now() + 1000;
       const { host } = render(
@@ -372,6 +399,25 @@ describe('Table', () => {
         type: 'game.playCard',
         payload: { cardId: 50, chosenColor: 'blue', targetId: 'max' },
       });
+    });
+
+    it('with the ladder there is no window: the pile takes everything that is owed', () => {
+      const penalty = { amount: 6, canChallenge: false, canStack: true };
+      const { host, button } = render(
+        viewWith(
+          { ...myTurn, pendingDraw: 6 },
+          { ...mineToPlay, canDraw: true, penaltyResponse: penalty },
+        ),
+      );
+
+      expect(host.querySelector('app-plus-five-prompt')).toBeNull();
+      expect(host.querySelector('app-challenge-dialog')).toBeNull();
+      expect(host.querySelector('.slot.playable')).not.toBeNull();
+      expect(button('.deck')?.getAttribute('aria-label')).toBe('Piocher 6 cartes');
+
+      button('.deck')?.click();
+
+      expect(transport.sent.at(-1)).toMatchObject({ type: 'game.drawCard' });
     });
 
     it('keeps the +4 challenge dialog for a Wild Draw Four', () => {
