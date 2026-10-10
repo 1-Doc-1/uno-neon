@@ -100,7 +100,7 @@
 #### Lot S — sons et effets, mise en ligne par tunnel, mode d'emploi
 - [x] S1 Écran « Cliquer pour jouer » + son d'ouverture, clic d'interface, musique générée avec tension de fin de tour, réglages audio séparés, malus plus marquants, poussière des effets (ADR 0032)
 - [x] S2 Jouer avec des amis par un tunnel (`scripts/play-online.ps1`, Caddy + cloudflared, ADR 0033)
-- [ ] S3 Mode d'emploi (`docs/MODE-EMPLOI.md`) et page « Comment jouer »
+- [x] S3 Mode d'emploi (`docs/MODE-EMPLOI.md`) et page « Comment jouer »
 
 #### Phase 1 (suite)
 - [ ] 1.6 Options maison (politiques injectables)
@@ -118,9 +118,10 @@
 - [ ] 5.3 Audit web-design-guidelines + axe + performance, corrections
 
 #### Phase 6 — Déploiement
-- [ ] 6.1 Dockerfile serveur multi-étapes, build client
+- [ ] 6.1 Dockerfile serveur multi-étapes, build client (le tunnel du lot S couvre déjà : build release sans crochets, `UNO_BIND_ADDRESS`)
 - [ ] 6.2 Caddy (HTTPS, `/ws`, en-têtes de sécurité), docker-compose
 - [ ] 6.3 Documentation de déploiement
+> **Ce qui reste pour un serveur permanent** : un nom de domaine et un hébergement (VPS Linux) ; `deploy/Dockerfile.server` et `docker-compose.yml` ; un `Caddyfile` de production avec HTTPS automatique (le `Caddyfile.tunnel` en est la base : mêmes en-têtes et CSP, mais `connect-src wss://<domaine>` fixe, `UNO_ALLOWED_ORIGINS=https://<domaine>`, `UNO_BIND_ADDRESS=0.0.0.0` dans le conteneur seulement) ; un `.env.example` ; la procédure `docs/DEPLOY.md` ; et la décision de ce qu'on garde des sessions et salons au redémarrage (aujourd'hui tout est en mémoire).
 
 ## Décisions
 - [0001 — Un seul dépôt pour le serveur, le client et le protocole](adr/0001-monorepo.md)
@@ -219,3 +220,4 @@
 - 2026-10-10 — R3 — cinématique d'introduction (CSS + SVG, 2,7 s, passable, une fois par session, fondu en mouvement réduit) et sons synthétisés (ADR 0031) : 13 sons Web Audio, `AudioService` (rien avant une interaction, rien quand c'est coupé, activé à 60 % par défaut, réglage en `localStorage`) déclenché par l'`AnimationDirector` (un son = un effet), bouton « Son activé / coupé » et volume sur l'accueil et la table, E2E de la cinématique ; axe WCAG 2.2 AA sans violation sur l'accueil, l'écran des bots et la table — `feat/intro-and-sound`
 - 2026-10-10 — S1 — sons et effets (ADR 0032) : écran « Cliquer pour jouer » (le clic débloque l'audio et lance la cinématique avec un son d'ouverture), directive `ClickSound` (un test échoue si un gabarit a un bouton sans elle), `AudioService` à deux circuits (effets 60 %, musique 30 %), musique générée par `MusicEngine` (boucle de 16 battements, tempo 68 → 132 quand les 5 dernières secondes de mon tour approchent, désactivable), panneau « Réglages audio », malus à plusieurs couches, poussière (`ParticleSystem` pur, `ParticleCanvas` : un canvas, 40 particules, boucle arrêtée à vide, coupée en mouvement réduit) lancée par `EffectsLayer` ; tests client (353), E2E (28, dont axe sur l'écran « Cliquer pour jouer ») — `feat/audio-fx`
 - 2026-10-10 — S2 — jouer par un tunnel (ADR 0033) : `UNO_BIND_ADDRESS` (serveur sur 127.0.0.1 seulement, test), test « logs sans jeton ni adresse IP », `deploy/Caddyfile.tunnel` (CSP par hachages Angular `autoCsp`, en-têtes, cache long, `/health` fermé, adresse du visiteur par `Cf-Connecting-Ip`), `scripts/play-online.ps1` (build release, contrôles de sécurité avant publication, Job Windows contre les orphelins, PC éveillé, presse-papiers) et `setup-online.ps1` ; **bugs trouvés en vrai** : Caddy ne servait que l'hôte `127.0.0.1` (le tunnel envoie le nom du tunnel), Cloudflare répond une page vide tant que le tunnel n'est pas relié, le DNS local mettait en cache l'absence du nom ; une manche complète à deux navigateurs par l'adresse publique sans erreur console ; Lighthouse 100/100/100 (bureau), 98/100/100 (mobile) ; `linux-check.sh` vert — `feat/tunnel-play`
+- 2026-10-10 — S3 — mode d'emploi pour l'hôte (`docs/MODE-EMPLOI.md`, avec captures, lié depuis le README) et page « Comment jouer » `/comment-jouer` (règles, cartes spéciales avec leurs cartes, UNO, chaque option du salon avec un exemple, réglages audio ; lien sur l'accueil ; E2E : navigation, 375 et 1440 px sans défilement horizontal, axe sans violation) ; défaut vu sur la capture à 375 px et corrigé : le panneau « Réglages audio » passait sous le panneau de l'accueil ; bug de test corrigé en route : course entre un clic de l'E2E et le coup que le jeu joue à sa place — `docs/user-guide`

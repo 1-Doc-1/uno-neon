@@ -435,6 +435,9 @@ Le logo en haut, **un seul panneau sobre** : le pseudo, puis **trois grands choi
 **Cinématique d'introduction** (ADR 0031) : après ce clic, 2,7 s : le logo s'assemble (les tuiles tombent l'une après l'autre), sept cartes de dos s'envolent en éventail derrière lui, puis fondu vers l'accueil. Passable d'un clic ou d'une touche. **CSS et SVG uniquement**, aucune ressource externe. Avec `prefers-reduced-motion`, un simple fondu de 1,2 s sans cartes. Les navigateurs pilotés par un robot (`navigator.webdriver`) ne la voient pas.
 « Jouer contre des bots » ouvre `/bots` : nombre de bots (1 à 5), niveau (Facile / Normal) et **les mêmes réglages de partie que le salon** (composant partagé, sans « Joueurs maximum » : le serveur fixe les places), puis « Jouer ». La partie démarre directement (`room.createBotGame`), sans salon d'attente ; sans pseudo valide on revient à l'accueil.
 
+### 12.1b Page « Comment jouer » `/comment-jouer` (lot S)
+Accessible par le lien « Comment jouer ? » sous le panneau de l'accueil, pour les amis de l'hôte : but du jeu, tour, cartes spéciales (+2, +4, +5, Passe, Inversion, Joker, chacune avec sa carte), UNO et contre-UNO, **chaque option du salon en une phrase avec un exemple**, réglages audio. Du texte statique, lisible dès 375 px (aucun défilement horizontal), sans violation axe (test E2E).
+
 ### 12.2 Salon (lobby) `/r/:code`
 - **Barre du haut** : logo à gauche ; à droite le code du salon (pastille mono) avec un bouton copier qui répond « Copié », puis « Quitter » (icône porte, rouge néon).
 - **Bots** (ADR 0030) : un bot porte le badge « Bot », il est prêt d'office ; l'hôte en ajoute (niveau Facile / Normal, tant que le salon n'est pas plein) et les retire d'un clic (« Retirer »). Un bot n'est jamais l'hôte, et une salle sans personne (que des bots) est fermée.

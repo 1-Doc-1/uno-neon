@@ -1,6 +1,6 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { form, FormField, pattern, required } from '@angular/forms/signals';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { SessionService } from '../../core/session.service';
 import { GameStore } from '../../state/game-store';
 import { Button } from '../../ui/button';
@@ -16,7 +16,7 @@ import { ClickSound } from '../../ui/click-sound';
  */
 @Component({
   selector: 'app-home-page',
-  imports: [ClickSound, FormField, Button, Icon, Logo, SoundControl],
+  imports: [ClickSound, FormField, Button, Icon, Logo, RouterLink, SoundControl],
   templateUrl: './home-page.html',
   styleUrl: './home-page.scss',
 })
