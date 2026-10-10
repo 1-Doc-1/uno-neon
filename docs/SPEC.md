@@ -431,7 +431,8 @@ Un seul thème : anthracite / bleu nuit très sombre, panneaux en verre sombre. 
 
 ### 12.1 Accueil `/` et « Jouer contre des bots » `/bots`
 Le logo en haut, **un seul panneau sobre** : le pseudo, puis **trois grands choix** : « **Jouer contre des bots** » (primaire, vert), « **Créer un salon** » et « **Rejoindre un salon** » (avec le champ code et le bouton « Rejoindre »). Rien d'autre.
-**Cinématique d'introduction** (ADR 0031) : à la première ouverture de la session (une seule fois : `sessionStorage`), 2,7 s : le logo s'assemble (les tuiles tombent l'une après l'autre), sept cartes de dos s'envolent en éventail derrière lui, puis fondu vers l'accueil. Passable d'un clic ou d'une touche. **CSS et SVG uniquement**, aucune ressource externe. Avec `prefers-reduced-motion`, un simple fondu de 1,2 s sans cartes. Les navigateurs pilotés par un robot (`navigator.webdriver`) ne la voient pas.
+**Écran « Cliquer pour jouer »** (ADR 0032) : à la première ouverture de la session, un seul bouton plein écran. Son clic est le geste que les navigateurs exigent avant tout son : il débloque l'audio et lance la cinématique **avec un son d'ouverture** synchronisé. Une seule fois par session, comme la cinématique.
+**Cinématique d'introduction** (ADR 0031) : après ce clic, 2,7 s : le logo s'assemble (les tuiles tombent l'une après l'autre), sept cartes de dos s'envolent en éventail derrière lui, puis fondu vers l'accueil. Passable d'un clic ou d'une touche. **CSS et SVG uniquement**, aucune ressource externe. Avec `prefers-reduced-motion`, un simple fondu de 1,2 s sans cartes. Les navigateurs pilotés par un robot (`navigator.webdriver`) ne la voient pas.
 « Jouer contre des bots » ouvre `/bots` : nombre de bots (1 à 5), niveau (Facile / Normal) et **les mêmes réglages de partie que le salon** (composant partagé, sans « Joueurs maximum » : le serveur fixe les places), puis « Jouer ». La partie démarre directement (`room.createBotGame`), sans salon d'attente ; sans pseudo valide on revient à l'accueil.
 
 ### 12.2 Salon (lobby) `/r/:code`
@@ -494,7 +495,13 @@ Toutes les cartes (110 faces + dos) et tous les composants dans tous leurs état
 **Tous les sons sont synthétisés** (Web Audio API : oscillateurs et enveloppes, aucun fichier audio, donc aucune question de licence) : poser une carte, piocher, +2, +4, **+5 (un arpège cristallin « doré », distinct de tous les autres)**, Passe, Inversion, choix de couleur, UNO, contre-UNO, « c'est ton tour », victoire, défaite.
 - Un service unique, `AudioService`, est **déclenché par l'`AnimationDirector`** : un son = un effet, joué au moment où l'effet démarre (une pioche sonne carte par carte, au rythme du serveur). Jamais par un composant, et rien pour ce qu'une vue complète a fait abandonner. Le tour, la victoire et la défaite ne sonnent que pour le joueur concerné.
 - **L'audio ne démarre qu'après une interaction** de l'utilisateur (règle d'autoplay : le premier `pointerdown`, `keydown` ou `touchstart` crée le contexte audio) ; avant, rien ne se joue.
-- Bouton **« Son activé / Son coupé »** et curseur de volume, sur l'accueil et sur la table (icône seule, sans curseur, en portrait étroit). Réglage **personnel**, mémorisé en `localStorage`. **Activé par défaut, à 60 %.** Quand le son est coupé, aucun oscillateur n'est même créé.
+- **Clic d'interface** (ADR 0032) : un tic discret sur chaque bouton, par une directive unique (`ClickSound`) ; un test vérifie qu'aucun gabarit n'a de bouton sans elle.
+- **Musique d'ambiance générée** (ADR 0032) : une boucle douce (La mineur), sans fichier ni licence, sur son propre circuit audio avec **son propre volume**. Dans les **5 dernières secondes de mon tour**, elle monte en tension (tempo de 68 à 132 battements par minute, pouls grave, tic aigu) puis revient à la normale ; ce comportement se désactive.
+- **Malus** : +2, +4, +5, Passe, Inversion et contre-UNO ont des sons à plusieurs couches, plus marquants que les autres.
+- **Réglages audio**, personnels, en `localStorage` : bouton **« Son activé / Son coupé »** (muet général : ni effets ni musique), panneau **« Réglages audio »** (volume des effets **60 %**, volume de la musique **30 %**, case « Tension de fin de tour » **cochée**), sur l'accueil et sur la table (icônes seules en portrait étroit). Quand le son est coupé, aucun oscillateur n'est même créé.
+
+### 13.4 Poussière des effets (ADR 0032)
+Les effets les plus forts (+2, +4, +5, Passe, Inversion, contre-UNO, contestation) lancent un nuage de grains « poussière », discret : **une seule couche `<canvas>`**, `requestAnimationFrame`, **40 particules au plus**, boucle **arrêtée quand plus rien ne bouge**, couleurs tirées des tokens (`--game-*`, **or** pour le +5). Rien du tout avec `prefers-reduced-motion`. Un effet = un son = des particules, lancés au même instant par l'`AnimationDirector` et la couche d'effets.
 
 ## 14. Accessibilité (cible WCAG 2.2 AA)
 
