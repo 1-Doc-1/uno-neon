@@ -1,0 +1,89 @@
+.page {
+  display: grid;
+  align-content: start;
+  justify-items: center;
+  gap: var(--space-5);
+  min-height: 100dvh;
+  padding: var(--space-5) var(--space-4);
+}
+
+.logo {
+  margin: 0;
+  line-height: 0;
+}
+
+.box {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-5);
+  width: min(100%, 720px);
+  padding: var(--space-5);
+  line-height: 1.55;
+}
+
+h2 {
+  font-size: var(--fs-xl);
+}
+
+h3 {
+  margin-bottom: var(--space-2);
+  font-size: var(--fs-lg);
+}
+
+p {
+  margin: 0;
+  color: var(--text-dim);
+}
+
+strong {
+  color: var(--text);
+}
+
+.back {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.specials {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: var(--space-4);
+  }
+}
+
+.sample {
+  --card-w: 64px;
+}
+
+.rules {
+  display: grid;
+  gap: var(--space-4);
+  margin: var(--space-3) 0 0;
+}
+
+.rule {
+  display: grid;
+  gap: var(--space-1);
+
+  dt {
+    font-weight: 700;
+  }
+
+  dd {
+    margin: 0;
+    color: var(--text-dim);
+  }
+
+  .example span {
+    color: var(--text);
+    font-weight: 600;
+  }
+}

@@ -1,0 +1,84 @@
+<main class="page">
+  <h1 class="logo"><app-logo [size]="56" /></h1>
+
+  <article class="panel box">
+    <h2>Comment jouer</h2>
+    <a routerLink="/" class="back">← Retour à l’accueil</a>
+
+    <section aria-labelledby="goal">
+      <h3 id="goal">But du jeu</h3>
+      <p>
+        Être le premier à poser toutes ses cartes. Chaque joueur reçoit 7 cartes ; celui qui finit
+        marque les points des cartes restant dans les mains des autres (chiffres : leur valeur ;
+        Passe, Inversion et +2 : 20 ; Jokers : 50 ; Joker +5 : 50).
+      </p>
+    </section>
+
+    <section aria-labelledby="turn">
+      <h3 id="turn">Ton tour</h3>
+      <p>
+        Pose une carte de la <strong>même couleur</strong> ou du
+        <strong>même chiffre ou symbole</strong> que celle du dessus de la défausse. Les Jokers se
+        posent toujours. Les cartes que tu peux jouer se soulèvent dans ta main ; les autres
+        s’assombrissent. Si tu n’en as aucune, pioche en cliquant sur le paquet.
+      </p>
+    </section>
+
+    <section aria-labelledby="specials">
+      <h3 id="specials">Les cartes spéciales</h3>
+      <ul class="specials">
+        @for (special of specials; track special.card.id) {
+          <li>
+            <app-card [card]="special.card" class="sample" />
+            <div>
+              <strong>{{ special.name }}</strong>
+              <p>{{ special.text }}</p>
+            </div>
+          </li>
+        }
+      </ul>
+    </section>
+
+    <section aria-labelledby="uno">
+      <h3 id="uno">UNO et contre-UNO</h3>
+      <p>
+        Quand il ne te reste qu’<strong>une carte</strong>, appuie sur <strong>UNO !</strong> (tu
+        peux le faire dès que tu as deux cartes, avant de poser). Si tu oublies et qu’un autre
+        joueur appuie sur <strong>Contre-UNO</strong> avant toi, tu pioches 2 cartes. Tu as 2
+        secondes de grâce pour annoncer seul ; ensuite, tout le monde peut te contrer pendant 15
+        secondes.
+      </p>
+    </section>
+
+    <section aria-labelledby="rules">
+      <h3 id="rules">Les options du salon</h3>
+      <p>
+        L’hôte les règle dans le salon, avant de lancer la partie. Les valeurs par défaut sont les
+        règles officielles.
+      </p>
+      <dl class="rules">
+        @for (rule of houseRules; track rule.name) {
+          <div class="rule">
+            <dt>{{ rule.name }}</dt>
+            <dd>{{ rule.text }}</dd>
+            <dd class="example"><span>Exemple :</span> {{ rule.example }}</dd>
+          </div>
+        }
+      </dl>
+    </section>
+
+    <section aria-labelledby="audio">
+      <h3 id="audio">Le son</h3>
+      <p>
+        Le bouton <strong>Son activé / Son coupé</strong> coupe tout (effets et musique). Dans
+        <strong>Réglages audio</strong>, règle séparément le volume des effets et celui de la
+        musique, et choisis si la musique monte en <strong>tension</strong> pendant les 5 dernières
+        secondes de ton tour. Ces réglages sont à toi : ils restent dans ton navigateur. Si tu
+        n’entends rien, clique d’abord sur « Cliquer pour jouer » (les navigateurs refusent le son
+        avant un clic) et vérifie que le mode silencieux de ton téléphone est coupé.
+      </p>
+    </section>
+
+    <a routerLink="/" class="back">← Retour à l’accueil</a>
+  </article>
+</main>

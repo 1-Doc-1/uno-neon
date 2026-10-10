@@ -8,6 +8,11 @@ export const routes: Routes = [
     loadComponent: () => import('./features/bots/bot-game-page').then((m) => m.BotGamePage),
   },
   {
+    path: 'comment-jouer',
+    loadComponent: () =>
+      import('./features/how-to-play/how-to-play-page').then((m) => m.HowToPlayPage),
+  },
+  {
     path: 'r/:code',
     loadComponent: () => import('./features/room/room-page').then((m) => m.RoomPage),
   },
