@@ -27,11 +27,12 @@ enum class Rank : std::uint8_t {
     DrawTwo,
     Wild,
     WildDrawFour,
+    WildDrawFive, // ADR 0028: a Wild that also names a target, and that its target may answer with another one
 };
 
 [[nodiscard]] constexpr bool isWild(Rank rank) noexcept
 {
-    return rank == Rank::Wild || rank == Rank::WildDrawFour;
+    return rank == Rank::Wild || rank == Rank::WildDrawFour || rank == Rank::WildDrawFive;
 }
 
 // Strong type: a CardId cannot be mixed up with an integer or another identifier.

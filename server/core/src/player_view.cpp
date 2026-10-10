@@ -32,6 +32,7 @@ namespace {
                           [](const AwaitingDrawnCardDecision&) { return ViewPhase::AwaitingDrawnCardDecision; },
                           [](const AwaitingColorChoice&) { return ViewPhase::AwaitingColorChoice; },
                           [](const AwaitingPenaltyResponse&) { return ViewPhase::AwaitingPenaltyResponse; },
+                          [](const AwaitingPlusFiveResponse&) { return ViewPhase::AwaitingPenaltyResponse; },
                           [](const RoundOver&) { return ViewPhase::RoundOver; },
                       },
                       round.phase());
@@ -49,6 +50,13 @@ namespace {
         }
     } else if (const auto* drawn = std::get_if<AwaitingDrawnCardDecision>(&round.phase())) {
         ids.push_back(drawn->drawnCard);
+    } else if (std::holds_alternative<AwaitingPlusFiveResponse>(round.phase())) {
+        // Only a Wild Draw Five answers a Wild Draw Five (ADR 0028)
+        for (const auto& card : hand) {
+            if (card.rank == Rank::WildDrawFive) {
+                ids.push_back(card.id);
+            }
+        }
     }
     return ids;
 }
@@ -70,6 +78,13 @@ namespace {
         if (std::holds_alternative<AwaitingPenaltyResponse>(phase)) {
             me.penaltyResponse =
                 PenaltyResponseOptions{.amount = kWildDrawFourPenaltyCards, .canChallenge = true, .canStack = false};
+        } else if (const auto* plusFive = std::get_if<AwaitingPlusFiveResponse>(&phase)) {
+            // A Wild Draw Five cannot be contested; "stack" is answering with one of one's own
+            me.penaltyResponse = PenaltyResponseOptions{
+                .amount = plusFive->total,
+                .canChallenge = false,
+                .canStack = round.holdsWildDrawFive(viewer),
+            };
         }
     }
     me.canCallUno = round.canCallUno(viewer);
@@ -95,6 +110,15 @@ namespace {
 }
 
 // Every remaining hand is public once the round is over (they were counted into the score).
+[[nodiscard]] std::size_t pendingDrawOf(const Round& round)
+{
+    if (std::holds_alternative<AwaitingPenaltyResponse>(round.phase())) {
+        return kWildDrawFourPenaltyCards;
+    }
+    const auto* plusFive = std::get_if<AwaitingPlusFiveResponse>(&round.phase());
+    return plusFive != nullptr ? plusFive->total : 0;
+}
+
 [[nodiscard]] std::optional<RoundResult> roundResultOf(const Round& round)
 {
     const auto* over = std::get_if<RoundOver>(&round.phase());
@@ -129,7 +153,7 @@ std::expected<PlayerView, DomainError> project(const Round& round, const PlayerI
         .currentColor = round.currentColor(),
         .discardTop = round.discardPile().top(),
         .drawPileCount = round.drawPile().size(),
-        .pendingDraw = std::holds_alternative<AwaitingPenaltyResponse>(round.phase()) ? kWildDrawFourPenaltyCards : 0,
+        .pendingDraw = pendingDrawOf(round),
         .round = progress.roundNumber,
         .roundResult = roundResultOf(round),
         .matchWinnerId = progress.winner,

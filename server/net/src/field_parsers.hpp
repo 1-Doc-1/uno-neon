@@ -112,6 +112,37 @@ inline Parsed<TurnTimerSeconds> parseTurnTimer(const Json& value)
     }
 }
 
+// The multiplier of a special card of the deck (ADR 0028): the integers 1, 2, 3 and 5, nothing else.
+inline Parsed<core::CardMultiplier> parseCardMultiplier(const Json& value)
+{
+    const auto times = detail::parseInteger(value, 1, 5);
+    if (!times) {
+        return std::unexpected(times.error());
+    }
+    switch (*times) {
+    case 1:
+        return core::CardMultiplier::One;
+    case 2:
+        return core::CardMultiplier::Two;
+    case 3:
+        return core::CardMultiplier::Three;
+    case 5:
+        return core::CardMultiplier::Five;
+    default:
+        return std::unexpected("is not an allowed value");
+    }
+}
+
+// The same, as its integer code: for the readers that must return something even on error.
+inline Parsed<std::uint8_t> parseCardMultiplierCode(const Json& value)
+{
+    const auto multiplier = parseCardMultiplier(value);
+    if (!multiplier) {
+        return std::unexpected(multiplier.error());
+    }
+    return static_cast<std::uint8_t>(*multiplier);
+}
+
 inline Parsed<std::uint8_t> parseMaxPlayers(const Json& value)
 {
     const auto count = detail::parseInteger(value, kMinRoomPlayers, kMaxRoomPlayers);

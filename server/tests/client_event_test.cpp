@@ -200,3 +200,30 @@ TEST_CASE("A pass has no event of its own for the clients", "[core][clientEvent]
     REQUIRE(projected.size() == 1);
     REQUIRE(std::holds_alternative<TurnChangedEvent>(projected.front()));
 }
+
+TEST_CASE("A Wild Draw Five names its target and the total to everybody, whoever they are", "[core][clientEvent][leak]")
+{
+    SeededRandomSource random{kSeed};
+    std::vector<Card> hand{wildCard(0, Rank::WildDrawFive)};
+    for (std::uint32_t id = 1; hand.size() < kHandSize; ++id) {
+        hand.push_back(coloredCard(id, Color::Red, Rank::Five));
+    }
+    auto round = startedRound(
+        {
+            .seats = players(3),
+            .dealer = player(2),
+            .deck = deckGivingFirstHand(3, hand, coloredCard(40, Color::Blue, Rank::Two)),
+        },
+        random);
+    const auto played =
+        round.apply(player(0), PlayCard{.cardId = CardId{0}, .chosenColor = Color::Green, .target = player(2)}, random);
+    REQUIRE(played.has_value());
+
+    const PlusFiveTargetedEvent expected{.playerId = player(0), .targetId = player(2), .total = 5};
+    for (const auto& viewer : players(3)) {
+        const auto projected = project(*played, viewer, round, kRoundNumber);
+        const auto targeted = eventsOfKind<PlusFiveTargetedEvent>(projected);
+        REQUIRE(targeted == std::vector<PlusFiveTargetedEvent>{expected});
+        requireEventsLeakNothing(projected, round, viewer);
+    }
+}

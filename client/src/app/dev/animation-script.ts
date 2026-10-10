@@ -37,6 +37,12 @@ const played = (playerId: string, played: Card, chosenColor: Color | null = null
   chosenColor,
   isJumpIn: false,
 });
+const targeted = (playerId: string, targetId: string, total: number): ClientEvent => ({
+  kind: 'plusFiveTargeted',
+  playerId,
+  targetId,
+  total,
+});
 const turn = (playerId: string): ClientEvent => ({ kind: 'turnChanged', playerId });
 const drew = (playerId: string, count: number, cards?: Card[]): ClientEvent => ({
   kind: 'cardsDrawn',
@@ -63,6 +69,7 @@ const initialState = (): DemoState => ({
     card(8, 'green', 'reverse'),
     card(9, 'red', '0'),
     card(10, null, 'wildDrawFour'),
+    card(30, null, 'wildDrawFive'),
   ],
   counts: { [LOIC]: 4, [ZOE]: 7 },
   discardTop: card(50, 'red', '5'),
@@ -221,6 +228,52 @@ const STEPS: readonly Step[] = [
     },
   },
   {
+    caption:
+      'Zoé pose un Joker +5 doré et me vise : « +5 » doré en grand au centre pour moi (et sur mon siège pour les autres)',
+    events: [
+      played(ZOE, card(64, null, 'wildDrawFive'), 'yellow'),
+      { kind: 'colorChosen', playerId: ZOE, color: 'yellow' },
+      targeted(ZOE, ME, 5),
+      turn(ME),
+    ],
+    apply: (s) => {
+      s.counts[ZOE] -= 1;
+      s.discardTop = card(64, null, 'wildDrawFive');
+      s.color = 'yellow';
+      s.pending = 5;
+      s.current = ME;
+    },
+  },
+  {
+    caption: 'Je réponds avec mon Joker +5 : je vise Loïc, le total passe à 10',
+    events: [
+      played(ME, card(30, null, 'wildDrawFive'), 'red'),
+      { kind: 'colorChosen', playerId: ME, color: 'red' },
+      targeted(ME, LOIC, 10),
+      turn(LOIC),
+    ],
+    apply: (s) => {
+      s.hand = s.hand.filter((c) => c.id !== 30);
+      s.discardTop = card(30, null, 'wildDrawFive');
+      s.color = 'red';
+      s.pending = 10;
+      s.current = LOIC;
+    },
+  },
+  {
+    caption: 'Loïc accepte : ses 10 cartes arrivent une à une, puis il passe son tour',
+    events: [
+      ...Array.from({ length: 10 }, () => drew(LOIC, 1)),
+      { kind: 'playerSkipped', playerId: LOIC },
+      turn(ZOE),
+    ],
+    apply: (s) => {
+      s.counts[LOIC] += 10;
+      s.pending = 0;
+      s.current = ZOE;
+    },
+  },
+  {
     caption: 'Loïc pioche une carte (face cachée vers son siège)',
     events: [drew(LOIC, 1), turn(ZOE)],
     apply: (s) => {
@@ -259,6 +312,7 @@ export function asSpectator(frames: readonly DemoFrame[]): readonly DemoFrame[] 
         playerId: ZOE,
         hand,
         playableCardIds: frame.view.currentPlayerId === ZOE ? hand.map((card) => card.id) : [],
+        penaltyResponse: null,
       },
     };
     return { caption: frame.caption, events, view };
@@ -293,6 +347,15 @@ export function buildDemoFrames(now: number): readonly DemoFrame[] {
         hand: [...state.hand],
         playableCardIds: state.current === ME ? state.hand.map((c) => c.id) : [],
         canDraw: false,
+        // Un Joker +5 me vise : accepter, ou répondre avec celui de ma main
+        penaltyResponse:
+          state.pending > 0 && state.current === ME
+            ? {
+                amount: state.pending,
+                canChallenge: false,
+                canStack: state.hand.some((c) => c.rank === 'wildDrawFive'),
+              }
+            : null,
       },
     };
     return { caption, events, view };

@@ -3,7 +3,7 @@ import { chooseSetting, startMatch } from '../support/flow.ts';
 import { type Player, playUntil } from '../support/player.ts';
 import { SEEDS } from '../support/seeds.ts';
 
-test.use({ seed: SEEDS.quickGame });
+test.use({ seed: SEEDS.fastGame });
 
 /** Joue (politique des tests) jusqu'à ce que Bob n'ait plus qu'une carte, sans qu'il annonce UNO. */
 async function playUntilBobHasOneCard(host: Player, guest: Player): Promise<void> {

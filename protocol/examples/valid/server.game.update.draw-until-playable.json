@@ -8,19 +8,37 @@
         "kind": "cardsDrawn",
         "playerId": "p_Lea4f9Kx2",
         "count": 1,
-        "cards": [{ "id": 2210, "color": "blue", "rank": "3" }]
+        "cards": [
+          {
+            "id": 2210,
+            "color": "blue",
+            "rank": "3"
+          }
+        ]
       },
       {
         "kind": "cardsDrawn",
         "playerId": "p_Lea4f9Kx2",
         "count": 1,
-        "cards": [{ "id": 2711, "color": "green", "rank": "9" }]
+        "cards": [
+          {
+            "id": 2711,
+            "color": "green",
+            "rank": "9"
+          }
+        ]
       },
       {
         "kind": "cardsDrawn",
         "playerId": "p_Lea4f9Kx2",
         "count": 1,
-        "cards": [{ "id": 1843, "color": "red", "rank": "7" }]
+        "cards": [
+          {
+            "id": 1843,
+            "color": "red",
+            "rank": "7"
+          }
+        ]
       }
     ],
     "view": {
@@ -29,10 +47,26 @@
       "me": {
         "playerId": "p_Lea4f9Kx2",
         "hand": [
-          { "id": 940, "color": "yellow", "rank": "2" },
-          { "id": 2210, "color": "blue", "rank": "3" },
-          { "id": 2711, "color": "green", "rank": "9" },
-          { "id": 1843, "color": "red", "rank": "7" }
+          {
+            "id": 940,
+            "color": "yellow",
+            "rank": "2"
+          },
+          {
+            "id": 2210,
+            "color": "blue",
+            "rank": "3"
+          },
+          {
+            "id": 2711,
+            "color": "green",
+            "rank": "9"
+          },
+          {
+            "id": 1843,
+            "color": "red",
+            "rank": "7"
+          }
         ],
         "playableCardIds": [1843],
         "canDraw": false,
@@ -106,7 +140,10 @@
         "matchLength": "to500",
         "maxPlayers": 6,
         "drawRule": "guided",
-        "declareUnoToWin": false
+        "declareUnoToWin": false,
+        "drawTwoMultiplier": 1,
+        "wildDrawFourMultiplier": 1,
+        "wildDrawFiveMultiplier": 1
       },
       "roundResult": null,
       "matchWinnerId": null

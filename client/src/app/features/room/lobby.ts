@@ -1,6 +1,7 @@
 import { Component, computed, inject, input, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import type {
+  CardMultiplier,
   DrawAmount,
   DrawRule,
   MatchLength,
@@ -13,6 +14,7 @@ import { Button } from '../../ui/button';
 import { Icon } from '../../ui/icon';
 import { Logo } from '../../ui/logo';
 import { SegmentOption, Segmented } from '../../ui/segmented';
+import { deckSize } from './deck-size';
 
 const MATCH_LENGTHS: readonly SegmentOption<MatchLength>[] = [
   { value: 'singleRound', label: 'Manche unique' },
@@ -40,6 +42,13 @@ const DRAW_RULES: readonly SegmentOption<DrawRule>[] = [
 const DRAW_AMOUNTS: readonly SegmentOption<DrawAmount>[] = [
   { value: 'untilPlayable', label: 'Jusqu’à pouvoir jouer' },
   { value: 'one', label: '1 carte' },
+];
+
+const MULTIPLIERS: readonly SegmentOption<CardMultiplier>[] = [
+  { value: 1, label: '×1' },
+  { value: 2, label: '×2' },
+  { value: 3, label: '×3' },
+  { value: 5, label: '×5' },
 ];
 
 type LastCardRule = 'free' | 'declare';
@@ -75,6 +84,7 @@ export class Lobby {
   protected readonly drawRules = DRAW_RULES;
   protected readonly drawAmounts = DRAW_AMOUNTS;
   protected readonly lastCardRules = LAST_CARD_RULES;
+  protected readonly multipliers = MULTIPLIERS;
 
   /** Joueur dont l'exclusion attend une confirmation. */
   protected readonly kickCandidate = signal<string | null>(null);
@@ -96,6 +106,8 @@ export class Lobby {
     return waiting.length > 0 ? `En attente de : ${waiting.join(', ')}` : null;
   });
 
+  protected readonly deckCards = computed(() => deckSize(this.room().settings));
+
   /** Résumé en lecture seule des réglages, pour ceux qui ne sont pas l'hôte. */
   protected readonly summary = computed(() => {
     const s = this.room().settings;
@@ -105,6 +117,7 @@ export class Lobby {
       second: `Pioche ${s.drawRule === 'guided' ? 'guidée' : 'officielle'}, ${
         s.drawAmount === 'untilPlayable' ? 'jusqu’à pouvoir jouer' : '1 carte'
       } · ${s.declareUnoToWin ? 'UNO obligatoire pour gagner' : 'dernière carte libre'}`,
+      third: `Paquet de ${deckSize(s)} cartes : +2 ×${s.drawTwoMultiplier}, +4 ×${s.wildDrawFourMultiplier}, +5 ×${s.wildDrawFiveMultiplier}`,
     };
   });
 

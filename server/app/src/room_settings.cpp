@@ -34,6 +34,15 @@ RoomSettings applyPatch(RoomSettings settings, const RoomSettingsPatch& patch) n
     if (patch.declareUnoToWin) {
         settings.declareUnoToWin = *patch.declareUnoToWin;
     }
+    if (patch.drawTwoMultiplier) {
+        settings.drawTwoMultiplier = *patch.drawTwoMultiplier;
+    }
+    if (patch.wildDrawFourMultiplier) {
+        settings.wildDrawFourMultiplier = *patch.wildDrawFourMultiplier;
+    }
+    if (patch.wildDrawFiveMultiplier) {
+        settings.wildDrawFiveMultiplier = *patch.wildDrawFiveMultiplier;
+    }
     return settings;
 }
 

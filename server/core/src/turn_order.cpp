@@ -60,6 +60,16 @@ std::size_t TurnOrder::nextSeat() const noexcept
     return (currentSeat_ + step) % playerCount;
 }
 
+bool TurnOrder::moveTo(const PlayerId& player)
+{
+    const auto seat = seatOf(player);
+    if (!seat.has_value()) {
+        return false;
+    }
+    currentSeat_ = *seat;
+    return true;
+}
+
 bool TurnOrder::remove(const PlayerId& player)
 {
     const auto removedSeat = seatOf(player);

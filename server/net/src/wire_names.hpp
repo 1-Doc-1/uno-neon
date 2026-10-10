@@ -79,6 +79,7 @@ struct WireNames<core::Rank> {
         WireName{.value = core::Rank::DrawTwo, .name = "drawTwo"},
         WireName{.value = core::Rank::Wild, .name = "wild"},
         WireName{.value = core::Rank::WildDrawFour, .name = "wildDrawFour"},
+        WireName{.value = core::Rank::WildDrawFive, .name = "wildDrawFive"},
     };
 };
 
@@ -207,6 +208,10 @@ struct WireNames<app::IllegalMoveReason> {
         WireName{.value = app::IllegalMoveReason::CannotChallenge, .name = "CANNOT_CHALLENGE"},
         WireName{.value = app::IllegalMoveReason::MustPlay, .name = "MUST_PLAY"},
         WireName{.value = app::IllegalMoveReason::MustDeclareUno, .name = "MUST_DECLARE_UNO"},
+        WireName{.value = app::IllegalMoveReason::TargetRequired, .name = "TARGET_REQUIRED"},
+        WireName{.value = app::IllegalMoveReason::TargetNotAllowed, .name = "TARGET_NOT_ALLOWED"},
+        WireName{.value = app::IllegalMoveReason::InvalidTarget, .name = "INVALID_TARGET"},
+        WireName{.value = app::IllegalMoveReason::OnlyPlusFivePlayable, .name = "ONLY_PLUS_FIVE_PLAYABLE"},
     };
 };
 

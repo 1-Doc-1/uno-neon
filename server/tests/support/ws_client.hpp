@@ -95,6 +95,11 @@ public:
     {
         const auto id = send(std::move(body));
         const auto answer = require(answerTo(id), "an answer");
+        // Said before the REQUIRE, so that a refusal tells which one it was
+        const auto* error = std::get_if<app::response::Error>(&answer);
+        const int code = error != nullptr ? static_cast<int>(error->code) : -1;
+        const int reason = error != nullptr && error->reason ? static_cast<int>(*error->reason) : -1;
+        CAPTURE(code, reason);
         REQUIRE(std::holds_alternative<app::response::Ack>(answer));
     }
 

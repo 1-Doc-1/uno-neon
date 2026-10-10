@@ -15,6 +15,11 @@ const binary =
 const MAX_VERSIONS = 90;
 // Le réglage de pioche du salon : les graines des tests existants sont trouvées avec « one » (voir `lobby` dans fixtures.ts).
 const drawAmount = process.env['UNO_FIND_DRAW_AMOUNT'] ?? 'one';
+// D'autres réglages du salon (JSON), par exemple un paquet riche en Joker +5 : `{"wildDrawFiveMultiplier":5}`
+const extraSettings = JSON.parse(process.env['UNO_FIND_SETTINGS'] ?? '{}') as Record<
+  string,
+  unknown
+>;
 
 interface Finding {
   seed: number;
@@ -25,6 +30,8 @@ interface Finding {
   firstHand: string[];
   /** Le premier joueur a un +2 jouable dès le premier tour (une pénalité ouvre la résolution : ADR 0027). */
   drawTwo: boolean;
+  /** Combien de Jokers +5 tiennent le premier joueur et l'autre dans leur main de départ. */
+  plusFive: { first: number; other: number };
   /** Le premier joueur a un +4 : bluff (il a la couleur active) ou légal ? */
   wildDrawFour: 'none' | 'bluff' | 'legal';
   /** Version de la vue où quelqu'un n'a plus qu'une carte pour la première fois, et qui. */
@@ -88,7 +95,7 @@ async function run(seed: number, port: number): Promise<Finding> {
     await a.open();
     const created = a.send('room.create', {
       nickname: 'Alice',
-      settings: { matchLength: 'singleRound', drawAmount },
+      settings: { matchLength: 'singleRound', drawAmount, ...extraSettings },
     });
     await created;
     while (!a.roomCode) await new Promise((done) => setTimeout(done, 5));
@@ -118,6 +125,12 @@ async function run(seed: number, port: number): Promise<Finding> {
         (card) => card.rank === 'drawTwo' && firstView.me.playableCardIds.includes(card.id),
       ),
       wildDrawFour: !wd4 ? 'none' : hasActiveColor ? 'bluff' : 'legal',
+      plusFive: {
+        first: hand.filter((card) => card.rank === 'wildDrawFive').length,
+        other: ((first === 'A' ? b : a).view as PlayerView).me.hand.filter(
+          (card) => card.rank === 'wildDrawFive',
+        ).length,
+      },
       oneCard: null,
       noPlayable: null,
       multiDraw: null,

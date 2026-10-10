@@ -35,6 +35,9 @@ public:
     [[nodiscard]] std::optional<std::size_t> seatOf(const PlayerId& player) const;
 
     void advance() noexcept { currentSeat_ = nextSeat(); }
+    // Gives the turn to `player`, wherever they sit (a Wild Draw Five names its target). False, changing nothing, if
+    // the player is not seated.
+    bool moveTo(const PlayerId& player);
     // Takes `player` out of the order (at least three players must be seated). When it was their turn, the
     // turn passes to whoever comes next in the current direction. Returns false, changing nothing, if the
     // player is not seated or only two players are.

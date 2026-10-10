@@ -386,6 +386,7 @@ Application::Outcome Application::startMatch(Room& room)
                                           .drawRule = room.settings.drawRule,
                                           .drawAmount = room.settings.drawAmount,
                                           .declareUnoToWin = room.settings.declareUnoToWin,
+                                          .deck = room.settings.deck(),
                                       },
                                       *random_);
     if (!started) {
@@ -463,7 +464,9 @@ Application::Outcome Application::handle(ConnectionId connection, const request:
     if (request.swapTargetId) {
         return fail(ErrorCode::IllegalMove, "Swapping hands is not available", IllegalMoveReason::SwapTargetInvalid);
     }
-    return play(connection, core::PlayCard{.cardId = request.cardId, .chosenColor = request.chosenColor});
+    return play(
+        connection,
+        core::PlayCard{.cardId = request.cardId, .chosenColor = request.chosenColor, .target = request.targetId});
 }
 
 Application::Outcome Application::handle(ConnectionId connection, const request::DrawCard& /*request*/)
@@ -566,6 +569,20 @@ Application::Outcome Application::play(ConnectionId connection, const core::Play
         case core::DomainError::OnlyDrawnCardPlayable:
             return fail(ErrorCode::IllegalMove, "Only the card you just drew can be played",
                         IllegalMoveReason::OnlyDrawnCardPlayable);
+        case core::DomainError::TargetRequired:
+            return fail(ErrorCode::IllegalMove, "A Wild Draw Five needs a target", IllegalMoveReason::TargetRequired);
+        case core::DomainError::TargetNotAllowed:
+            return fail(ErrorCode::IllegalMove, "Only a Wild Draw Five has a target",
+                        IllegalMoveReason::TargetNotAllowed);
+        case core::DomainError::InvalidTarget:
+            return fail(ErrorCode::IllegalMove, "The target must be another player of the round",
+                        IllegalMoveReason::InvalidTarget);
+        case core::DomainError::OnlyPlusFivePlayable:
+            return fail(ErrorCode::IllegalMove, "Only a Wild Draw Five answers a Wild Draw Five",
+                        IllegalMoveReason::OnlyPlusFivePlayable);
+        case core::DomainError::CannotChallenge:
+            return fail(ErrorCode::IllegalMove, "A Wild Draw Five cannot be challenged",
+                        IllegalMoveReason::CannotChallenge);
         case core::DomainError::UnoWindowClosed:
         case core::DomainError::CannotCatchSelf:
         case core::DomainError::UnknownPlayer:

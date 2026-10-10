@@ -98,6 +98,16 @@ struct ChallengeResolved {
     bool operator==(const ChallengeResolved&) const = default;
 };
 
+// A Wild Draw Five was played (or answered): `target` must now draw `total` cards or answer with another one
+// (ADR 0028). Public: everybody sees who is targeted and how much is at stake, never the cards that will be drawn.
+struct PlusFiveTargeted {
+    PlayerId player;
+    PlayerId target;
+    std::size_t total{};
+
+    bool operator==(const PlusFiveTargeted&) const = default;
+};
+
 // A player announced UNO, in time (before playing their second-to-last card, or in the UNO window).
 struct UnoCalled {
     PlayerId player;
@@ -132,6 +142,6 @@ struct MatchEnded {
 
 using DomainEvent = std::variant<RoundStarted, CardPlayed, CardsDrawn, PenaltyCardsDrawn, DeckReshuffled, TurnPassed,
                                  PlayerSkipped, DirectionReversed, ColorChosen, TurnChanged, ChallengeResolved,
-                                 UnoCalled, UnoCaught, RoundEnded, MatchEnded>;
+                                 PlusFiveTargeted, UnoCalled, UnoCaught, RoundEnded, MatchEnded>;
 
 } // namespace uno::core

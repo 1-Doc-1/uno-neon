@@ -67,6 +67,7 @@ export class EffectsLayer {
     green: 'var(--game-green)',
     blue: 'var(--game-blue)',
     white: 'var(--text)',
+    gold: 'var(--gold-edge)',
   };
   protected readonly quarters = COLORS.map((color) => ({ color, path: QUARTERS[color] }));
 

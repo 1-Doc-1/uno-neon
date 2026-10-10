@@ -85,6 +85,18 @@ describe('planEffects', () => {
     expect(second.specs[0]).toMatchObject({ kind: 'draw', penalty: true });
   });
 
+  it('shows a Wild Draw Five as a gold effect on its target, and the draw that follows as a penalty', () => {
+    const { specs } = planEffects(
+      [{ kind: 'plusFiveTargeted', playerId: 'loic', targetId: 'me', total: 10 }, drew('me', 10)],
+      INITIAL_PLAN_STATE,
+    );
+
+    expect(specs).toMatchObject([
+      { kind: 'plusFive', playerId: 'loic', targetId: 'me', total: 10 },
+      { kind: 'draw', playerId: 'me', count: 10, penalty: true },
+    ]);
+  });
+
   it('plays a single colour wheel for a Joker, whether or not the server also sends colorChosen', () => {
     const alone = planEffects([played('loic', wild, 'blue')], INITIAL_PLAN_STATE).specs;
     const doubled = planEffects(

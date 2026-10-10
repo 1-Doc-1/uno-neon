@@ -55,6 +55,16 @@
   --card-yellow: #e5a900;
   --card-green: #1c9a52;
   --card-blue: #1d6bd0;
+  // Le Joker +5 : de l'or, rare et précieux (dégradé métallique, bord néon or, reflet)
+  --gold-light: #fff0a8;
+  --gold-mid: #f5bd1f;
+  --gold-deep: #b57a05;
+  --gold-edge: #ffd24a;
+  --gold-ink: #3b2400; // chiffre « +5 » : brun très sombre sur l'or
+  --gold-glint: rgb(255 255 255 / 0.55);
+  --gold-halo:
+    0 0 0.3em var(--gold-ink), 0 0 0.8em var(--gold-ink); // halo sombre : l'or se détache de la carte dorée
+
   --card-body: #17171b; // corps des jokers et des dos
   --card-ink: #14141c; // contour sombre des chiffres
   --card-veil: rgb(

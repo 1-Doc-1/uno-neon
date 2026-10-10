@@ -20,8 +20,8 @@ test.describe('pioche jusqu’à pouvoir jouer', () => {
     };
     await playUntil([guest, alice], async () => mustChoose.isVisible());
 
-    await expect(host.cards).toHaveCount(8);
-    await expect(guest.cardCountOf('Alice')).toHaveText('8');
+    await expect(host.cards).toHaveCount(9);
+    await expect(guest.cardCountOf('Alice')).toHaveText('9');
   });
 });
 
@@ -50,8 +50,8 @@ test.describe('pioche rythmée par le serveur', () => {
       }
     })();
     await playUntil([guest, alice], async () => mustChoose.isVisible());
-    await expect(host.cards).toHaveCount(8);
-    await expect(guest.cardCountOf('Alice')).toHaveText('8');
+    await expect(host.cards).toHaveCount(9);
+    await expect(guest.cardCountOf('Alice')).toHaveText('9');
     playing = false;
     await sampler;
 
@@ -117,7 +117,7 @@ test.describe('main pendant une pioche, à vitesse réelle', () => {
       requestAnimationFrame(watch);
     });
     await playUntil([guest, alice], async () => mustChoose.isVisible());
-    await expect(host.cards).toHaveCount(8);
+    await expect(host.cards).toHaveCount(9);
 
     // Aucun élément animé ni dos de carte ne reste une fois la pioche terminée
     await expect(host.page.locator('app-effects-layer .flight')).toHaveCount(0);

@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <iterator>
 #include <optional>
 #include <string>
 #include <type_traits>
@@ -112,6 +113,22 @@ struct Table {
     RoomCode code;
 };
 
+// The request that plays `card` (a Wild gets a colour, a Wild Draw Five also a target: the player after the actor).
+inline request::PlayCard playRequest(const core::Card& card, const core::Round& round)
+{
+    request::PlayCard play{};
+    play.cardId = card.id;
+    if (core::isWild(card.rank)) {
+        play.chosenColor = core::Color::Red;
+    }
+    if (card.rank == core::Rank::WildDrawFive) {
+        const auto seats = round.seats();
+        const auto current = static_cast<std::size_t>(std::ranges::find(seats, round.currentPlayer()) - seats.begin());
+        play.targetId = *std::next(seats.begin(), static_cast<std::ptrdiff_t>((current + 1) % seats.size()));
+    }
+    return play;
+}
+
 inline request::Body toRequest(const core::PlayerAction& action)
 {
     return std::visit(
@@ -122,6 +139,7 @@ inline request::Body toRequest(const core::PlayerAction& action)
                     .cardId = typed.cardId,
                     .chosenColor = typed.chosenColor,
                     .swapTargetId = std::nullopt,
+                    .targetId = typed.target,
                 };
             } else if constexpr (std::is_same_v<Action, core::DrawCard>) {
                 return request::DrawCard{};

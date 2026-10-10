@@ -56,7 +56,9 @@ void playFirstPlayableCard(core::Match& match, const core::PlayerId& actor, core
         if (round.mustDeclareUno(actor)) {
             autoApply(match, actor, core::CallUno{}, random, events);
         }
-        autoApply(match, actor, core::PlayCard{.cardId = playable->id, .chosenColor = std::nullopt}, random, events);
+        autoApply(match, actor,
+                  core::PlayCard{.cardId = playable->id, .chosenColor = std::nullopt, .target = std::nullopt}, random,
+                  events);
     }
 }
 
@@ -203,6 +205,7 @@ std::chrono::milliseconds Application::presentationBudgetOf(std::span<const core
                            budget += timeouts_.effectStep;
                            turnAction = true;
                        },
+                       [&](const core::PlusFiveTargeted&) { budget += timeouts_.effectStep; },
                        [&](const core::ChallengeResolved&) {
                            budget += timeouts_.effectStep;
                            turnAction = true;
@@ -393,7 +396,7 @@ void Application::onTurnExpired(const RoomCode& code, std::uint64_t turnEpoch)
     // and the UNO window closes as it would have.
 
     const core::TurnPhase& phase = match.round().phase();
-    if (std::holds_alternative<core::AwaitingPenaltyResponse>(phase)) {
+    if (match.round().awaitsPenaltyAnswer()) {
         autoApply(match, actor, core::RespondPenalty{.response = core::PenaltyResponse::Accept}, *random_, events);
     } else if (std::holds_alternative<core::AwaitingColorChoice>(phase)) {
         const auto color = core::kColors.at(random_->uniform(static_cast<std::uint32_t>(core::kColors.size())));

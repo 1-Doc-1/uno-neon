@@ -10,9 +10,7 @@ test.describe('résolution d’un effet (ADR 0027)', () => {
   }) => {
     const { guest: bob } = lobby;
     await startMatch(lobby);
-    await expect(bob.playableCards).toHaveCount(2);
-
-    await bob.card(/^Plus deux rouge/).click();
+    await bob.card(/^Plus deux bleu/).click();
 
     // Alice saute son tour : c'est de nouveau à Bob, mais sa main reste neutre pendant que les cartes arrivent chez elle
     await expect(bob.myTurn).toBeVisible();

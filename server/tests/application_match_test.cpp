@@ -148,8 +148,12 @@ TEST_CASE("A move out of turn or with a card not held is refused and tells nobod
 
     other.send(request::DrawCard{});
     REQUIRE(refusal(other.received()) == ErrorCode::NotYourTurn);
-    current.send(
-        request::PlayCard{.cardId = core::CardId{999999}, .chosenColor = std::nullopt, .swapTargetId = std::nullopt});
+    current.send(request::PlayCard{
+        .cardId = core::CardId{999999},
+        .chosenColor = std::nullopt,
+        .swapTargetId = std::nullopt,
+        .targetId = std::nullopt,
+    });
     REQUIRE(refusal(current.received()) == ErrorCode::CardNotInHand);
 
     for (auto& player : table.players) {
@@ -167,7 +171,12 @@ TEST_CASE("Swapping hands is not available", "[app][match]")
         table.players.front().id() == current.id() ? table.players.back().id() : table.players.front().id();
     static_cast<void>(current.received());
 
-    current.send(request::PlayCard{.cardId = card, .chosenColor = std::nullopt, .swapTargetId = target});
+    current.send(request::PlayCard{
+        .cardId = card,
+        .chosenColor = std::nullopt,
+        .swapTargetId = target,
+        .targetId = std::nullopt,
+    });
 
     const auto replies = current.received();
     REQUIRE(refusal(replies) == ErrorCode::IllegalMove);

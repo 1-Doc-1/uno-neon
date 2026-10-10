@@ -90,6 +90,9 @@ select {
 .tint-wild {
   color: var(--text);
 }
+.tint-gold {
+  color: var(--gold-edge);
+}
 
 // Mouvement réduit : plus aucune animation (pulsations comprises), les transitions deviennent instantanées
 @media (prefers-reduced-motion: reduce) {

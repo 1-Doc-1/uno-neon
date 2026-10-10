@@ -98,6 +98,9 @@ describe('GameStore', () => {
             maxPlayers: 6,
             drawRule: 'guided',
             declareUnoToWin: false,
+            drawTwoMultiplier: 1,
+            wildDrawFourMultiplier: 1,
+            wildDrawFiveMultiplier: 1,
           },
           players: [
             {

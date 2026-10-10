@@ -83,6 +83,18 @@ void requireWildDrawFourPlayerIsNotCurrent(const core::Round& round)
     REQUIRE(round.currentPlayer() != awaiting->wildDrawFourPlayer);
 }
 
+// While a Wild Draw Five waits for its answer, what is owed is a whole number of fives, and the target (the current
+// player) has the turn: ADR 0028.
+void requirePlusFiveTotalIsCoherent(const core::Round& round)
+{
+    const auto* awaiting = std::get_if<core::AwaitingPlusFiveResponse>(&round.phase());
+    if (awaiting == nullptr) {
+        return;
+    }
+    REQUIRE(awaiting->total >= core::kWildDrawFivePenaltyCards);
+    REQUIRE(awaiting->total % core::kWildDrawFivePenaltyCards == 0);
+}
+
 // A UNO window only ever concerns a player holding exactly one card who did not announce it, once per player.
 void requireUnoWindowsAreCoherent(const core::Round& round)
 {
@@ -137,6 +149,7 @@ void requireRoundInvariants(const core::Round& round)
     requireCurrentColorMatchesPhase(round);
     requireDrawnCardStillInHand(round);
     requireWildDrawFourPlayerIsNotCurrent(round);
+    requirePlusFiveTotalIsCoherent(round);
     requireRoundOverIsCoherent(round);
     requireUnoWindowsAreCoherent(round);
     requireAnnouncementsAreCoherent(round);

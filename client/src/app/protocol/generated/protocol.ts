@@ -66,6 +66,18 @@ export type MaxPlayers = number;
  */
 export type DrawRule = 'guided' | 'official';
 /**
+ * Draw Two in the deck: 8 x this (ADR 0028).
+ */
+export type CardMultiplier = 1 | 2 | 3 | 5;
+/**
+ * Wild Draw Four in the deck: 4 x this (ADR 0028).
+ */
+export type CardMultiplier1 = 1 | 2 | 3 | 5;
+/**
+ * Wild Draw Five in the deck: 2 x this (ADR 0028).
+ */
+export type CardMultiplier2 = 1 | 2 | 3 | 5;
+/**
  * 6 characters, without the ambiguous I, L, O, 0 and 1.
  */
 export type RoomCode = string;
@@ -140,7 +152,23 @@ export type IllegalMoveReason =
   | 'CANNOT_STACK'
   | 'CANNOT_CHALLENGE'
   | 'MUST_PLAY'
-  | 'MUST_DECLARE_UNO';
+  | 'MUST_DECLARE_UNO'
+  | 'TARGET_REQUIRED'
+  | 'TARGET_NOT_ALLOWED'
+  | 'INVALID_TARGET'
+  | 'ONLY_PLUS_FIVE_PLAYABLE';
+/**
+ * Draw Two in the deck: 8 x this (ADR 0028).
+ */
+export type CardMultiplier3 = 1 | 2 | 3 | 5;
+/**
+ * Wild Draw Four in the deck: 4 x this (ADR 0028).
+ */
+export type CardMultiplier4 = 1 | 2 | 3 | 5;
+/**
+ * Wild Draw Five in the deck: 2 x this (ADR 0028).
+ */
+export type CardMultiplier5 = 1 | 2 | 3 | 5;
 /**
  * Server clock, milliseconds since the Unix epoch.
  */
@@ -158,6 +186,7 @@ export type ClientEvent =
   | ColorChosenEvent
   | PenaltyStackedEvent
   | ChallengeResolvedEvent
+  | PlusFiveTargetedEvent
   | UnoCalledEvent
   | UnoCaughtEvent
   | HandsSwappedEvent
@@ -183,7 +212,8 @@ export type Rank =
   | 'reverse'
   | 'drawTwo'
   | 'wild'
-  | 'wildDrawFour';
+  | 'wildDrawFour'
+  | 'wildDrawFive';
 export type Direction = 'clockwise' | 'counterClockwise';
 export type GamePhase =
   | 'awaitingPlay'
@@ -240,6 +270,9 @@ export interface RoomSettingsPatch {
    * House rule (ADR 0019): the last card cannot be played before UNO is announced.
    */
   declareUnoToWin?: boolean;
+  drawTwoMultiplier?: CardMultiplier;
+  wildDrawFourMultiplier?: CardMultiplier1;
+  wildDrawFiveMultiplier?: CardMultiplier2;
 }
 /**
  * Joins an existing room that is in the lobby and not full.
@@ -339,7 +372,7 @@ export interface ReadyForNextRoundMessage {
   payload: EmptyPayload;
 }
 /**
- * Plays a card on your turn (or out of turn with jumpIn). chosenColor is required for wild cards, swapTargetId for a 7 with sevenZero.
+ * Plays a card on your turn (or out of turn with jumpIn). chosenColor is required for wild cards, swapTargetId for a 7 with sevenZero, targetId for a Wild Draw Five (any other player; also the way to answer a Wild Draw Five aimed at you).
  */
 export interface PlayCardMessage {
   v: ProtocolVersion;
@@ -351,6 +384,7 @@ export interface PlayCardPayload {
   cardId: CardId;
   chosenColor?: Color;
   swapTargetId?: PlayerId;
+  targetId?: PlayerId;
 }
 /**
  * Draws instead of playing (phase awaitingPlay).
@@ -509,6 +543,9 @@ export interface RoomSettings {
    * House rule (ADR 0019): the last card cannot be played before UNO is announced.
    */
   declareUnoToWin: boolean;
+  drawTwoMultiplier: CardMultiplier3;
+  wildDrawFourMultiplier: CardMultiplier4;
+  wildDrawFiveMultiplier: CardMultiplier5;
 }
 export interface RoomMember {
   playerId: PlayerId;
@@ -618,6 +655,15 @@ export interface ChallengeResolvedEvent {
   penalizedPlayerId: PlayerId;
   penaltyAmount: number;
   revealedHand?: Card[];
+}
+/**
+ * A Wild Draw Five was played or answered (ADR 0028): `targetId` must draw `total` cards, or answer with another Wild Draw Five. Public: everybody sees who is targeted and how much is at stake.
+ */
+export interface PlusFiveTargetedEvent {
+  kind: 'plusFiveTargeted';
+  playerId: PlayerId;
+  targetId: PlayerId;
+  total: number;
 }
 /**
  * A player announced UNO.

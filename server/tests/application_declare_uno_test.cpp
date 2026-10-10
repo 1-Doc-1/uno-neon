@@ -81,11 +81,7 @@ TEST_CASE("The last card is refused as MUST_DECLARE_UNO, and the view says so", 
     REQUIRE(current.last<response::GameUpdate>()->view.game.me.mustDeclareUno);
     table->clearInboxes();
 
-    current.send(request::PlayCard{
-        .cardId = hand.front().id,
-        .chosenColor = core::isWild(hand.front().rank) ? std::optional<core::Color>{core::Color::Red} : std::nullopt,
-        .swapTargetId = std::nullopt,
-    });
+    current.send(uno::testing::playRequest(hand.front(), table->room().match->round()));
 
     const auto replies = current.received();
     REQUIRE(refusal(replies) == ErrorCode::IllegalMove);
@@ -101,11 +97,7 @@ TEST_CASE("Announcing UNO unblocks the last card", "[app][declareUno]")
 
     current.send(request::CallUno{});
     REQUIRE_FALSE(current.last<response::GameUpdate>()->view.game.me.mustDeclareUno);
-    current.send(request::PlayCard{
-        .cardId = card.id,
-        .chosenColor = core::isWild(card.rank) ? std::optional<core::Color>{core::Color::Red} : std::nullopt,
-        .swapTargetId = std::nullopt,
-    });
+    current.send(uno::testing::playRequest(card, table->room().match->round()));
 
     REQUIRE(std::holds_alternative<core::RoundOver>(table->room().match->round().phase()));
 }

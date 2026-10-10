@@ -16,7 +16,7 @@ test('recharger l’onglet : le joueur retrouve sa main et son tour, et peut jou
   await expect(guest.cards).toHaveCount(7);
   expect(await guest.handLabels()).toEqual(handBefore);
   await expect(guest.myTurn).toBeVisible();
-  await guest.card('5 vert, jouable').click();
+  await guest.card('1 jaune, jouable').click();
   await expect(host.myTurn).toBeVisible();
   await expect(host.cardCountOf('Bob')).toHaveText('6');
 });

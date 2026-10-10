@@ -27,7 +27,7 @@ namespace {
 [[nodiscard]] std::expected<RoundStart, DomainError> dealRound(std::vector<PlayerId> seats, PlayerId dealer,
                                                                const MatchSettings& settings, RandomSource& random)
 {
-    auto deck = createStandardDeck(random);
+    auto deck = createDeck(settings.deck, random);
     shuffle(std::span{deck}, random);
     return Round::start(
         {

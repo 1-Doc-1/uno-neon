@@ -51,26 +51,29 @@ Objectifs de qualité, par ordre de priorité :
 | Main | `Hand` | |
 | Carte | `Card` | identifiée par un `CardId` unique dans la partie |
 | Couleur | `Color` | `Red`, `Yellow`, `Green`, `Blue` ; un Joker non posé n'a pas de couleur (`std::optional<Color>` vide, voir ADR 0009) |
-| Valeur | `Rank` | `Zero`…`Nine`, `Skip`, `Reverse`, `DrawTwo`, `Wild`, `WildDrawFour` |
+| Valeur | `Rank` | `Zero`…`Nine`, `Skip`, `Reverse`, `DrawTwo`, `Wild`, `WildDrawFour`, `WildDrawFive` |
 | Passe ton tour | `Skip` | |
 | Inversion | `Reverse` | |
 | +2 | `DrawTwo` | |
 | Joker | `Wild` | |
 | Joker +4 | `WildDrawFour` | |
+| Joker +5 | `WildDrawFive` | « joker doré » : désigne une cible et se réplique (ADR 0028) |
+| Composition du paquet | `DeckSettings` / `CardMultiplier` | multiplicateurs du nombre de +2, de +4 et de +5 (×1, ×2, ×3, ×5) |
 | Pénalité de pioche en attente | `PendingDraw` | utile pour le cumul |
 | Vue d'un joueur | `PlayerView` | seule donnée de partie envoyée à un client |
 
 ## 3. Règles du jeu (officielles, activées par défaut)
 
-**Matériel** : 108 cartes.
+**Matériel** : 110 cartes (les 108 officielles et deux Joker +5, ADR 0028).
 - Par couleur (×4) : un 0, deux de chaque de 1 à 9, deux `Skip`, deux `Reverse`, deux `DrawTwo` → 25 cartes.
 - 4 `Wild` et 4 `WildDrawFour`.
+- 2 `WildDrawFive` (sans couleur). Le nombre de `DrawTwo`, de `WildDrawFour` et de `WildDrawFive` se règle dans le salon (§4, « Composition du paquet »).
 
 **Mise en place d'une manche**
 - Le donneur de la première manche est tiré au hasard, puis il tourne d'un siège à chaque manche.
 - 7 cartes par joueur. Le reste forme la pioche. On retourne la première carte de la pioche sur la défausse.
 - Effet de la première carte retournée :
-  - `WildDrawFour` : remise dans la pioche, pioche remélangée, on retourne une nouvelle carte.
+  - `WildDrawFour` ou `WildDrawFive` : remise dans la pioche, pioche remélangée, on retourne une nouvelle carte.
   - `Wild` : le premier joueur choisit la couleur puis joue normalement.
   - `DrawTwo` : le premier joueur pioche 2 cartes et passe son tour.
   - `Skip` : le premier joueur passe son tour.
@@ -85,6 +88,7 @@ Objectifs de qualité, par ordre de priorité :
 - `DrawTwo` : le joueur suivant pioche 2 cartes et passe son tour.
 - `Wild` : le joueur choisit la nouvelle couleur courante.
 - `WildDrawFour` : le joueur choisit la couleur ; le suivant pioche 4 cartes et passe son tour. Il n'est **légal** que si le joueur n'a aucune carte de la **couleur courante** (avoir une carte de même valeur d'une autre couleur, ou un autre Joker, est permis).
+- `WildDrawFive` (**Joker +5**, ADR 0028) : se joue sur n'importe quelle carte, comme un Joker. Le joueur choisit la couleur **et** une cible parmi les autres joueurs de la manche (jamais lui-même). **Le tour passe tout de suite à la cible**, où qu'elle soit assise, et le +5 ne peut pas être contesté. La cible peut **accepter** (elle pioche le total, saute son tour, et le jeu reprend au joueur qui la suit dans le sens du jeu) ou **répliquer avec un Joker +5**, et seulement avec celui-là (ni +2 ni +4) : elle choisit alors une nouvelle couleur et une nouvelle cible (qui peut être celui qui l'a visée), et le total augmente de 5 (5, 10, 15…). La chaîne s'arrête quand la cible accepte. Valeur en fin de manche : 50 points. Posé comme **dernière carte** (ou en réplique), le +5 termine la manche : la dernière cible pioche le total, ces cartes comptent dans le score.
 - **Contestation du +4** (règle officielle, mode par défaut `officialChallenge`) : le +4 peut être joué illégalement (bluff). Le joueur visé choisit « Accepter » (pioche 4, passe) ou « Contester ». Le serveur vérifie la main du poseur au moment où il a joué :
   - bluff avéré → le poseur pioche 4, le contestataire ne pioche rien et joue normalement ;
   - +4 légal → le contestataire pioche 6 et passe son tour.
@@ -116,9 +120,10 @@ Chaque option est une **politique injectable** dans le moteur (voir §7, Strateg
 | `sevenZero` | bool | `false` | Poser un 7 : échange de main avec un joueur choisi. Poser un 0 : toutes les mains tournent d'un joueur dans le sens du jeu. |
 | `drawAmount` | `untilPlayable`, `one` | `untilPlayable` | **Pioche jusqu'à pouvoir jouer** (ADR 0024), indépendante de `drawRule`. `untilPlayable` : un joueur qui n'a **aucune** carte jouable pioche, en une seule action, jusqu'à obtenir une carte jouable (même 12 cartes) ; une pioche volontaire (avoir une carte jouable et choisir de piocher) reste d'une carte. Le moteur émet un `cardsDrawn` par carte, le client rythme l'animation. Ensuite le comportement habituel s'applique à la dernière carte (posée automatiquement si elle est normale en pioche guidée, choix si elle est spéciale ou en règle officielle). Pioche et défausse épuisées : on s'arrête et le tour passe. `one` : une carte (règle du §3). Libellé dans le salon : « Pioche : jusqu'à pouvoir jouer / 1 carte ». |
 | `wildDrawFourMode` | `officialChallenge`, `strict` | `officialChallenge` | `strict` : le serveur refuse un +4 illégal, pas de contestation. |
-| `drawRule` | `guided`, `official` | `guided` | **Pioche guidée** (ADR 0017). Cartes « spéciales » : +2, Joker, +4 (Passe et Inversion sont normales). Aucune carte jouable → pioche automatique après ~1,2 s. **Chaque carte piochée prend `drawStepMs` (1 s) à s'afficher** : le coup forcé qui suit une pioche de N cartes attend N × `drawStepMs` de plus, et l'horloge du tour qui commence alors démarre après ce temps (ADR 0026). Des cartes jouables mais aucune spéciale → piocher est refusé (`ILLEGAL_MOVE` / `MUST_PLAY`), il faut jouer. Au moins une spéciale jouable → le joueur choisit : poser, ou piocher en cliquant sur le paquet. Carte piochée non jouable → fin du tour ; jouable et normale → posée automatiquement après ~1,2 s ; jouable et spéciale → posée (clic sur la carte) ou gardée (clic sur le paquet). `official` : règle du §3. |
+| `drawRule` | `guided`, `official` | `guided` | **Pioche guidée** (ADR 0017). Cartes « spéciales » : +2, Joker, +4, +5 (Passe et Inversion sont normales). Aucune carte jouable → pioche automatique après ~1,2 s. **Chaque carte piochée prend `drawStepMs` (1 s) à s'afficher** : le coup forcé qui suit une pioche de N cartes attend N × `drawStepMs` de plus, et l'horloge du tour qui commence alors démarre après ce temps (ADR 0026). Des cartes jouables mais aucune spéciale → piocher est refusé (`ILLEGAL_MOVE` / `MUST_PLAY`), il faut jouer. Au moins une spéciale jouable → le joueur choisit : poser, ou piocher en cliquant sur le paquet. Carte piochée non jouable → fin du tour ; jouable et normale → posée automatiquement après ~1,2 s ; jouable et spéciale → posée (clic sur la carte) ou gardée (clic sur le paquet). `official` : règle du §3. |
 | `declareUnoToWin` | bool | `false` | **UNO obligatoire pour gagner** (ADR 0019) : on ne peut pas poser sa dernière carte sans avoir annoncé UNO ; le serveur refuse avec `ILLEGAL_MOVE` / `MUST_DECLARE_UNO`. La vue expose `me.mustDeclareUno` (calculé par le serveur) et le client met en avant le bouton UNO. Une carte jouable bloquée par l'annonce manquante ne déclenche jamais la pioche automatique de la pioche guidée. |
 | `turnTimerSeconds` | `0` (off), 15, 30, 60 | 30 | À l'expiration : pénalité en attente acceptée, sinon pioche 1 + passe (en pioche guidée : le joueur qui doit jouer joue sa première carte jouable) ; choix de couleur en attente → couleur tirée au hasard. |
+| `drawTwoMultiplier`, `wildDrawFourMultiplier`, `wildDrawFiveMultiplier` | `1`, `2`, `3`, `5` | `1` | **Composition du paquet** (ADR 0028) : multiplient le nombre de +2 (8 par paquet), de +4 (4) et de +5 (2). Le serveur n'accepte que ces quatre valeurs. Paquet standard : 110 cartes ; au maximum (×5 partout) : 166, de quoi servir 10 joueurs. La composition est calculée par une fonction pure (`compositionOf` / `createDeck`) : par couleur 1 zéro, 2 de chaque 1-9, Passe et Inversion, et 2 × `drawTwoMultiplier` +2 ; sans couleur : 4 Joker, 4 × `wildDrawFourMultiplier` +4, 2 × `wildDrawFiveMultiplier` +5. |
 | `scoreTarget` | 250, 500, `singleRound` | 500 | |
 | `maxPlayers` | 2–10 | 6 | |
 
@@ -140,6 +145,7 @@ Interactions à gérer explicitement (et à tester) :
 - Revanche : même salon, mêmes joueurs connectés, scores remis à zéro.
 - Un joueur part entre deux manches : les points de la manche terminée restent acquis (ils sont comptés quand elle se termine) ; il emporte sa main et son score ; la manche suivante se joue sans lui (forfait s'ils étaient deux).
 - `declareUnoToWin` : un joueur à 1 carte jouable qui n'a pas annoncé UNO reçoit `MUST_DECLARE_UNO` s'il tente de la poser. Si le minuteur de tour expire dans cet état et qu'il ne peut pas piocher (pioche guidée, carte normale), le serveur annonce UNO puis pose la carte à sa place.
+- **Joker +5** (ADR 0028, tous testés) : **pioche guidée** : une cible sans Joker +5 n'a aucun choix, le serveur accepte pour elle (coup forcé, après `actionsOpenAt`) ; avec un +5 en main elle choisit (règle `official` : elle choisit toujours). **UNO** : le poseur qui reste à une carte ouvre une fenêtre de contre-UNO comme après toute pose ; une cible qui reçoit des cartes voit sa fenêtre fermée ; avec 2 cartes elle peut annoncer UNO avant de répliquer. **UNO obligatoire** : répliquer avec sa dernière carte, un +5, sans avoir annoncé UNO est refusé (`MUST_DECLARE_UNO`) et `me.mustDeclareUno` le dit. **Pioche épuisée** : la pénalité remélange la défausse (sauf la carte du dessus) et la cible pioche ce qui reste, sans erreur. **Départ** : si la cible part, la chaîne est annulée et le jeu reprend chez le joueur suivant ; si un autre joueur part, la chaîne continue. **Minuteur de tour** : la cible qui laisse expirer son tour accepte. **Sécurité** : le serveur valide la cible (joueur de la manche, différent de l'acteur), la couleur et la phase ; tout le monde voit qui est visé et le total, jamais les cartes piochées.
 - Le minuteur de tour n'est pas relancé par un événement qui ne change pas le tour (contre-UNO, annonce, fin d'une fenêtre de contre-UNO) : ADR 0020.
 
 ## 6. Architecture globale
@@ -193,7 +199,7 @@ Le moteur ne notifie personne : il **retourne** des événements. La couche `app
 | **Command** | `PlayerAction = std::variant<PlayCard, DrawCard, Pass, RespondPenalty, CallUno, CatchUno, TimeoutExpired>` | Chaque intention est un objet validable, journalisable et rejouable. Avec la graine + la liste des actions, on rejoue une partie à l'identique pour déboguer. |
 | **State** | `TurnPhase = std::variant<AwaitingPlay, AwaitingDrawnCardDecision, AwaitingPenaltyResponse, RoundOver>` + `std::visit` | Chaque phase n'accepte que ses actions ; les états invalides sont irreprésentables. Variante moderne du State du GoF : ensemble fermé, sémantique de valeur, pas d'allocation, exhaustivité vérifiée par le compilateur. Documenter dans une ADR pourquoi on préfère `std::variant` aux classes virtuelles ici. |
 | **Strategy / Policy** | `StackingPolicy`, `WildDrawFourPolicy`, `DrawPolicy`, `JumpInPolicy`, `SevenZeroPolicy`, construites depuis `RoomSettings` | Principe ouvert/fermé : une nouvelle option maison = une nouvelle politique, sans modifier les règles existantes. |
-| **Factory** | fonction libre `createStandardDeck(RandomSource&)` (voir ADR 0009) | Centralise la composition des 108 cartes et l'attribution aléatoire des identifiants. |
+| **Factory** | fonction libre `createStandardDeck(RandomSource&)` (voir ADR 0009) | Centralise la composition du paquet (110 cartes par défaut, réglable : `createDeck(DeckSettings, …)`) et l'attribution aléatoire des identifiants. |
 | **Observer** (via événements retournés) | `app` diffuse les `DomainEvent` projetés à chaque joueur | Découple le moteur de la diffusion réseau. |
 | **Repository** | `RoomRepository` (interface) + `InMemoryRoomRepository` | La persistance peut changer sans toucher aux cas d'usage. |
 | **Injection de dépendances** | `RandomSource`, `Scheduler`, `RoomRepository` injectés par constructeur, câblés dans `main.cpp` | Inversion des dépendances : les tests injectent des implémentations déterministes. |
@@ -239,10 +245,10 @@ Serveur → client : réponses `{ "v": 1, "type": "ack", "replyTo": "c-42" }` ou
 | `room.addBot` | `{ strategy: "random" \| "greedy" }` | hôte, en lobby (phase 5) |
 | `match.start` | `{}` | hôte, ≥ 2 joueurs, tous prêts |
 | `match.rematch` | `{}` | hôte, partie terminée |
-| `game.playCard` | `{ cardId, chosenColor?, swapTargetId? }` | son tour, ou interception si `jumpIn` |
+| `game.playCard` | `{ cardId, chosenColor?, swapTargetId?, targetId? }` | son tour, ou interception si `jumpIn` |
 | `game.drawCard` | `{}` | son tour, phase `AwaitingPlay`, et si la règle de pioche l'autorise (`me.canDraw`) |
 | `game.pass` | `{}` | phase `AwaitingDrawnCardDecision` (« garder la carte » : interdit en pioche guidée si la carte piochée est normale) |
-| `game.respondPenalty` | `{ response: "accept" \| "challenge" }` | visé par une pénalité (empiler = `game.playCard`) |
+| `game.respondPenalty` | `{ response: "accept" \| "challenge" }` | visé par une pénalité (empiler ou répliquer = `game.playCard`) ; `challenge` est refusé (`CANNOT_CHALLENGE`) contre un Joker +5 |
 | `game.callUno` | `{}` | 2 cartes et son tour, ou 1 carte dans la fenêtre UNO |
 | `game.catchUno` | `{ targetId }` | fenêtre UNO ouverte sur la cible |
 | `reaction.send` | `{ emote: "gg" \| "wow" \| "lol" \| "ouch" \| "think" \| "fire" }` | limité à 1 toutes les 2 s |
@@ -266,7 +272,7 @@ Pas de chat libre : uniquement des réactions prédéfinies. *Pourquoi* : aucune
 ### 8.5 Formes de données principales
 ```ts
 type Color = "red" | "yellow" | "green" | "blue";
-type Rank = "0"|"1"|"2"|"3"|"4"|"5"|"6"|"7"|"8"|"9"|"skip"|"reverse"|"drawTwo"|"wild"|"wildDrawFour";
+type Rank = "0"|"1"|"2"|"3"|"4"|"5"|"6"|"7"|"8"|"9"|"skip"|"reverse"|"drawTwo"|"wild"|"wildDrawFour"|"wildDrawFive";
 interface Card { id: number; color: Color | null; rank: Rank; }
 
 interface PlayerView {
@@ -289,10 +295,10 @@ interface PlayerView {
   roundResult: { winnerId: string; points: number; revealedHands: Record<string, Card[]> } | null;
 }
 ```
-`ClientEvent` (union discriminée par `kind`) : `cardPlayed`, `cardsDrawn` (`cards` présent seulement pour celui qui pioche, sinon `count`), `turnChanged`, `playerSkipped`, `directionChanged`, `colorChosen`, `penaltyStacked`, `challengeResolved`, `unoCalled`, `unoCaught`, `handsSwapped`, `handsRotated`, `deckReshuffled`, `roundEnded`, `matchEnded`, `playerDisconnected`, `playerReconnected`, `hostChanged`.
+`ClientEvent` (union discriminée par `kind`) : `cardPlayed`, `cardsDrawn` (`cards` présent seulement pour celui qui pioche, sinon `count`), `turnChanged`, `playerSkipped`, `directionChanged`, `colorChosen`, `penaltyStacked`, `challengeResolved`, `plusFiveTargeted` (`playerId`, `targetId`, `total` : public), `unoCalled`, `unoCaught`, `handsSwapped`, `handsRotated`, `deckReshuffled`, `roundEnded`, `matchEnded`, `playerDisconnected`, `playerReconnected`, `hostChanged`.
 
 ### 8.6 Codes d'erreur
-`MALFORMED_MESSAGE`, `UNKNOWN_TYPE`, `UNSUPPORTED_VERSION`, `MESSAGE_TOO_LARGE`, `RATE_LIMITED`, `SESSION_REQUIRED`, `SESSION_EXPIRED`, `NICKNAME_INVALID`, `NICKNAME_TAKEN`, `ROOM_NOT_FOUND`, `ROOM_FULL`, `MATCH_IN_PROGRESS`, `NOT_HOST`, `NOT_ENOUGH_PLAYERS`, `PLAYERS_NOT_READY`, `NOT_YOUR_TURN`, `INVALID_PHASE`, `CARD_NOT_IN_HAND`, `ILLEGAL_MOVE` (avec `details.reason` : `COLOR_MISMATCH`, `WILD_DRAW_FOUR_ILLEGAL`, `COLOR_REQUIRED`, `SWAP_TARGET_REQUIRED`, `JUMP_IN_TOO_LATE`, `CANNOT_STACK`, `MUST_PLAY`, `MUST_DECLARE_UNO`…), `UNO_WINDOW_CLOSED`, `UNO_GRACE_PERIOD`, `EFFECT_IN_PROGRESS` (une action de tour reçue avant `actionsOpenAt` : l'effet en cours n'est pas terminé ; annoncer UNO et contrer ne sont jamais concernés).
+`MALFORMED_MESSAGE`, `UNKNOWN_TYPE`, `UNSUPPORTED_VERSION`, `MESSAGE_TOO_LARGE`, `RATE_LIMITED`, `SESSION_REQUIRED`, `SESSION_EXPIRED`, `NICKNAME_INVALID`, `NICKNAME_TAKEN`, `ROOM_NOT_FOUND`, `ROOM_FULL`, `MATCH_IN_PROGRESS`, `NOT_HOST`, `NOT_ENOUGH_PLAYERS`, `PLAYERS_NOT_READY`, `NOT_YOUR_TURN`, `INVALID_PHASE`, `CARD_NOT_IN_HAND`, `ILLEGAL_MOVE` (avec `details.reason` : `COLOR_MISMATCH`, `WILD_DRAW_FOUR_ILLEGAL`, `COLOR_REQUIRED`, `SWAP_TARGET_REQUIRED`, `JUMP_IN_TOO_LATE`, `CANNOT_STACK`, `MUST_PLAY`, `MUST_DECLARE_UNO`, `TARGET_REQUIRED`, `TARGET_NOT_ALLOWED`, `INVALID_TARGET`, `ONLY_PLUS_FIVE_PLAYABLE`…), `UNO_WINDOW_CLOSED`, `UNO_GRACE_PERIOD`, `EFFECT_IN_PROGRESS` (une action de tour reçue avant `actionsOpenAt` : l'effet en cours n'est pas terminé ; annoncer UNO et contrer ne sont jamais concernés).
 Les messages d'erreur sont en anglais technique ; **le client traduit chaque code en message français clair**.
 
 ## 9. Serveur réseau (C++)
@@ -402,6 +408,7 @@ Un composant n'écrit **aucune couleur en dur** : tout passe par les tokens. Tou
 Un seul thème : anthracite / bleu nuit très sombre, panneaux en verre sombre. Tous les tokens vivent dans `:root` (`tokens.scss`) : ajouter un thème plus tard, c'est redéfinir ces variables sous un sélecteur (`[data-theme]`), sans toucher aux composants. (Le thème « Tapis », rouge très sombre, a été écarté : ADR 0021.)
 
 ### 11.4 Les cartes (composant `ui/card`, un seul SVG paramétré)
+- **Le Joker +5 est un « joker doré »**, rare et précieux : fond or en dégradé métallique (un dégradé SVG propre à chaque carte, jamais d'identifiant partagé), bord néon or, cadre intérieur fin, huit rayons clairs autour d'un « +5 » brun très sombre cerné d'or clair (lisible sur l'or), l'anneau des quatre couleurs au-dessus, et un **reflet** qui traverse lentement la carte toutes les 7 s (coupé par `prefers-reduced-motion`, la règle globale). Les couleurs viennent des tokens `--gold-*` (`tokens.scss`).
 - Proportions 5:7. Tailles proportionnelles à la hauteur de l'écran (lisibles dès 1280 × 720) : main de 100 à 136 px (64 px en mobile), défausse et pioche de 96 à 168 px (88 px en mobile), dos d'adversaire de 36 à 60 px.
 - **Face** : **fond plein de la couleur** de la carte (saturée mais pas fluo), **bord néon** de la couleur du jeu, ovale incliné plus sombre au centre, grand chiffre blanc à contour sombre en Fredoka, petite valeur et symbole de couleur (blanc cerné) dans deux coins opposés. Les jokers ont un corps sombre et l'anneau des quatre couleurs.
 - **Symbole de forme par couleur** (daltonisme, obligatoire partout où une couleur de jeu apparaît) : rouge = triangle ▲, jaune = cercle ●, vert = carré ■, bleu = losange ◆. Présent dans les coins, le sélecteur de couleur, l'indicateur de couleur active et les textes (« Bleu ◆ »).
@@ -439,12 +446,13 @@ Le logo en haut, **un seul panneau sobre** : pseudo, « Créer un salon » (prim
 - **Contre-UNO** : plusieurs fenêtres peuvent coexister (`unoWindows`), donc **un bouton « Contre-UNO ! » par cible**, avec son nom, empilés au même endroit que le bouton UNO, en rouge néon. Chacun est **grisé avec un compte à rebours pendant la grâce**, puis actif jusqu'à l'échéance (heure serveur).
 - **Mouvement réduit** : avec `prefers-reduced-motion`, toutes les pulsations et animations sont coupées.
 - **Contestation du +4** : modale façon jeu de cartes : la carte, une ligne d'explication de la règle, « **Contester** » (rouge) et « **Accepter, piocher 4** », puis un **bandeau de résultat** une fois le verdict rendu.
+- **Choix de la cible d'un Joker +5** : à la pose, une fenêtre non modale liste les adversaires (initiale, pseudo, nombre de cartes ; touches 1 à 9, Échap annule) ; **les sièges de la table s'entourent d'or et se visent d'un clic** (ou d'Entrée au clavier). Puis le choix de couleur habituel. Quand un +5 me vise, une invite non modale dit le total, propose « Accepter, piocher N » et, si j'ai un +5, invite à répliquer en le choisissant dans ma main.
 - **Choix de couleur** (Joker et +4) : quatre grandes tuiles avec le nom de la couleur écrit, utilisables au clavier (touches 1 à 4).
 - **Fin de manche** : mains révélées, scores, « Manche suivante » (départ automatique après 30 s). **Fin de partie** : vainqueur, classement, « Quitter ».
 - **Perte de connexion** : panneau « Connexion perdue — reconnexion… (tentative n) » par-dessus la table. Session expirée : retour à l'accueil avec un message clair.
 
 ### 12.4 Galerie `/dev/gallery` (développement uniquement)
-Toutes les cartes (108 faces + dos) et tous les composants dans tous leurs états ; la table de jeu alimentée par `FixtureTransport` avec des scénarios nommés : début de partie à 2, table pleine à 10, cumul de +4, contestation, fenêtre UNO, interception, fin de manche, reconnexion. Chaque scénario est accessible par une URL (`/dev/gallery?scenario=stacking`) pour que Playwright en prenne des captures.
+Toutes les cartes (110 faces + dos) et tous les composants dans tous leurs états ; la table de jeu alimentée par `FixtureTransport` avec des scénarios nommés : début de partie à 2, table pleine à 10, cumul de +4, contestation, fenêtre UNO, interception, fin de manche, reconnexion. Chaque scénario est accessible par une URL (`/dev/gallery?scenario=stacking`) pour que Playwright en prenne des captures.
 
 ## 13. Animations et son
 
@@ -466,6 +474,7 @@ Toutes les cartes (108 faces + dos) et tous les composants dans tous leurs état
 | +2 / +4 | « +2 » / « +4 » en grand au centre **chez le joueur visé**, sur son siège chez les autres, puis les cartes de pénalité |
 | `playerSkipped` | symbole « interdit » : en grand au centre chez le joueur sauté (« Tu passes ton tour »), sur son siège chez les autres (« Zoé passe son tour ») |
 | `directionChanged` | une grande flèche circulaire apparaît au centre, fait un tour dans l'ancien sens et se retourne ; la lueur et sa flèche s'éteignent le temps de l'effet, puis repartent dans l'autre sens |
+| Joker +5 (`plusFiveTargeted`) | **en or** : chez la cible, « +5 » en grand au centre (ou le total d'une chaîne : « +10 ») avec « Tu pioches 5 », sur un halo sombre pour se détacher de la carte dorée ; chez les autres, une pastille « +5 sur Léa : 5 cartes » au-dessus du siège de la cible. La pénalité qui suit (cartes piochées une à une) fait trembler le siège. Le serveur lui réserve la carte, la roue des couleurs et cet effet (`playStep` + 2 × `effectStep`). |
 | Joker, +4 (`colorChosen`) | une roue des quatre couleurs au centre, le quart choisi grossit, puis le liseré et la lueur de la défausse prennent la nouvelle couleur |
 | `turnChanged` | le siège actif s'illumine et grossit légèrement ; un éclat glisse du siège précédent au suivant |
 | `unoCalled` | éclat « UNO ! » sur le siège |
@@ -519,7 +528,7 @@ Effets courts et originaux ou sous licence libre (licence notée dans `client/sr
 | Niveau | Outil | Contenu attendu |
 |---|---|---|
 | Moteur C++ | Catch2 v3 + `SeededRandomSource` | chaque règle et chaque option maison ; un test nommé d'après la règle (`"WildDrawFour is illegal when holding a card of the current color"`) |
-| Simulation | Catch2 | 10 000 parties aléatoires (2 à 10 joueurs, options aléatoires, coups légaux au hasard) ; invariants vérifiés après chaque action : 108 cartes au total, `CardId` uniques, un seul joueur courant valide, scores ≥ 0, la manche se termine (garde-fou sur le nombre de tours) ; **test anti-fuite** sur toutes les projections |
+| Simulation | Catch2 | 10 000 parties aléatoires (2 à 10 joueurs, options aléatoires, coups légaux au hasard) ; invariants vérifiés après chaque action : le nombre de cartes du paquet (110 par défaut, jusqu'à 166 avec les multiplicateurs, tirés au hasard) se conserve, `CardId` uniques, un seul joueur courant valide, scores ≥ 0, la manche se termine (garde-fou sur le nombre de tours) ; **test anti-fuite** sur toutes les projections |
 | Relecture | Catch2 | graine + liste d'actions → état final identique (déterminisme) |
 | Contrat | Catch2 + TypeScript | exemples valides/invalides du protocole (§8.1) |
 | App/serveur | Catch2 + `ManualScheduler` | salons, sessions, reconnexion, timers, rate limiting, Origin — sans vrai réseau quand c'est possible |

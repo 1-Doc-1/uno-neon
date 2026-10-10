@@ -146,6 +146,13 @@ std::optional<request::Body> decide(const response::GameView& view)
             .cardId = card.id,
             .chosenColor = card.color ? std::nullopt : std::optional<core::Color>(core::Color::Red),
             .swapTargetId = std::nullopt,
+            // A Wild Draw Five names a player: the first one who is not me
+            .targetId = card.rank == core::Rank::WildDrawFive
+                            ? std::optional<core::PlayerId>(
+                                  std::ranges::find_if(view.game.players,
+                                                       [&me](const auto& seat) { return seat.playerId != me.playerId; })
+                                      ->playerId)
+                            : std::nullopt,
         };
     }
     if (me.canDraw) {
@@ -213,6 +220,32 @@ TEST_CASE("Two players play a whole match through real sockets, and no card ever
     }
     // The winner emptied their hand; the other hand is public now.
     REQUIRE(players.at(0).view->game.roundResult->revealedHands.size() == 2);
+}
+
+TEST_CASE("Two players play a whole match with a deck rich in Wild Draw Five, and no card ever leaks",
+          "[server][integration]")
+{
+    REQUIRE(uno::net::initializeCryptoRuntime());
+    const Deployment deployment;
+    std::vector<Player> players;
+    players.push_back(enter(deployment, "Alice"));
+    players.push_back(enter(deployment, "Bob"));
+    const auto code = openRoom(players.at(0));
+    joinReady(players.at(1), code);
+    players.at(0).client.sendAndExpectAck(request::UpdateSettings{
+        .settings =
+            [] {
+                RoomSettingsPatch patch;
+                patch.matchLength = core::MatchLength::SingleRound;
+                patch.wildDrawFiveMultiplier = core::CardMultiplier::Five;
+                return patch;
+            }(),
+    });
+    players.at(0).client.sendAndExpectAck(request::StartMatch{});
+
+    playToTheEnd(players);
+
+    REQUIRE(players.at(0).view->game.matchWinnerId.has_value());
 }
 
 TEST_CASE("Three players play a whole match too", "[server][integration]")

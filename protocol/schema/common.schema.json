@@ -75,7 +75,8 @@
         "reverse",
         "drawTwo",
         "wild",
-        "wildDrawFour"
+        "wildDrawFour",
+        "wildDrawFive"
       ]
     },
     "Card": {
@@ -158,6 +159,12 @@
       "minimum": 2,
       "maximum": 10
     },
+    "CardMultiplier": {
+      "title": "CardMultiplier",
+      "description": "How many times the host multiplies the copies of a special card of the deck (ADR 0028). Nothing else is accepted.",
+      "type": "integer",
+      "enum": [1, 2, 3, 5]
+    },
     "RoomSettings": {
       "title": "RoomSettings",
       "description": "House rules chosen by the host (see SPEC §4).",
@@ -193,6 +200,18 @@
         "declareUnoToWin": {
           "description": "House rule (ADR 0019): the last card cannot be played before UNO is announced.",
           "type": "boolean"
+        },
+        "drawTwoMultiplier": {
+          "description": "Draw Two in the deck: 8 x this (ADR 0028).",
+          "$ref": "#/$defs/CardMultiplier"
+        },
+        "wildDrawFourMultiplier": {
+          "description": "Wild Draw Four in the deck: 4 x this (ADR 0028).",
+          "$ref": "#/$defs/CardMultiplier"
+        },
+        "wildDrawFiveMultiplier": {
+          "description": "Wild Draw Five in the deck: 2 x this (ADR 0028).",
+          "$ref": "#/$defs/CardMultiplier"
         }
       },
       "required": [
@@ -205,7 +224,10 @@
         "matchLength",
         "maxPlayers",
         "drawRule",
-        "declareUnoToWin"
+        "declareUnoToWin",
+        "drawTwoMultiplier",
+        "wildDrawFourMultiplier",
+        "wildDrawFiveMultiplier"
       ],
       "additionalProperties": false
     },
@@ -244,6 +266,18 @@
         "declareUnoToWin": {
           "description": "House rule (ADR 0019): the last card cannot be played before UNO is announced.",
           "type": "boolean"
+        },
+        "drawTwoMultiplier": {
+          "description": "Draw Two in the deck: 8 x this (ADR 0028).",
+          "$ref": "#/$defs/CardMultiplier"
+        },
+        "wildDrawFourMultiplier": {
+          "description": "Wild Draw Four in the deck: 4 x this (ADR 0028).",
+          "$ref": "#/$defs/CardMultiplier"
+        },
+        "wildDrawFiveMultiplier": {
+          "description": "Wild Draw Five in the deck: 2 x this (ADR 0028).",
+          "$ref": "#/$defs/CardMultiplier"
         }
       },
       "minProperties": 1,
@@ -298,7 +332,11 @@
         "CANNOT_STACK",
         "CANNOT_CHALLENGE",
         "MUST_PLAY",
-        "MUST_DECLARE_UNO"
+        "MUST_DECLARE_UNO",
+        "TARGET_REQUIRED",
+        "TARGET_NOT_ALLOWED",
+        "INVALID_TARGET",
+        "ONLY_PLUS_FIVE_PLAYABLE"
       ]
     },
     "EmptyPayload": {

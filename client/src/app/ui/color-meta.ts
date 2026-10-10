@@ -32,10 +32,16 @@ const RANK_NAME: Record<Rank, string> = {
   drawTwo: 'Plus deux',
   wild: 'Joker',
   wildDrawFour: 'Joker plus quatre',
+  wildDrawFive: 'Joker plus cinq',
 };
 
 export function tintClass(color: Color | null): string {
   return color === null ? 'tint-wild' : `tint-${color}`;
+}
+
+/** La teinte d'une carte : celle de sa couleur, ou l'or du Joker +5 (le seul qui ne soit pas blanc parmi les jokers). */
+export function cardTint(card: Card): string {
+  return card.rank === 'wildDrawFive' ? 'tint-gold' : tintClass(card.color);
 }
 
 export function cardLabel(card: Card): string {

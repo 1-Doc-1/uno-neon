@@ -1,5 +1,6 @@
 #pragma once
 
+#include "uno/core/deck.hpp"
 #include "uno/core/draw_amount.hpp"
 #include "uno/core/draw_rule.hpp"
 #include "uno/core/match.hpp"
@@ -30,6 +31,19 @@ struct RoomSettings {
     std::uint8_t maxPlayers{6};
     core::DrawRule drawRule{core::DrawRule::Guided}; // ADR 0017
     bool declareUnoToWin{false};                     // ADR 0019: the last card needs an announcement
+    // ADR 0028: how many Draw Two, Wild Draw Four and Wild Draw Five the deck holds (x1, x2, x3 or x5)
+    core::CardMultiplier drawTwoMultiplier{core::CardMultiplier::One};
+    core::CardMultiplier wildDrawFourMultiplier{core::CardMultiplier::One};
+    core::CardMultiplier wildDrawFiveMultiplier{core::CardMultiplier::One};
+
+    [[nodiscard]] core::DeckSettings deck() const noexcept
+    {
+        return {
+            .drawTwo = drawTwoMultiplier,
+            .wildDrawFour = wildDrawFourMultiplier,
+            .wildDrawFive = wildDrawFiveMultiplier,
+        };
+    }
 
     [[nodiscard]] bool operator==(const RoomSettings&) const = default;
 };
@@ -46,6 +60,9 @@ struct RoomSettingsPatch {
     std::optional<std::uint8_t> maxPlayers;
     std::optional<core::DrawRule> drawRule;
     std::optional<bool> declareUnoToWin;
+    std::optional<core::CardMultiplier> drawTwoMultiplier;
+    std::optional<core::CardMultiplier> wildDrawFourMultiplier;
+    std::optional<core::CardMultiplier> wildDrawFiveMultiplier;
 
     [[nodiscard]] bool operator==(const RoomSettingsPatch&) const = default;
 };

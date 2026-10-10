@@ -3,7 +3,7 @@ import { chooseSetting, startMatch } from '../support/flow.ts';
 import { playUntil } from '../support/player.ts';
 import { SEEDS } from '../support/seeds.ts';
 
-test.use({ seed: SEEDS.quickGame });
+test.use({ seed: SEEDS.fastGame });
 
 test('manche unique : la partie se termine quand Bob pose sa dernière carte', async ({ lobby }) => {
   const { host, guest } = lobby;

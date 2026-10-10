@@ -33,6 +33,10 @@ export class Player {
   get colorPicker() {
     return this.page.getByRole('dialog', { name: 'Choisir une couleur' });
   }
+  /** La fenêtre qui liste les adversaires quand on pose un Joker +5. */
+  get targetPicker() {
+    return this.page.getByRole('dialog', { name: 'Choisir la cible du Joker +5' });
+  }
   get acceptPenalty() {
     return this.page.getByRole('button', { name: /^Accepter, piocher/ });
   }
@@ -113,7 +117,7 @@ export class Player {
 
   /** Vrai si la politique de jeu a quelque chose à faire maintenant (sans rien faire). */
   async canAct(): Promise<boolean> {
-    if (await this.acceptPenalty.isVisible()) {
+    if ((await this.acceptPenalty.isVisible()) || (await this.targetPicker.isVisible())) {
       return true;
     }
     if (await this.colorPicker.isVisible()) {
@@ -132,7 +136,10 @@ export class Player {
       return false;
     }
     const before = await this.snapshot();
-    if (await this.acceptPenalty.isVisible()) {
+    if (await this.targetPicker.isVisible()) {
+      // La politique vise le premier adversaire de la liste
+      await this.targetPicker.locator('.target').first().click();
+    } else if (await this.acceptPenalty.isVisible()) {
       await this.acceptPenalty.click();
     } else if (await this.colorPicker.isVisible()) {
       await this.colorPicker.getByRole('button', { name: 'Rouge' }).click();

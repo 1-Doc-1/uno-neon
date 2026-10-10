@@ -69,7 +69,7 @@ constexpr std::uint32_t kOutOfTurnPercent = 15;
 constexpr std::uint32_t kRemovalPerMille = 4; // a player leaves for good, now and then
 constexpr std::uint32_t kPercent = 100;
 constexpr std::uint32_t kDefaultGames = 20;     // keeps a local run under 2 s; the CI runs 100, the weekly job 10 000
-constexpr std::uint32_t kSomeCardIdBound = 120; // a little above the 108 ids in play, to miss on purpose
+constexpr std::uint32_t kSomeCardIdBound = 180; // above the 166 ids of the largest deck, to miss on purpose
 constexpr std::uint32_t kColorCount = 4;
 
 // Number of matches to simulate: UNO_SIMULATION_GAMES, 10 000 in the CI (SPEC §19), a few hundred by
@@ -109,6 +109,16 @@ constexpr std::uint32_t kColorCount = 4;
     return (seed / 2) % 2 == 1;
 }
 
+// A random composition of the deck (ADR 0028): each special card is multiplied by one of the four allowed factors,
+// independently, so that decks from 110 to 166 cards are played, with one Wild Draw Five pair as often as ten.
+[[nodiscard]] uno::core::DeckSettings deckFor(std::uint64_t seed)
+{
+    const auto multiplier = [seed](std::uint64_t divisor) {
+        return uno::core::kCardMultipliers.at(static_cast<std::size_t>((seed / divisor) % 4));
+    };
+    return {.drawTwo = multiplier(7), .wildDrawFour = multiplier(28), .wildDrawFive = multiplier(3)};
+}
+
 [[nodiscard]] Match startMatch(std::uint64_t seed, SeededRandomSource& random)
 {
     auto started = Match::start(players(playerCountFor(seed)),
@@ -117,6 +127,7 @@ constexpr std::uint32_t kColorCount = 4;
                                     .drawRule = drawRuleFor(seed),
                                     .drawAmount = drawAmountFor(seed),
                                     .declareUnoToWin = declareUnoToWinFor(seed),
+                                    .deck = deckFor(seed),
                                 },
                                 random);
     REQUIRE(started.has_value());
@@ -184,7 +195,11 @@ private:
     {
         switch (pick(7)) {
         case 0:
-            return PlayCard{.cardId = CardId{pick(kSomeCardIdBound)}, .chosenColor = randomOptionalColor()};
+            return PlayCard{
+                .cardId = CardId{pick(kSomeCardIdBound)},
+                .chosenColor = randomOptionalColor(),
+                .target = pick(2) == 0 ? std::nullopt : std::optional<PlayerId>{anyPlayerOrStranger()},
+            };
         case 1:
             return DrawCard{};
         case 2:
@@ -199,6 +214,9 @@ private:
             return CatchUno{.target = anyPlayer()};
         }
     }
+
+    // Sometimes somebody who is not in the match at all
+    [[nodiscard]] PlayerId anyPlayerOrStranger() { return pick(8) == 0 ? PlayerId{"stranger"} : anyPlayer(); }
 
     [[nodiscard]] std::optional<Color> randomOptionalColor()
     {
@@ -273,7 +291,8 @@ private:
     {
         const auto& round = match_.round();
         requireRoundInvariants(round);
-        REQUIRE(allCardIds(round).size() == uno::core::kStandardDeckSize);
+        // The cards of the deck are all somewhere, whatever its composition and whoever left (ADR 0028)
+        REQUIRE(allCardIds(round).size() == uno::core::compositionOf(match_.settings().deck).total());
         const auto viewer = anyPlayer();
         const auto view = uno::core::project(match_, viewer);
         REQUIRE(view.has_value());

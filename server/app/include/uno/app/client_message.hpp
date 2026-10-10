@@ -83,6 +83,7 @@ struct PlayCard {
     core::CardId cardId;
     std::optional<core::Color> chosenColor;
     std::optional<core::PlayerId> swapTargetId;
+    std::optional<core::PlayerId> targetId; // the target of a Wild Draw Five (ADR 0028)
 
     bool operator==(const PlayCard&) const = default;
 };

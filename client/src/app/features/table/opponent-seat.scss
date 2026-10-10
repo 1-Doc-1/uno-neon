@@ -158,3 +158,19 @@
   box-shadow: var(--glow-edge);
   white-space: nowrap;
 }
+
+// Un Joker +5 cherche sa cible : le siège s'entoure d'or et se vise d'un clic
+.targetable {
+  cursor: pointer;
+
+  .pill {
+    box-shadow:
+      0 0 0 2px var(--gold-edge),
+      0 0 18px color-mix(in oklab, var(--gold-edge) 55%, transparent);
+  }
+
+  &:hover .pill,
+  &:focus-visible .pill {
+    transform: scale(1.08);
+  }
+}

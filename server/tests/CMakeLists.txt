@@ -11,6 +11,7 @@ add_executable(uno_tests
     application_draw_rule_test.cpp
     application_lifecycle_test.cpp
     application_match_test.cpp
+    application_plus_five_test.cpp
     application_presentation_test.cpp
     application_rooms_test.cpp
     application_uno_test.cpp
@@ -40,10 +41,12 @@ add_executable(uno_tests
     round_removal_test.cpp
     round_test.cpp
     round_uno_test.cpp
+    round_plus_five_test.cpp
     round_wild_draw_four_test.cpp
     turn_order_test.cpp
     uws_scheduler_test.cpp
     smoke_test.cpp
+    system_clock_test.cpp
     test_hooks_test.cpp
     websocket_server_test.cpp
     no_dialogs.cpp
