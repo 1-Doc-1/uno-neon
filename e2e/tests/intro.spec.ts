@@ -1,4 +1,4 @@
-import AxeBuilder from '@axe-core/playwright';
+import { AxeBuilder } from '@axe-core/playwright';
 import { expect, test } from '../support/fixtures.ts';
 
 // L'écran « Cliquer pour jouer » puis la cinématique d'introduction : les tests pilotés par un robot ne la voient pas (navigator.webdriver), ici on la
