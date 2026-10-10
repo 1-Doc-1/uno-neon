@@ -10,6 +10,7 @@ add_executable(uno_tests
     application_draw_amount_test.cpp
     application_draw_rule_test.cpp
     application_lifecycle_test.cpp
+    bot_strategy_test.cpp
     application_match_test.cpp
     application_plus_five_test.cpp
     application_stacking_test.cpp
