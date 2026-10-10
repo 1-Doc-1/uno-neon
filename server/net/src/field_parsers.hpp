@@ -128,6 +128,16 @@ inline Parsed<core::CardMultiplier> parseCardMultiplier(const Json& value)
     return *found;
 }
 
+// The same, as its integer code: for the readers that must return something even on error.
+inline Parsed<std::uint8_t> parseCardMultiplierCode(const Json& value)
+{
+    const auto multiplier = parseCardMultiplier(value);
+    if (!multiplier) {
+        return std::unexpected(multiplier.error());
+    }
+    return static_cast<std::uint8_t>(*multiplier);
+}
+
 inline Parsed<std::uint8_t> parseMaxPlayers(const Json& value)
 {
     const auto count = detail::parseInteger(value, kMinRoomPlayers, kMaxRoomPlayers);

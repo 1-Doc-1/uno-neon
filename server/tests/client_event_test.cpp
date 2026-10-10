@@ -208,10 +208,13 @@ TEST_CASE("A Wild Draw Five names its target and the total to everybody, whoever
     for (std::uint32_t id = 1; hand.size() < kHandSize; ++id) {
         hand.push_back(coloredCard(id, Color::Red, Rank::Five));
     }
-    auto round = startedRound({.seats = players(3),
-                               .dealer = player(2),
-                               .deck = deckGivingFirstHand(3, hand, coloredCard(40, Color::Blue, Rank::Two))},
-                              random);
+    auto round = startedRound(
+        {
+            .seats = players(3),
+            .dealer = player(2),
+            .deck = deckGivingFirstHand(3, hand, coloredCard(40, Color::Blue, Rank::Two)),
+        },
+        random);
     const auto played =
         round.apply(player(0), PlayCard{.cardId = CardId{0}, .chosenColor = Color::Green, .target = player(2)}, random);
     REQUIRE(played.has_value());

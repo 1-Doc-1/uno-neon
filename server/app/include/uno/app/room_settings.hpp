@@ -38,9 +38,11 @@ struct RoomSettings {
 
     [[nodiscard]] core::DeckSettings deck() const noexcept
     {
-        return {.drawTwo = drawTwoMultiplier,
-                .wildDrawFour = wildDrawFourMultiplier,
-                .wildDrawFive = wildDrawFiveMultiplier};
+        return {
+            .drawTwo = drawTwoMultiplier,
+            .wildDrawFour = wildDrawFourMultiplier,
+            .wildDrawFive = wildDrawFiveMultiplier,
+        };
     }
 
     [[nodiscard]] bool operator==(const RoomSettings&) const = default;

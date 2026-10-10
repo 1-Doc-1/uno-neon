@@ -47,46 +47,62 @@ void addPlayableCards(const core::Round& round, std::vector<core::PlayerAction>&
     }
 }
 
+void addAwaitingPlayActions(const core::Round& round, std::vector<core::PlayerAction>& actions)
+{
+    if (round.mustDeclareUno(round.currentPlayer())) {
+        // The last card is refused until UNO is announced: announcing is the move.
+        actions.emplace_back(core::CallUno{});
+    } else {
+        addPlayableCards(round, actions);
+    }
+    if (round.canDraw(round.currentPlayer())) {
+        actions.emplace_back(core::DrawCard{});
+    }
+}
+
+void addDrawnCardActions(const core::Round& round, const core::AwaitingDrawnCardDecision& drawn,
+                         std::vector<core::PlayerAction>& actions)
+{
+    const auto hand = round.hand(round.currentPlayer());
+    REQUIRE(hand.has_value());
+    for (const auto& card : *hand) {
+        if (card.id == drawn.drawnCard) {
+            addPlaysOf(round, card, actions);
+        }
+    }
+    if (round.canKeepDrawnCard(round.currentPlayer())) {
+        actions.emplace_back(core::Pass{});
+    }
+}
+
+// Accept, or answer with a Wild Draw Five (a challenge is not offered: it cannot be made)
+void addPlusFiveAnswers(const core::Round& round, std::vector<core::PlayerAction>& actions)
+{
+    actions.emplace_back(core::RespondPenalty{.response = core::PenaltyResponse::Accept});
+    const auto hand = round.hand(round.currentPlayer());
+    REQUIRE(hand.has_value());
+    for (const auto& card : *hand) {
+        if (card.rank == core::Rank::WildDrawFive) {
+            addPlaysOf(round, card, actions);
+        }
+    }
+}
+
 } // namespace
 
 std::vector<core::PlayerAction> legalActionsOfCurrentPlayer(const core::Round& round)
 {
     std::vector<core::PlayerAction> actions;
     if (std::holds_alternative<core::AwaitingPlay>(round.phase())) {
-        if (round.mustDeclareUno(round.currentPlayer())) {
-            // The last card is refused until UNO is announced: announcing is the move.
-            actions.emplace_back(core::CallUno{});
-        } else {
-            addPlayableCards(round, actions);
-        }
-        if (round.canDraw(round.currentPlayer())) {
-            actions.emplace_back(core::DrawCard{});
-        }
+        addAwaitingPlayActions(round, actions);
     } else if (const auto* drawn = std::get_if<core::AwaitingDrawnCardDecision>(&round.phase())) {
-        const auto hand = round.hand(round.currentPlayer());
-        REQUIRE(hand.has_value());
-        for (const auto& card : *hand) {
-            if (card.id == drawn->drawnCard) {
-                addPlaysOf(round, card, actions);
-            }
-        }
-        if (round.canKeepDrawnCard(round.currentPlayer())) {
-            actions.emplace_back(core::Pass{});
-        }
+        addDrawnCardActions(round, *drawn, actions);
     } else if (std::holds_alternative<core::AwaitingColorChoice>(round.phase())) {
         for (const auto color : core::kColors) {
             actions.emplace_back(core::ChooseColor{.color = color});
         }
     } else if (std::holds_alternative<core::AwaitingPlusFiveResponse>(round.phase())) {
-        // Accept, or answer with a Wild Draw Five (a challenge is not offered: it cannot be made)
-        actions.emplace_back(core::RespondPenalty{.response = core::PenaltyResponse::Accept});
-        const auto hand = round.hand(round.currentPlayer());
-        REQUIRE(hand.has_value());
-        for (const auto& card : *hand) {
-            if (card.rank == core::Rank::WildDrawFive) {
-                addPlaysOf(round, card, actions);
-            }
-        }
+        addPlusFiveAnswers(round, actions);
     } else if (std::holds_alternative<core::AwaitingPenaltyResponse>(round.phase())) {
         actions.emplace_back(core::RespondPenalty{.response = core::PenaltyResponse::Accept});
         actions.emplace_back(core::RespondPenalty{.response = core::PenaltyResponse::Challenge});

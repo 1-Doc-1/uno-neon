@@ -67,12 +67,15 @@ constexpr std::uint64_t kSeed = 42;
         const auto given = seat < special.size() ? special.at(seat) : std::vector<Card>{};
         hands.push_back(sevenCards(static_cast<std::uint32_t>(1000 * (seat + 1)), given));
     }
-    return startedRound({.seats = players(count),
-                         .dealer = player(count - 1),
-                         .deck = deckFromHands(hands, coloredCard(40, Color::Blue, Rank::Two), afterTop),
-                         .drawRule = drawRule,
-                         .declareUnoToWin = declareUnoToWin},
-                        random);
+    return startedRound(
+        {
+            .seats = players(count),
+            .dealer = player(count - 1),
+            .deck = deckFromHands(hands, coloredCard(40, Color::Blue, Rank::Two), afterTop),
+            .drawRule = drawRule,
+            .declareUnoToWin = declareUnoToWin,
+        },
+        random);
 }
 
 [[nodiscard]] PlayCard playFive(std::uint32_t id, Color color, std::size_t targetSeat)
@@ -112,6 +115,7 @@ constexpr std::uint64_t kSeed = 42;
 {
     const auto skips = kHandSize - firstTail.size();
     std::vector<Card> first;
+    first.reserve(kHandSize);
     for (std::uint32_t id = 0; id < skips; ++id) {
         first.push_back(coloredCard(id, Color::Red, Rank::Skip));
     }
@@ -120,11 +124,14 @@ constexpr std::uint64_t kSeed = 42;
     for (auto id = static_cast<std::uint32_t>(second.size()); second.size() < kHandSize; ++id) {
         second.push_back(coloredCard(100 + id, Color::Red, Rank::Five));
     }
-    auto round = startedRound({.seats = players(2),
-                               .dealer = player(1),
-                               .deck = deckFromHands({first, second}, coloredCard(40, Color::Red, Rank::Two), afterTop),
-                               .declareUnoToWin = declareUnoToWin},
-                              random);
+    auto round = startedRound(
+        {
+            .seats = players(2),
+            .dealer = player(1),
+            .deck = deckFromHands({first, second}, coloredCard(40, Color::Red, Rank::Two), afterTop),
+            .declareUnoToWin = declareUnoToWin,
+        },
+        random);
     for (std::uint32_t id = 0; id < skips; ++id) {
         REQUIRE(round.apply(player(0), playPlain(id), random).has_value());
     }
@@ -289,10 +296,17 @@ TEST_CASE("The chain goes on as long as there is a Wild Draw Five to answer with
 TEST_CASE("The target of a Wild Draw Five can only answer with another Wild Draw Five", "[core][round][plusFive]")
 {
     SeededRandomSource random{kSeed};
-    auto round = table({{plusFive(0)},
-                        {wildCard(100, Rank::WildDrawFour), coloredCard(101, Color::Green, Rank::DrawTwo),
-                         wildCard(102, Rank::Wild), coloredCard(103, Color::Green, Rank::Five)}},
-                       random);
+    auto round = table(
+        {
+            {plusFive(0)},
+            {
+                wildCard(100, Rank::WildDrawFour),
+                coloredCard(101, Color::Green, Rank::DrawTwo),
+                wildCard(102, Rank::Wild),
+                coloredCard(103, Color::Green, Rank::Five),
+            },
+        },
+        random);
     REQUIRE(round.apply(player(0), playFive(0, Color::Green, 1), random).has_value());
 
     SECTION("not a Wild Draw Four")
@@ -502,13 +516,17 @@ TEST_CASE("A Wild Draw Five flipped as the first card goes back into the pile", 
 {
     SeededRandomSource random{kSeed};
     std::vector<std::vector<Card>> hands;
+    hands.reserve(2);
     for (std::size_t seat = 0; seat < 2; ++seat) {
         hands.push_back(sevenCards(static_cast<std::uint32_t>(1000 * (seat + 1)), {}));
     }
-    auto round = startedRound({.seats = players(2),
-                               .dealer = player(1),
-                               .deck = deckFromHands(hands, plusFive(40), {coloredCard(41, Color::Green, Rank::One)})},
-                              random);
+    auto round = startedRound(
+        {
+            .seats = players(2),
+            .dealer = player(1),
+            .deck = deckFromHands(hands, plusFive(40), {coloredCard(41, Color::Green, Rank::One)}),
+        },
+        random);
 
     REQUIRE(round.discardPile().top().rank != Rank::WildDrawFive);
     REQUIRE(round.discardPile().top().id == CardId{41});

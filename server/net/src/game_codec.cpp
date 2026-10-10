@@ -95,10 +95,12 @@ struct EventEncoder {
     }
     Json operator()(const PlusFiveTargetedEvent& event) const
     {
-        return Json{{"kind", "plusFiveTargeted"},
-                    {"playerId", event.playerId.value},
-                    {"targetId", event.targetId.value},
-                    {"total", event.total}};
+        return Json{
+            {"kind", "plusFiveTargeted"},
+            {"playerId", event.playerId.value},
+            {"targetId", event.targetId.value},
+            {"total", event.total},
+        };
     }
     Json operator()(const ChallengeResolvedEvent& event) const
     {
@@ -783,11 +785,13 @@ Parsed<RoomSettings> parseSettings(const Json& value)
     settings.maxPlayers = reader.required<std::uint8_t>("maxPlayers", parseMaxPlayers);
     settings.drawRule = reader.required<core::DrawRule>("drawRule", parseEnum<core::DrawRule>);
     settings.declareUnoToWin = reader.required<bool>("declareUnoToWin", parseBool);
-    settings.drawTwoMultiplier = reader.required<core::CardMultiplier>("drawTwoMultiplier", parseCardMultiplier);
-    settings.wildDrawFourMultiplier =
-        reader.required<core::CardMultiplier>("wildDrawFourMultiplier", parseCardMultiplier);
-    settings.wildDrawFiveMultiplier =
-        reader.required<core::CardMultiplier>("wildDrawFiveMultiplier", parseCardMultiplier);
+    // Read as codes: a missing or invalid field leaves 0 behind, which finish() reports and nobody uses
+    settings.drawTwoMultiplier =
+        static_cast<core::CardMultiplier>(reader.required<std::uint8_t>("drawTwoMultiplier", parseCardMultiplierCode));
+    settings.wildDrawFourMultiplier = static_cast<core::CardMultiplier>(
+        reader.required<std::uint8_t>("wildDrawFourMultiplier", parseCardMultiplierCode));
+    settings.wildDrawFiveMultiplier = static_cast<core::CardMultiplier>(
+        reader.required<std::uint8_t>("wildDrawFiveMultiplier", parseCardMultiplierCode));
     if (auto finished = reader.finish(); !finished) {
         return std::unexpected(finished.error());
     }

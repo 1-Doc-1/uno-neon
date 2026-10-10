@@ -17,7 +17,9 @@ struct PlayCard {
     std::optional<Color> chosenColor;
     // Required when the played card is a Wild Draw Five (any other player of the round), forbidden otherwise (ADR
     // 0028).
-    std::optional<PlayerId> target;
+    // The braces are not redundant: they keep `PlayCard{.cardId = ..., .chosenColor = ...}` free of the missing-field
+    // warning
+    std::optional<PlayerId> target{}; // NOLINT(readability-redundant-member-init)
 
     bool operator==(const PlayCard&) const = default;
 };

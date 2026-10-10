@@ -115,6 +115,11 @@ public:
 private:
     Round(TurnOrder turnOrder, PlayerId dealer, std::vector<Hand> hands, DrawPile drawPile, DiscardPile discardPile);
 
+    // Every check of a PlayCard, in the order of the errors: the card the action would play, or why it cannot.
+    [[nodiscard]] std::expected<Card, DomainError> validatePlay(const PlayerId& actor, const PlayCard& action) const;
+    // The target a Wild Draw Five needs (and that any other card refuses): a seated player other than `actor`.
+    [[nodiscard]] std::expected<void, DomainError> checkTarget(const Card& card, const PlayCard& action,
+                                                               const PlayerId& actor) const;
     [[nodiscard]] std::expected<std::vector<DomainEvent>, DomainError>
     applyPlayCard(const PlayerId& actor, const PlayCard& action, RandomSource& random);
     [[nodiscard]] std::expected<std::vector<DomainEvent>, DomainError> applyDrawCard(const PlayerId& actor,

@@ -248,49 +248,53 @@ std::expected<std::vector<DomainEvent>, DomainError> Round::apply(const PlayerId
         action);
 }
 
-std::expected<std::vector<DomainEvent>, DomainError> Round::applyPlayCard(const PlayerId& actor, const PlayCard& action,
-                                                                          RandomSource& random)
+std::expected<void, DomainError> Round::checkTarget(const Card& card, const PlayCard& action,
+                                                    const PlayerId& actor) const
+{
+    if (card.rank != Rank::WildDrawFive) {
+        return action.target.has_value() ? std::unexpected{DomainError::TargetNotAllowed}
+                                         : std::expected<void, DomainError>{};
+    }
+    if (!action.target.has_value()) {
+        return std::unexpected{DomainError::TargetRequired};
+    }
+    if (*action.target == actor || !turnOrder_.seatOf(*action.target).has_value()) {
+        return std::unexpected{DomainError::InvalidTarget};
+    }
+    return {};
+}
+
+std::expected<Card, DomainError> Round::validatePlay(const PlayerId& actor, const PlayCard& action) const
 {
     if (actor != turnOrder_.current()) {
         return std::unexpected{DomainError::NotYourTurn};
     }
-    const auto* answering = std::get_if<AwaitingPlusFiveResponse>(&phase_);
+    const bool answering = std::holds_alternative<AwaitingPlusFiveResponse>(phase_);
     if (const auto* awaitingDrawn = std::get_if<AwaitingDrawnCardDecision>(&phase_)) {
         if (awaitingDrawn->drawnCard != action.cardId) {
             return std::unexpected{DomainError::OnlyDrawnCardPlayable};
         }
-    } else if (!std::holds_alternative<AwaitingPlay>(phase_) && answering == nullptr) {
+    } else if (!std::holds_alternative<AwaitingPlay>(phase_) && !answering) {
         return std::unexpected{DomainError::InvalidPhase};
     }
 
     const auto actorSeat = turnOrder_.currentSeat();
-    auto& hand = hands_.at(actorSeat);
+    const auto& hand = hands_.at(actorSeat);
     const auto found = std::ranges::find(hand, action.cardId, &Card::id);
     if (found == hand.end()) {
         return std::unexpected{DomainError::CardNotInHand};
     }
     const Card card = *found;
     // ADR 0028: the target of a Wild Draw Five can only answer with another one.
-    if (answering != nullptr && card.rank != Rank::WildDrawFive) {
+    if (answering && card.rank != Rank::WildDrawFive) {
         return std::unexpected{DomainError::OnlyPlusFivePlayable};
     }
 
-    if (isWild(card.rank)) {
-        if (!action.chosenColor.has_value()) {
-            return std::unexpected{DomainError::ColorRequired};
-        }
-    } else if (action.chosenColor.has_value()) {
-        return std::unexpected{DomainError::ColorNotAllowed};
+    if (isWild(card.rank) != action.chosenColor.has_value()) {
+        return std::unexpected{isWild(card.rank) ? DomainError::ColorRequired : DomainError::ColorNotAllowed};
     }
-    if (card.rank == Rank::WildDrawFive) {
-        if (!action.target.has_value()) {
-            return std::unexpected{DomainError::TargetRequired};
-        }
-        if (*action.target == actor || !turnOrder_.seatOf(*action.target).has_value()) {
-            return std::unexpected{DomainError::InvalidTarget};
-        }
-    } else if (action.target.has_value()) {
-        return std::unexpected{DomainError::TargetNotAllowed};
+    if (const auto target = checkTarget(card, action, actor); !target) {
+        return std::unexpected{target.error()};
     }
 
     if (!isPlayable(card, discardPile_.top(), currentColor_)) {
@@ -300,6 +304,20 @@ std::expected<std::vector<DomainEvent>, DomainError> Round::applyPlayCard(const 
     if (declareUnoToWin_ && hand.size() == 1 && !unoCalled_.at(actorSeat)) {
         return std::unexpected{DomainError::MustDeclareUno};
     }
+    return card;
+}
+
+std::expected<std::vector<DomainEvent>, DomainError> Round::applyPlayCard(const PlayerId& actor, const PlayCard& action,
+                                                                          RandomSource& random)
+{
+    const auto validated = validatePlay(actor, action);
+    if (!validated) {
+        return std::unexpected{validated.error()};
+    }
+    const Card card = *validated;
+    const auto* answering = std::get_if<AwaitingPlusFiveResponse>(&phase_);
+    const auto actorSeat = turnOrder_.currentSeat();
+    auto& hand = hands_.at(actorSeat);
 
     const auto previousColor = currentColor_;
     // What the target of a Wild Draw Five owes once this card is down: five more than what was already pending.
@@ -308,7 +326,7 @@ std::expected<std::vector<DomainEvent>, DomainError> Round::applyPlayCard(const 
             ? kWildDrawFivePenaltyCards + (answering != nullptr ? answering->total : std::size_t{0})
             : std::size_t{0};
 
-    hand.erase(found);
+    hand.erase(std::ranges::find(hand, card.id, &Card::id));
     discardPile_.place(card);
 
     std::vector<DomainEvent> events{CardPlayed{.player = actor, .cardId = card.id}};

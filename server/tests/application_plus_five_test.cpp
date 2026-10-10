@@ -33,7 +33,6 @@ using namespace uno::app;
 using uno::testing::refusal;
 using uno::testing::refusalReason;
 using uno::testing::Table;
-using uno::testing::toRequest;
 using uno::testing::withoutPresentationDelay;
 
 // A deck rich in Wild Draw Five, so that the player on turn often holds one.
@@ -148,33 +147,43 @@ TEST_CASE("A Wild Draw Five without a valid target is refused with its reason, a
 
     SECTION("no target")
     {
-        actor.send(request::PlayCard{.cardId = card.id,
-                                     .chosenColor = core::Color::Red,
-                                     .swapTargetId = std::nullopt,
-                                     .targetId = std::nullopt});
+        actor.send(request::PlayCard{
+            .cardId = card.id,
+            .chosenColor = core::Color::Red,
+            .swapTargetId = std::nullopt,
+            .targetId = std::nullopt,
+        });
         REQUIRE(refusalReason(actor.received()) == IllegalMoveReason::TargetRequired);
     }
     SECTION("oneself")
     {
         actor.send(request::PlayCard{
-            .cardId = card.id, .chosenColor = core::Color::Red, .swapTargetId = std::nullopt, .targetId = actor.id()});
+            .cardId = card.id,
+            .chosenColor = core::Color::Red,
+            .swapTargetId = std::nullopt,
+            .targetId = actor.id(),
+        });
         REQUIRE(refusalReason(actor.received()) == IllegalMoveReason::InvalidTarget);
     }
     SECTION("somebody who is not in the room")
     {
-        actor.send(request::PlayCard{.cardId = card.id,
-                                     .chosenColor = core::Color::Red,
-                                     .swapTargetId = std::nullopt,
-                                     .targetId = core::PlayerId{"nobody"}});
+        actor.send(request::PlayCard{
+            .cardId = card.id,
+            .chosenColor = core::Color::Red,
+            .swapTargetId = std::nullopt,
+            .targetId = core::PlayerId{"nobody"},
+        });
         REQUIRE(refusalReason(actor.received()) == IllegalMoveReason::InvalidTarget);
     }
     SECTION("a target on a card that has none")
     {
         REQUIRE(plain != table->room().match->round().hand(actor.id())->end());
-        actor.send(request::PlayCard{.cardId = plain->id,
-                                     .chosenColor = std::nullopt,
-                                     .swapTargetId = std::nullopt,
-                                     .targetId = playerAfter(table->room().match->round(), actor.id())});
+        actor.send(request::PlayCard{
+            .cardId = plain->id,
+            .chosenColor = std::nullopt,
+            .swapTargetId = std::nullopt,
+            .targetId = playerAfter(table->room().match->round(), actor.id()),
+        });
         REQUIRE(refusalReason(actor.received()) == IllegalMoveReason::TargetNotAllowed);
     }
     REQUIRE(table->room().stateVersion == version);
@@ -190,7 +199,11 @@ TEST_CASE("A played Wild Draw Five tells everybody who is targeted and how much,
     auto& actor = table->playerWithId(poser);
 
     actor.send(request::PlayCard{
-        .cardId = card.id, .chosenColor = core::Color::Green, .swapTargetId = std::nullopt, .targetId = target});
+        .cardId = card.id,
+        .chosenColor = core::Color::Green,
+        .swapTargetId = std::nullopt,
+        .targetId = target,
+    });
 
     for (auto& player : table->players) {
         const auto update = player.last<response::GameUpdate>();
@@ -213,10 +226,12 @@ TEST_CASE("A Wild Draw Five costs the card, the colour wheel and the +5, then th
     const auto poser = table->room().match->round().currentPlayer();
     const auto playedAt = table->harness.clock.nowMillis();
 
-    table->playerWithId(poser).send(request::PlayCard{.cardId = card.id,
-                                                      .chosenColor = core::Color::Green,
-                                                      .swapTargetId = std::nullopt,
-                                                      .targetId = playerAfter(table->room().match->round(), poser)});
+    table->playerWithId(poser).send(request::PlayCard{
+        .cardId = card.id,
+        .chosenColor = core::Color::Green,
+        .swapTargetId = std::nullopt,
+        .targetId = playerAfter(table->room().match->round(), poser),
+    });
 
     REQUIRE(table->room().actionsOpenAt == playedAt + (1100ms + 2 * 1500ms).count());
 }
@@ -228,7 +243,11 @@ TEST_CASE("Guided draw: a target without a Wild Draw Five draws the total by its
     const auto poser = table->room().match->round().currentPlayer();
     const auto target = playerAfter(table->room().match->round(), poser);
     table->playerWithId(poser).send(request::PlayCard{
-        .cardId = card.id, .chosenColor = core::Color::Green, .swapTargetId = std::nullopt, .targetId = target});
+        .cardId = card.id,
+        .chosenColor = core::Color::Green,
+        .swapTargetId = std::nullopt,
+        .targetId = target,
+    });
     const auto version = table->room().stateVersion;
     const auto cardsBefore = table->room().match->round().hand(target)->size();
     const auto opensAt = table->room().actionsOpenAt;
@@ -251,7 +270,11 @@ TEST_CASE("Guided draw: a target holding a Wild Draw Five is left to choose", "[
     const auto poser = table->room().match->round().currentPlayer();
     const auto target = playerAfter(table->room().match->round(), poser);
     table->playerWithId(poser).send(request::PlayCard{
-        .cardId = card.id, .chosenColor = core::Color::Green, .swapTargetId = std::nullopt, .targetId = target});
+        .cardId = card.id,
+        .chosenColor = core::Color::Green,
+        .swapTargetId = std::nullopt,
+        .targetId = target,
+    });
     const auto version = table->room().stateVersion;
 
     table->harness.scheduler.advance(30s); // longer than the effect and the forced-move pause, shorter than the turn
@@ -266,7 +289,11 @@ TEST_CASE("A target who lets the turn timer expire accepts the penalty", "[app][
     const auto poser = table->room().match->round().currentPlayer();
     const auto target = playerAfter(table->room().match->round(), poser);
     table->playerWithId(poser).send(request::PlayCard{
-        .cardId = card.id, .chosenColor = core::Color::Green, .swapTargetId = std::nullopt, .targetId = target});
+        .cardId = card.id,
+        .chosenColor = core::Color::Green,
+        .swapTargetId = std::nullopt,
+        .targetId = target,
+    });
     const auto cardsBefore = table->room().match->round().hand(target)->size();
 
     table->harness.scheduler.advance(2min);
@@ -282,13 +309,21 @@ TEST_CASE("The target answers with a Wild Draw Five through the application, and
     const auto poser = table->room().match->round().currentPlayer();
     const auto target = playerAfter(table->room().match->round(), poser);
     table->playerWithId(poser).send(request::PlayCard{
-        .cardId = card.id, .chosenColor = core::Color::Green, .swapTargetId = std::nullopt, .targetId = target});
+        .cardId = card.id,
+        .chosenColor = core::Color::Green,
+        .swapTargetId = std::nullopt,
+        .targetId = target,
+    });
     const auto answer = plusFiveOf(table->room().match->round(), target);
     REQUIRE(answer.has_value());
     table->clearInboxes();
 
     table->playerWithId(target).send(request::PlayCard{
-        .cardId = answer->id, .chosenColor = core::Color::Blue, .swapTargetId = std::nullopt, .targetId = poser});
+        .cardId = answer->id,
+        .chosenColor = core::Color::Blue,
+        .swapTargetId = std::nullopt,
+        .targetId = poser,
+    });
 
     const auto update = table->playerWithId(poser).last<response::GameUpdate>();
     REQUIRE(update.has_value());
@@ -303,7 +338,11 @@ TEST_CASE("The target cannot challenge a Wild Draw Five", "[app][plusFive]")
     const auto poser = table->room().match->round().currentPlayer();
     const auto target = playerAfter(table->room().match->round(), poser);
     table->playerWithId(poser).send(request::PlayCard{
-        .cardId = card.id, .chosenColor = core::Color::Green, .swapTargetId = std::nullopt, .targetId = target});
+        .cardId = card.id,
+        .chosenColor = core::Color::Green,
+        .swapTargetId = std::nullopt,
+        .targetId = target,
+    });
     table->clearInboxes();
 
     table->playerWithId(target).send(request::RespondPenalty{.response = core::PenaltyResponse::Challenge});

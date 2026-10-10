@@ -81,7 +81,10 @@ namespace {
         } else if (const auto* plusFive = std::get_if<AwaitingPlusFiveResponse>(&phase)) {
             // A Wild Draw Five cannot be contested; "stack" is answering with one of one's own
             me.penaltyResponse = PenaltyResponseOptions{
-                .amount = plusFive->total, .canChallenge = false, .canStack = round.holdsWildDrawFive(viewer)};
+                .amount = plusFive->total,
+                .canChallenge = false,
+                .canStack = round.holdsWildDrawFive(viewer),
+            };
         }
     }
     me.canCallUno = round.canCallUno(viewer);

@@ -87,7 +87,7 @@ std::vector<Card> createDeck(const DeckSettings& settings, RandomSource& random)
 
 std::vector<Card> createStandardDeck(RandomSource& random)
 {
-    return createDeck(DeckSettings{}, random);
+    return createDeck(DeckSettings(), random);
 }
 
 } // namespace uno::core

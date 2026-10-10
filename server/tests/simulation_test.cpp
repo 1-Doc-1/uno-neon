@@ -195,9 +195,11 @@ private:
     {
         switch (pick(7)) {
         case 0:
-            return PlayCard{.cardId = CardId{pick(kSomeCardIdBound)},
-                            .chosenColor = randomOptionalColor(),
-                            .target = pick(2) == 0 ? std::nullopt : std::optional<PlayerId>{anyPlayerOrStranger()}};
+            return PlayCard{
+                .cardId = CardId{pick(kSomeCardIdBound)},
+                .chosenColor = randomOptionalColor(),
+                .target = pick(2) == 0 ? std::nullopt : std::optional<PlayerId>{anyPlayerOrStranger()},
+            };
         case 1:
             return DrawCard{};
         case 2:

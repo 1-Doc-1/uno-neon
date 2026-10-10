@@ -13,8 +13,12 @@ namespace uno::core {
 // How many times the host multiplies the copies of a special card (ADR 0028). A closed set: no other value exists.
 enum class CardMultiplier : std::uint8_t { One = 1, Two = 2, Three = 3, Five = 5 };
 
-inline constexpr std::array kCardMultipliers{CardMultiplier::One, CardMultiplier::Two, CardMultiplier::Three,
-                                             CardMultiplier::Five};
+inline constexpr std::array kCardMultipliers{
+    CardMultiplier::One,
+    CardMultiplier::Two,
+    CardMultiplier::Three,
+    CardMultiplier::Five,
+};
 
 // The composition of the deck beyond the official one: a multiplier for each special card the host may rarefy or
 // multiply. The default is the standard deck.

@@ -14,6 +14,7 @@
 #include <optional>
 #include <ranges>
 #include <set>
+#include <utility>
 #include <vector>
 
 using uno::core::Card;
@@ -32,9 +33,10 @@ constexpr std::uint64_t kSeed = 42;
     return uno::core::createStandardDeck(random);
 }
 
-[[nodiscard]] std::ptrdiff_t countCards(const std::vector<Card>& deck, std::optional<Color> color, Rank rank)
+[[nodiscard]] std::size_t countCards(const std::vector<Card>& deck, std::optional<Color> color, Rank rank)
 {
-    return std::ranges::count_if(deck, [&](const Card& card) { return card.color == color && card.rank == rank; });
+    return static_cast<std::size_t>(
+        std::ranges::count_if(deck, [&](const Card& card) { return card.color == color && card.rank == rank; }));
 }
 
 } // namespace
@@ -118,17 +120,16 @@ TEST_CASE("The multipliers scale the Draw Two, the Wild Draw Four and the Wild D
 
     // The pure function and the deck it builds agree, and the total is the sum of the parts
     REQUIRE(deck.size() == composition.total());
-    REQUIRE(composition.total() == 4 * (23 + (2 * static_cast<std::size_t>(drawTwo))) + 4 +
-                                       (4 * static_cast<std::size_t>(four)) + (2 * static_cast<std::size_t>(five)));
+    REQUIRE(composition.total() == ((4 * (23 + (2 * static_cast<std::size_t>(drawTwo)))) + 4 +
+                                    (4 * static_cast<std::size_t>(four)) + (2 * static_cast<std::size_t>(five))));
     REQUIRE(countCards(deck, std::nullopt, Rank::Wild) == 4);
-    REQUIRE(static_cast<std::size_t>(countCards(deck, std::nullopt, Rank::WildDrawFour)) == composition.wildDrawFour);
-    REQUIRE(static_cast<std::size_t>(countCards(deck, std::nullopt, Rank::WildDrawFive)) == composition.wildDrawFive);
+    REQUIRE(countCards(deck, std::nullopt, Rank::WildDrawFour) == composition.wildDrawFour);
+    REQUIRE(countCards(deck, std::nullopt, Rank::WildDrawFive) == composition.wildDrawFive);
     for (const auto color : uno::core::kColors) {
         CAPTURE(color);
         const auto ofColor = std::ranges::count_if(deck, [color](const Card& card) { return card.color == color; });
-        REQUIRE(static_cast<std::size_t>(ofColor) == composition.perColor);
-        REQUIRE(static_cast<std::size_t>(countCards(deck, color, Rank::DrawTwo)) ==
-                2 * static_cast<std::size_t>(drawTwo));
+        REQUIRE(std::cmp_equal(ofColor, composition.perColor));
+        REQUIRE(countCards(deck, color, Rank::DrawTwo) == 2 * static_cast<std::size_t>(drawTwo));
         REQUIRE(countCards(deck, color, Rank::Zero) == 1);
         REQUIRE(countCards(deck, color, Rank::Skip) == 2);
     }
@@ -139,9 +140,11 @@ TEST_CASE("The multipliers scale the Draw Two, the Wild Draw Four and the Wild D
 
 TEST_CASE("The largest deck still deals ten players", "[core][deck]")
 {
-    const uno::core::DeckSettings settings{.drawTwo = uno::core::CardMultiplier::Five,
-                                           .wildDrawFour = uno::core::CardMultiplier::Five,
-                                           .wildDrawFive = uno::core::CardMultiplier::Five};
+    const uno::core::DeckSettings settings{
+        .drawTwo = uno::core::CardMultiplier::Five,
+        .wildDrawFour = uno::core::CardMultiplier::Five,
+        .wildDrawFive = uno::core::CardMultiplier::Five,
+    };
 
     REQUIRE(uno::core::compositionOf(settings).total() == 166);
     REQUIRE(uno::core::compositionOf(settings).total() > uno::core::kMaxPlayers * uno::core::kHandSize);

@@ -109,7 +109,10 @@ std::vector<ClientEvent> project(std::span<const DomainEvent> events, const Play
                 },
                 [&](const PlusFiveTargeted& targeted) {
                     projected.emplace_back(PlusFiveTargetedEvent{
-                        .playerId = targeted.player, .targetId = targeted.target, .total = targeted.total});
+                        .playerId = targeted.player,
+                        .targetId = targeted.target,
+                        .total = targeted.total,
+                    });
                 },
                 [&](const UnoCalled& called) { projected.emplace_back(UnoCalledEvent{.playerId = called.player}); },
                 [&](const UnoCaught& caught) {
