@@ -17,9 +17,9 @@ const seat = (cardCount: number): SeatView => ({
   isReadyForNextRound: false,
 });
 
-function renderSeat(cardCount: number, forgotUno = false) {
+function renderSeat(cardCount: number, forgotUno = false, isBot = false) {
   const fixture = TestBed.createComponent(OpponentSeat);
-  fixture.componentRef.setInput('seat', seat(cardCount));
+  fixture.componentRef.setInput('seat', { ...seat(cardCount), isBot });
   fixture.componentRef.setInput('isCurrent', false);
   fixture.componentRef.setInput('forgotUno', forgotUno);
   fixture.detectChanges();
@@ -36,6 +36,16 @@ describe('OpponentSeat', () => {
 
     expect(host.querySelectorAll('app-card-back')).toHaveLength(15);
     expect(host.querySelector('.count')?.textContent?.trim()).toBe('20');
+  });
+
+  it('wears a Bot badge instead of the connection state when the player is a bot', () => {
+    const bot = renderSeat(5, false, true);
+    const human = renderSeat(5);
+
+    expect(bot.querySelector('.bot-badge')?.textContent?.trim()).toBe('Bot');
+    expect(bot.textContent).not.toContain('en ligne');
+    expect(human.querySelector('.bot-badge')).toBeNull();
+    expect(human.textContent).toContain('en ligne');
   });
 
   it('flags a forgotten UNO on the seat', () => {

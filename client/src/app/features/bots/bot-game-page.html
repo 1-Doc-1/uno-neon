@@ -1,0 +1,54 @@
+<main class="page">
+  <h1 class="logo"><app-logo [size]="56" /></h1>
+
+  <section class="panel box" aria-labelledby="bots-title">
+    <h2 id="bots-title"><app-icon name="bot" /> Jouer contre des bots</h2>
+    <p class="who">
+      Tu joues sous le nom de <strong>{{ nickname }}</strong
+      >.
+    </p>
+
+    <div class="setting">
+      <span class="setting-label">Nombre de bots</span>
+      <app-segmented
+        label="Nombre de bots"
+        [options]="botCounts"
+        [value]="botCount()"
+        (selected)="botCount.set($event)"
+      />
+    </div>
+    <div class="setting">
+      <span class="setting-label">Niveau des bots</span>
+      <app-segmented
+        label="Niveau des bots"
+        [options]="botLevels"
+        [value]="level()"
+        (selected)="level.set($event)"
+      />
+      <p class="hint">
+        @if (level() === 'easy') {
+          Facile : un coup légal au hasard.
+        } @else {
+          Normal : garde ses Jokers pour la fin, vise le joueur qui a le moins de cartes, annonce
+          UNO et contre ceux qui l’oublient.
+        }
+      </p>
+    </div>
+
+    <app-game-settings
+      [settings]="settings()"
+      [showMaxPlayers]="false"
+      (changed)="change($event)"
+    />
+
+    <div class="actions">
+      <button appButton kind="ghost" (click)="back()">Retour</button>
+      <button appButton kind="primary" class="big" (click)="play()" [disabled]="!canPlay()">
+        Jouer
+      </button>
+    </div>
+    @if (!store.ready()) {
+      <p class="hint">Connexion au serveur…</p>
+    }
+  </section>
+</main>

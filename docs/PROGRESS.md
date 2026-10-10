@@ -94,6 +94,8 @@
 
 #### Lot R — cumul des pénalités, bots et nouvel accueil, cinématique et sons
 - [x] R1 Règle maison « Cumul des pénalités » (`stacking: ladder`, ADR 0029) : moteur, protocole, salon, client, simulation, E2E
+- [x] R2 Bots (ADR 0030) : `BotStrategy` Facile / Normal sur la seule `PlayerView`, adaptateur dans `uno_app` (réflexion 1 à 2 s après `actionsOpenAt`), `room.addBot`, `room.createBotGame`, nouvel accueil (3 choix), écran « Jouer contre des bots », bots au salon, badge « Bot »
+- [ ] R3 Cinématique d'introduction et sons (Web Audio)
 
 #### Phase 1 (suite)
 - [ ] 1.6 Options maison (politiques injectables)
@@ -106,7 +108,7 @@
 - [x] 4.4 E2E Playwright : parcours de jeu à 2 joueurs, reconnexion et forfait (lot K ; parties à 4, clavier seul, axe et captures de référence restent à écrire)
 
 #### Phase 5 — Bots, finitions, audits
-- [ ] 5.1 Bots (stratégies Aléatoire et Glouton)
+- [x] 5.1 Bots (stratégies Facile et Normal : lot R, ADR 0030)
 - [ ] 5.2 Sons, réactions rapides, écran de fin
 - [ ] 5.3 Audit web-design-guidelines + axe + performance, corrections
 
@@ -144,6 +146,7 @@
 - [0027 — Résolution d'un effet : le serveur dit quand le tour s'ouvre (`actionsOpenAt`)](adr/0027-effect-resolution.md)
 - [0028 — Joker +5 et composition réglable du paquet](adr/0028-wild-draw-five.md)
 - [0029 — Cumul des pénalités : l'échelle +2 < +4 < +5](adr/0029-penalty-stacking.md)
+- [0030 — Bots : stratégies sur la seule vue du joueur, adaptateur dans l'application](adr/0030-bots.md)
 - [0021 — Direction artistique « Nuit » : l'esprit du jeu de cartes, le néon en réserve](adr/0021-art-direction-v2.md)
 
 ## Journal
