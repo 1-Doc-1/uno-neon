@@ -10,9 +10,9 @@ using namespace std::chrono_literals;
 
 TEST_CASE("The server clock starts at the wall clock and never goes back", "[net][clock]")
 {
-    const auto before = std::chrono::duration_cast<std::chrono::milliseconds>(
-                            std::chrono::system_clock::now().time_since_epoch())
-                            .count();
+    const auto before =
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
+            .count();
     const uno::net::SystemClock clock;
 
     const std::int64_t first = clock.nowMillis();
