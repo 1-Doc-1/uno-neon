@@ -23,6 +23,7 @@ import { MAX_FAN_BACKS } from './opponent-fan';
 import { OpponentSeat } from './opponent-seat';
 import { Piles } from './piles';
 import { PlusFivePrompt } from './plus-five-prompt';
+import { SoundControl } from '../../ui/sound-control';
 import { RoundOverDialog } from './round-over-dialog';
 import { opponentsInViewOrder, seatLayout } from './seat-layout';
 import { TableCenter } from './table-center';
@@ -62,6 +63,7 @@ export interface CardPlay {
     ColorPicker,
     TargetPicker,
     PlusFivePrompt,
+    SoundControl,
     RoundOverDialog,
     MatchOverDialog,
   ],
@@ -264,6 +266,7 @@ export class TableView {
             resync: batch.resync,
             previousColor: this.previousColor,
             drawStepMs: this.view().drawStepMs,
+            meId: this.view().me.playerId,
           }),
         );
       }

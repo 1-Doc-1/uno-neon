@@ -431,6 +431,7 @@ Un seul thème : anthracite / bleu nuit très sombre, panneaux en verre sombre. 
 
 ### 12.1 Accueil `/` et « Jouer contre des bots » `/bots`
 Le logo en haut, **un seul panneau sobre** : le pseudo, puis **trois grands choix** : « **Jouer contre des bots** » (primaire, vert), « **Créer un salon** » et « **Rejoindre un salon** » (avec le champ code et le bouton « Rejoindre »). Rien d'autre.
+**Cinématique d'introduction** (ADR 0031) : à la première ouverture de la session (une seule fois : `sessionStorage`), 2,7 s : le logo s'assemble (les tuiles tombent l'une après l'autre), sept cartes de dos s'envolent en éventail derrière lui, puis fondu vers l'accueil. Passable d'un clic ou d'une touche. **CSS et SVG uniquement**, aucune ressource externe. Avec `prefers-reduced-motion`, un simple fondu de 1,2 s sans cartes. Les navigateurs pilotés par un robot (`navigator.webdriver`) ne la voient pas.
 « Jouer contre des bots » ouvre `/bots` : nombre de bots (1 à 5), niveau (Facile / Normal) et **les mêmes réglages de partie que le salon** (composant partagé, sans « Joueurs maximum » : le serveur fixe les places), puis « Jouer ». La partie démarre directement (`room.createBotGame`), sans salon d'attente ; sans pseudo valide on revient à l'accueil.
 
 ### 12.2 Salon (lobby) `/r/:code`
@@ -489,8 +490,11 @@ Toutes les cartes (110 faces + dos) et tous les composants dans tous leurs état
 | `roundEnded` | projecteur sur le gagnant (la modale de fin de manche attend sa fin) |
 | Échange de mains (7/0) | les éventails glissent d'un siège à l'autre (avec les options maison, étape 1.6) |
 
-### 13.3 Son (phase 5)
-Effets courts et originaux ou sous licence libre (licence notée dans `client/src/assets/sounds/LICENSES.md`) : poser, piocher, mon tour, UNO, contre-UNO, victoire. **Coupé par défaut** jusqu'à ce que le joueur l'active (politique d'autoplay des navigateurs + respect de l'utilisateur). Volume et état mémorisés en `localStorage`.
+### 13.3 Son (ADR 0031)
+**Tous les sons sont synthétisés** (Web Audio API : oscillateurs et enveloppes, aucun fichier audio, donc aucune question de licence) : poser une carte, piocher, +2, +4, **+5 (un arpège cristallin « doré », distinct de tous les autres)**, Passe, Inversion, choix de couleur, UNO, contre-UNO, « c'est ton tour », victoire, défaite.
+- Un service unique, `AudioService`, est **déclenché par l'`AnimationDirector`** : un son = un effet, joué au moment où l'effet démarre (une pioche sonne carte par carte, au rythme du serveur). Jamais par un composant, et rien pour ce qu'une vue complète a fait abandonner. Le tour, la victoire et la défaite ne sonnent que pour le joueur concerné.
+- **L'audio ne démarre qu'après une interaction** de l'utilisateur (règle d'autoplay : le premier `pointerdown`, `keydown` ou `touchstart` crée le contexte audio) ; avant, rien ne se joue.
+- Bouton **« Son activé / Son coupé »** et curseur de volume, sur l'accueil et sur la table (icône seule, sans curseur, en portrait étroit). Réglage **personnel**, mémorisé en `localStorage`. **Activé par défaut, à 60 %.** Quand le son est coupé, aucun oscillateur n'est même créé.
 
 ## 14. Accessibilité (cible WCAG 2.2 AA)
 

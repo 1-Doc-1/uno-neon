@@ -37,6 +37,19 @@
   transform: translate(-50%, -50%);
 }
 
+.sound-corner {
+  position: absolute;
+  top: var(--space-3);
+  left: var(--space-3);
+  z-index: var(--z-table);
+
+  // Portrait étroit : à droite, pour laisser le journal à gauche
+  @media (max-width: 767px) {
+    left: auto;
+    right: var(--space-3);
+  }
+}
+
 .journal {
   position: absolute;
   top: var(--space-3);

@@ -6,6 +6,7 @@ import { GameStore } from '../../state/game-store';
 import { Button } from '../../ui/button';
 import { Icon } from '../../ui/icon';
 import { Logo } from '../../ui/logo';
+import { SoundControl } from '../../ui/sound-control';
 import { isRoomCode, NICKNAME_PATTERN } from '../../core/validation';
 
 /**
@@ -14,7 +15,7 @@ import { isRoomCode, NICKNAME_PATTERN } from '../../core/validation';
  */
 @Component({
   selector: 'app-home-page',
-  imports: [FormField, Button, Icon, Logo],
+  imports: [FormField, Button, Icon, Logo, SoundControl],
   templateUrl: './home-page.html',
   styleUrl: './home-page.scss',
 })

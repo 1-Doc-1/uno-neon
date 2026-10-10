@@ -1,5 +1,6 @@
 import { DestroyRef, inject, Injectable, signal } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
+import { AudioService } from '../../../audio/audio.service';
 import type { ClientEvent, Color } from '../../../protocol/generated/protocol';
 import {
   EffectSpec,
@@ -9,6 +10,7 @@ import {
   REDUCED_MS,
   timingOf,
 } from './effect-plan';
+import { soundOfEffect } from './effect-sound';
 import { CATCH_UP_MIN_FACTOR, CATCH_UP_THRESHOLD, MOTION_MS } from '../../../ui/motion';
 
 /** Au-delà de ce retard cumulé, la file est abandonnée : mieux vaut l'état final que des effets qui n'ont plus de sens. */
@@ -37,6 +39,8 @@ export interface EnqueueOptions {
   readonly previousColor: Color | null;
   /** Le rythme des cartes piochées, fixé par le serveur (`PlayerView.drawStepMs`) : une seule source de vérité. */
   readonly drawStepMs: number;
+  /** Mon identifiant : « c'est ton tour », la victoire et la défaite ne sonnent que pour moi. */
+  readonly meId?: string | null;
 }
 
 interface QueuedStep {
@@ -44,6 +48,7 @@ interface QueuedStep {
   readonly stepMs: number;
   readonly visibleMs: number;
   readonly drawStepMs: number;
+  readonly meId: string | null;
 }
 
 /**
@@ -54,6 +59,7 @@ interface QueuedStep {
 @Injectable()
 export class AnimationDirector {
   private readonly document = inject(DOCUMENT);
+  private readonly audio = inject(AudioService);
   private readonly timers = new Set<ReturnType<typeof setTimeout>>();
   private queue: QueuedStep[] = [];
   private running = false;
@@ -118,6 +124,7 @@ export class AnimationDirector {
       spec,
       ...timingOf(spec, reduced, options.drawStepMs),
       drawStepMs: options.drawStepMs,
+      meId: options.meId ?? null,
     }));
     if (steps.length === 0) {
       return;
@@ -216,11 +223,15 @@ export class AnimationDirector {
       reduced,
     };
     this.activeState.update((list) => [...list, effect]);
+    this.sound(spec, step.meId);
     this.after(visibleMs, () => this.finish(effect));
     if (drawing) {
       // Chaque carte quitte le paquet puis arrive à son heure : c'est là que les compteurs montent
       for (let index = 0; index < spec.count; index++) {
-        this.after(index * staggerMs, () => this.unlaunchedState.update((count) => count - 1));
+        this.after(index * staggerMs, () => {
+          this.unlaunchedState.update((count) => count - 1);
+          this.audio.play('draw');
+        });
         this.after(index * staggerMs + flightMs, () => this.arrive(effect, index));
       }
     }
@@ -232,6 +243,14 @@ export class AnimationDirector {
       this.startNext();
     } else {
       this.after(stepMs, () => this.startNext());
+    }
+  }
+
+  /** Le son de l'effet qui démarre : le seul endroit où un son est demandé (une pioche sonne carte par carte). */
+  private sound(spec: EffectSpec, meId: string | null): void {
+    const sound = soundOfEffect(spec, meId);
+    if (sound) {
+      this.audio.play(sound);
     }
   }
 
