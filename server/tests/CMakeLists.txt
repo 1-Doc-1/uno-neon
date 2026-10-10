@@ -46,6 +46,7 @@ add_executable(uno_tests
     turn_order_test.cpp
     uws_scheduler_test.cpp
     smoke_test.cpp
+    system_clock_test.cpp
     test_hooks_test.cpp
     websocket_server_test.cpp
     no_dialogs.cpp
