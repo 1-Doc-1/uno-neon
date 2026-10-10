@@ -47,6 +47,7 @@ Les tests et le lint (serveur, client, E2E) sont listés dans la section « Comm
 
 ## Documentation
 
+- [Mode d'emploi pour l'hôte](docs/MODE-EMPLOI.md) : jouer avec des amis à distance, pas à pas.
 - [Spécification](docs/SPEC.md) : le quoi et le pourquoi de chaque choix.
 - [Avancement](docs/PROGRESS.md) : phases, étapes, journal.
 - [Décisions d'architecture](docs/adr/) : une ADR par choix structurant.
