@@ -12,7 +12,9 @@ export type IconName =
   | 'bot'
   | 'cards'
   | 'plus'
-  | 'link';
+  | 'link'
+  | 'sound'
+  | 'mute';
 
 /**
  * Icônes maison : des tracés SVG écrits ici, dessinés sur une grille de 24 × 24 (trait arrondi, `currentColor`).
@@ -76,6 +78,15 @@ export type IconName =
         @case ('link') {
           <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" />
           <path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />
+        }
+        @case ('sound') {
+          <path d="M4 10v4h4l5 4V6l-5 4H4z" />
+          <path d="M16.5 9a4 4 0 0 1 0 6" />
+          <path d="M19 6.5a7.5 7.5 0 0 1 0 11" />
+        }
+        @case ('mute') {
+          <path d="M4 10v4h4l5 4V6l-5 4H4z" />
+          <path d="M17 9.5l4 5M21 9.5l-4 5" />
         }
         @case ('palette') {
           <path

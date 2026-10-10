@@ -1,0 +1,122 @@
+// Cinématique d'introduction : du CSS pur, ~2,7 s. Les durées sont celles de la chronologie du composant.
+.intro {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  background: var(--page-bg) fixed;
+  opacity: 1;
+  animation: intro-out 500ms var(--ease-out) 2200ms forwards;
+  cursor: pointer;
+
+  // Passée d'un clic : le fondu part tout de suite
+  &.leaving {
+    animation: intro-out 250ms var(--ease-out) forwards;
+  }
+}
+
+.stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: min(86vw, 420px);
+  height: min(60vh, 320px);
+}
+
+// Le logo : chaque tuile tombe à son tour et se pose (voir Logo, `assemble`)
+.mark {
+  position: relative;
+  z-index: 2;
+  filter: drop-shadow(0 8px 24px rgb(0 0 0 / 0.45));
+}
+
+// L'éventail de dos s'envole derrière le logo, autour d'un pivot placé sous lui
+.fan {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  z-index: 1;
+}
+
+.flyer {
+  --card-w: 64px;
+  position: absolute;
+  left: calc(var(--card-w) / -2);
+  top: -110px;
+  transform-origin: 50% 190px;
+  opacity: 0;
+  filter: drop-shadow(0 0 14px currentColor);
+  animation: fan-out 800ms cubic-bezier(0.2, 0.9, 0.25, 1.15) forwards;
+  animation-delay: calc(500ms + var(--i) * 90ms);
+}
+
+.hint {
+  position: absolute;
+  bottom: var(--space-5);
+  color: var(--text-dim);
+  font-size: var(--fs-sm);
+  animation: hint-in 400ms ease 900ms backwards;
+}
+
+@keyframes fan-out {
+  from {
+    opacity: 0;
+    transform: translateY(150px) rotate(0deg) scale(0.4);
+  }
+  30% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-30px) rotate(var(--r)) scale(1);
+  }
+}
+
+@keyframes intro-out {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+@keyframes hint-in {
+  from {
+    opacity: 0;
+  }
+}
+
+// Mouvement réduit : le logo se pose sans bouger, il n'y a pas de cartes, un simple fondu entre et sort
+@media (prefers-reduced-motion: reduce) {
+  .intro {
+    animation: intro-fade 1200ms ease forwards;
+
+    &.leaving {
+      animation: intro-out 200ms linear forwards;
+    }
+  }
+
+  .flyer {
+    display: none;
+  }
+
+  .hint {
+    animation: none;
+  }
+}
+
+@keyframes intro-fade {
+  0% {
+    opacity: 0;
+  }
+  25%,
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    visibility: hidden;
+  }
+}

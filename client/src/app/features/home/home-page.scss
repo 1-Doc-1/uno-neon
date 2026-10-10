@@ -7,6 +7,12 @@
   padding: var(--space-5) var(--space-4);
 }
 
+.sound-corner {
+  position: fixed;
+  top: var(--space-4);
+  right: var(--space-4);
+}
+
 .logo {
   margin: 0;
   line-height: 0;
@@ -136,6 +142,7 @@
   }
 }
 
+// Le champ du code se détache du fond de sa tuile (même teinte que la tuile)
 .join-row {
   display: flex;
   align-items: flex-end;
@@ -145,6 +152,16 @@
   .grow {
     flex: 1;
     min-width: 0;
+  }
+
+  input {
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.14);
+  }
+
+  // Écran étroit : le champ prend toute la largeur de la tuile, le bouton passe dessous
+  @media (max-width: 480px) {
+    flex-direction: column;
+    align-items: stretch;
   }
 }
 

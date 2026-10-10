@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, vi } from 'vitest';
 import type { Card, ClientEvent } from '../../../protocol/generated/protocol';
+import { AudioService } from '../../../audio/audio.service';
 import { MOTION_MS } from '../../../ui/motion';
 import { AnimationDirector, MAX_BACKLOG_MS } from './animation-director';
 import { planEffects, INITIAL_PLAN_STATE, REDUCED_MS } from './effect-plan';
@@ -368,5 +369,61 @@ describe('AnimationDirector', () => {
 
     expect(kinds()).toEqual([]);
     vi.restoreAllMocks();
+  });
+});
+
+describe('AnimationDirector sounds (the director is the only one to ask for them)', () => {
+  const rung: string[] = [];
+  let director: AnimationDirector;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    rung.length = 0;
+    TestBed.configureTestingModule({
+      providers: [
+        AnimationDirector,
+        { provide: AudioService, useValue: { play: (sound: string) => rung.push(sound) } },
+      ],
+    });
+    director = TestBed.inject(AnimationDirector);
+  });
+
+  afterEach(() => vi.useRealTimers());
+
+  it('rings one sound per effect, at the moment the effect starts, in step with the animation', () => {
+    director.enqueue([played('loic', redDrawTwo), drew('zoe', 2), turnTo('zoe')], {
+      ...live,
+      meId: 'zoe',
+    });
+
+    expect(rung).toEqual(['play']);
+    vi.advanceTimersByTime(MOTION_MS.playFlight + MOTION_MS.playRest);
+    expect(rung).toEqual(['play', 'plusTwo']);
+    // La première carte part un instant après le début de la pioche (une minuterie de 0 ms vaut 1 ms en cours de tic)
+    vi.advanceTimersByTime(MOTION_MS.bigText + 1);
+    // La pioche sonne carte par carte, au rythme du serveur
+    expect(rung).toEqual(['play', 'plusTwo', 'draw']);
+    vi.advanceTimersByTime(DRAW_STEP);
+    expect(rung).toEqual(['play', 'plusTwo', 'draw', 'draw']);
+    vi.advanceTimersByTime(DRAW_STEP);
+    expect(rung).toEqual(['play', 'plusTwo', 'draw', 'draw', 'myTurn']);
+  });
+
+  it('rings nothing for what a full view throws away', () => {
+    director.enqueue([played('loic', red7)], { ...live, resync: true });
+
+    vi.advanceTimersByTime(10_000);
+
+    expect(rung).toEqual([]);
+  });
+
+  it('rings the turn only for me, and victory or defeat according to who won', () => {
+    director.enqueue([turnTo('zoe'), { kind: 'roundEnded', winnerId: 'me', points: 40 }], {
+      ...live,
+      meId: 'me',
+    });
+    vi.advanceTimersByTime(5000);
+
+    expect(rung).toEqual(['win']);
   });
 });
