@@ -100,7 +100,7 @@
       "unoWindows": [],
       "round": 6,
       "settings": {
-        "stacking": "off",
+        "stacking": "official",
         "jumpIn": true,
         "sevenZero": false,
         "drawAmount": "untilPlayable",

@@ -4,6 +4,7 @@
 #include "uno/core/detail/overloaded.hpp"
 #include "uno/core/domain_error.hpp"
 #include "uno/core/match.hpp"
+#include "uno/core/penalty_stacking.hpp"
 #include "uno/core/playability.hpp"
 #include "uno/core/player_id.hpp"
 #include "uno/core/round.hpp"
@@ -32,7 +33,7 @@ namespace {
                           [](const AwaitingDrawnCardDecision&) { return ViewPhase::AwaitingDrawnCardDecision; },
                           [](const AwaitingColorChoice&) { return ViewPhase::AwaitingColorChoice; },
                           [](const AwaitingPenaltyResponse&) { return ViewPhase::AwaitingPenaltyResponse; },
-                          [](const AwaitingPlusFiveResponse&) { return ViewPhase::AwaitingPenaltyResponse; },
+                          [](const AwaitingStackResponse&) { return ViewPhase::AwaitingPenaltyResponse; },
                           [](const RoundOver&) { return ViewPhase::RoundOver; },
                       },
                       round.phase());
@@ -50,10 +51,10 @@ namespace {
         }
     } else if (const auto* drawn = std::get_if<AwaitingDrawnCardDecision>(&round.phase())) {
         ids.push_back(drawn->drawnCard);
-    } else if (std::holds_alternative<AwaitingPlusFiveResponse>(round.phase())) {
-        // Only a Wild Draw Five answers a Wild Draw Five (ADR 0028)
+    } else if (const auto* stack = std::get_if<AwaitingStackResponse>(&round.phase())) {
+        // Only a penalty card of the pending level or higher answers a pending penalty (ADR 0028, 0029)
         for (const auto& card : hand) {
-            if (card.rank == Rank::WildDrawFive) {
+            if (canStackOn(card.rank, stack->top)) {
                 ids.push_back(card.id);
             }
         }
@@ -78,12 +79,12 @@ namespace {
         if (std::holds_alternative<AwaitingPenaltyResponse>(phase)) {
             me.penaltyResponse =
                 PenaltyResponseOptions{.amount = kWildDrawFourPenaltyCards, .canChallenge = true, .canStack = false};
-        } else if (const auto* plusFive = std::get_if<AwaitingPlusFiveResponse>(&phase)) {
-            // A Wild Draw Five cannot be contested; "stack" is answering with one of one's own
+        } else if (const auto* plusFive = std::get_if<AwaitingStackResponse>(&phase)) {
+            // A stack of penalties cannot be contested; "stack" is answering with a card of one's own
             me.penaltyResponse = PenaltyResponseOptions{
                 .amount = plusFive->total,
                 .canChallenge = false,
-                .canStack = round.holdsWildDrawFive(viewer),
+                .canStack = round.canStackOnPending(viewer),
             };
         }
     }
@@ -115,7 +116,7 @@ namespace {
     if (std::holds_alternative<AwaitingPenaltyResponse>(round.phase())) {
         return kWildDrawFourPenaltyCards;
     }
-    const auto* plusFive = std::get_if<AwaitingPlusFiveResponse>(&round.phase());
+    const auto* plusFive = std::get_if<AwaitingStackResponse>(&round.phase());
     return plusFive != nullptr ? plusFive->total : 0;
 }
 

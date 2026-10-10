@@ -37,6 +37,7 @@ namespace {
             .drawRule = settings.drawRule,
             .drawAmount = settings.drawAmount,
             .declareUnoToWin = settings.declareUnoToWin,
+            .stacking = settings.stacking,
         },
         random);
 }

@@ -35,7 +35,7 @@ enum class ViewPhase : std::uint8_t {
 struct PenaltyResponseOptions {
     std::size_t amount{};
     bool canChallenge{};
-    bool canStack{}; // always false until the stacking option exists (step 1.6)
+    bool canStack{}; // the viewer holds a card that goes on the pending stack of penalties (ADR 0028, 0029)
 
     bool operator==(const PenaltyResponseOptions&) const = default;
 };

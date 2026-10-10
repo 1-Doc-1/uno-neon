@@ -775,7 +775,7 @@ Parsed<RoomSettings> parseSettings(const Json& value)
 {
     ObjectReader reader(value, "settings");
     RoomSettings settings;
-    settings.stacking = reader.required<StackingMode>("stacking", parseEnum<StackingMode>);
+    settings.stacking = reader.required<core::PenaltyStacking>("stacking", parseEnum<core::PenaltyStacking>);
     settings.jumpIn = reader.required<bool>("jumpIn", parseBool);
     settings.sevenZero = reader.required<bool>("sevenZero", parseBool);
     settings.drawAmount = reader.required<core::DrawAmount>("drawAmount", parseEnum<core::DrawAmount>);

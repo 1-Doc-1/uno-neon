@@ -4,6 +4,7 @@
 #include "uno/core/domain_event.hpp"
 #include "uno/core/draw_amount.hpp"
 #include "uno/core/match.hpp"
+#include "uno/core/penalty_stacking.hpp"
 #include "uno/core/playability.hpp"
 #include "uno/core/player_action.hpp"
 #include "uno/core/player_id.hpp"
@@ -109,6 +110,13 @@ constexpr std::uint32_t kColorCount = 4;
     return (seed / 2) % 2 == 1;
 }
 
+// Both ways of facing a penalty are simulated: the official rules, and the ladder where penalty cards pile up (ADR
+// 0029).
+[[nodiscard]] uno::core::PenaltyStacking stackingFor(std::uint64_t seed)
+{
+    return (seed / 6) % 2 == 1 ? uno::core::PenaltyStacking::Ladder : uno::core::PenaltyStacking::Official;
+}
+
 // A random composition of the deck (ADR 0028): each special card is multiplied by one of the four allowed factors,
 // independently, so that decks from 110 to 166 cards are played, with one Wild Draw Five pair as often as ten.
 [[nodiscard]] uno::core::DeckSettings deckFor(std::uint64_t seed)
@@ -128,6 +136,7 @@ constexpr std::uint32_t kColorCount = 4;
                                     .drawAmount = drawAmountFor(seed),
                                     .declareUnoToWin = declareUnoToWinFor(seed),
                                     .deck = deckFor(seed),
+                                    .stacking = stackingFor(seed),
                                 },
                                 random);
     REQUIRE(started.has_value());
@@ -249,7 +258,9 @@ private:
     // both piles are empty. A voluntary draw (something was playable) is a single card.
     void requireForcedDrawIsComplete(const Match& before, const PlayerId& actor, const PlayerAction& action) const
     {
-        if (!std::holds_alternative<DrawCard>(action) || before.round().drawAmount() != DrawAmount::UntilPlayable) {
+        // With the ladder, drawing from the pile in answer to a pending penalty takes the penalty (ADR 0029)
+        if (!std::holds_alternative<DrawCard>(action) || before.round().drawAmount() != DrawAmount::UntilPlayable ||
+            std::holds_alternative<uno::core::AwaitingStackResponse>(before.round().phase())) {
             return;
         }
         const auto& roundBefore = before.round();

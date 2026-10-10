@@ -109,11 +109,10 @@ struct WireNames<core::PenaltyResponse> {
 };
 
 template <>
-struct WireNames<app::StackingMode> {
+struct WireNames<core::PenaltyStacking> {
     static constexpr std::array kTable{
-        WireName{.value = app::StackingMode::Off, .name = "off"},
-        WireName{.value = app::StackingMode::SameType, .name = "sameType"},
-        WireName{.value = app::StackingMode::Mixed, .name = "mixed"},
+        WireName{.value = core::PenaltyStacking::Official, .name = "official"},
+        WireName{.value = core::PenaltyStacking::Ladder, .name = "ladder"},
     };
 };
 
