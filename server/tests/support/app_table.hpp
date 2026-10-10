@@ -116,8 +116,8 @@ struct Table {
 // The request that plays `card` (a Wild gets a colour, a Wild Draw Five also a target: the player after the actor).
 inline request::PlayCard playRequest(const core::Card& card, const core::Round& round)
 {
-    request::PlayCard play{
-        .cardId = card.id, .chosenColor = std::nullopt, .swapTargetId = std::nullopt, .targetId = std::nullopt};
+    request::PlayCard play{};
+    play.cardId = card.id;
     if (core::isWild(card.rank)) {
         play.chosenColor = core::Color::Red;
     }
