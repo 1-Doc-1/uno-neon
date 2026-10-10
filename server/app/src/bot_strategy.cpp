@@ -88,6 +88,16 @@ struct Move {
     return core::kColors.at(random.uniform(static_cast<std::uint32_t>(core::kColors.size())));
 }
 
+[[nodiscard]] std::size_t colorIndex(Color color)
+{
+    return static_cast<std::size_t>(std::distance(core::kColors.begin(), std::ranges::find(core::kColors, color)));
+}
+
+[[nodiscard]] std::size_t indexOfMax(const std::array<std::size_t, core::kColors.size()>& counts)
+{
+    return static_cast<std::size_t>(std::distance(counts.begin(), std::ranges::max_element(counts)));
+}
+
 // The color of the cards the bot holds most, apart from `except` (the card it is about to play).
 [[nodiscard]] Color mostHeldColor(const PlayerView& view, std::optional<CardId> except, core::RandomSource& random)
 {
@@ -96,14 +106,13 @@ struct Move {
         if (!card.color.has_value() || card.id == except) {
             continue;
         }
-        const auto slot = std::ranges::find(core::kColors, *card.color);
-        ++counts.at(static_cast<std::size_t>(std::distance(core::kColors.begin(), slot)));
+        ++counts.at(colorIndex(*card.color));
     }
-    const auto best = std::ranges::max_element(counts);
-    if (*best == 0) {
+    const std::size_t best = indexOfMax(counts);
+    if (counts.at(best) == 0) {
         return randomColor(random); // nothing but Wilds in hand: any color is as good as another
     }
-    return core::kColors.at(static_cast<std::size_t>(std::distance(counts.begin(), best)));
+    return core::kColors.at(best);
 }
 
 [[nodiscard]] std::vector<const core::SeatView*> opponentsOf(const PlayerView& view)
