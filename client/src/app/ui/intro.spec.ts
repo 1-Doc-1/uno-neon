@@ -1,11 +1,16 @@
 import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { AUDIO_CONTEXT_FACTORY, AudioService } from '../audio/audio.service';
 import { Intro } from './intro';
 
 describe('Intro', () => {
   beforeEach(() => {
     sessionStorage.clear();
+    localStorage.clear();
     vi.useFakeTimers();
+    TestBed.configureTestingModule({
+      providers: [{ provide: AUDIO_CONTEXT_FACTORY, useValue: () => null }],
+    });
   });
 
   afterEach(() => {
@@ -13,11 +18,17 @@ describe('Intro', () => {
     vi.unstubAllGlobals();
   });
 
-  function render() {
+  /** `begun` : le clic sur « Cliquer pour jouer » est déjà fait, la cinématique tourne. */
+  function render(begun = true) {
     const fixture = TestBed.createComponent(Intro);
     fixture.detectChanges();
     const host = fixture.nativeElement as HTMLElement;
-    return { fixture, host, shown: () => host.querySelector('.intro') };
+    const gate = () => host.querySelector<HTMLButtonElement>('.gate-button');
+    if (begun) {
+      gate()?.click();
+      fixture.detectChanges();
+    }
+    return { fixture, host, gate, shown: () => host.querySelector('.intro') };
   }
 
   it('plays on the first visit: the logo and a fan of cards, built from CSS and SVG only', () => {
@@ -29,9 +40,48 @@ describe('Intro', () => {
     expect(host.querySelector('img, audio, video, link')).toBeNull();
   });
 
+  it('first asks for a click, and shows nothing of the opening before it', () => {
+    const { host, gate, shown } = render(false);
+
+    expect(gate()?.textContent).toContain('Cliquer pour jouer');
+    expect(shown()).toBeNull();
+    expect(host.querySelectorAll('.flyer')).toHaveLength(0);
+    vi.advanceTimersByTime(10_000);
+    expect(gate()).not.toBeNull();
+  });
+
+  it('a click on the gate unlocks the audio and plays the opening sound, once', () => {
+    const audio = TestBed.inject(AudioService);
+    const unlock = vi.spyOn(audio, 'unlock');
+    const play = vi.spyOn(audio, 'play');
+    const { fixture, gate, shown } = render(false);
+
+    gate()?.click();
+    fixture.detectChanges();
+
+    expect(unlock).toHaveBeenCalled();
+    expect(play).toHaveBeenCalledWith('intro');
+    expect(play.mock.calls.filter(([sound]) => sound === 'intro')).toHaveLength(1);
+    expect(gate()).toBeNull();
+    expect(shown()).not.toBeNull();
+  });
+
+  it('does not ask again once the session has seen it', () => {
+    render(false);
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [{ provide: AUDIO_CONTEXT_FACTORY, useValue: () => null }],
+    });
+
+    expect(render(false).gate()).toBeNull();
+  });
+
   it('plays once per session', () => {
     render();
     TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [{ provide: AUDIO_CONTEXT_FACTORY, useValue: () => null }],
+    });
 
     expect(render().shown()).toBeNull();
     expect(sessionStorage.getItem('uno.introSeen')).toBe('1');
@@ -89,6 +139,7 @@ describe('Intro', () => {
   it('is not played to a browser driven by a robot', () => {
     vi.stubGlobal('navigator', { webdriver: true });
 
+    expect(render().gate()).toBeNull();
     expect(render().shown()).toBeNull();
   });
 

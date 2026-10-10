@@ -11,6 +11,7 @@ import { SegmentOption, Segmented } from '../../ui/segmented';
 import { BOT_LEVELS } from '../room/bot-levels';
 import { DEFAULT_SETTINGS } from '../room/default-settings';
 import { GameSettings } from '../room/game-settings';
+import { ClickSound } from '../../ui/click-sound';
 
 const BOT_COUNTS: readonly SegmentOption<number>[] = [1, 2, 3, 4, 5].map((count) => ({
   value: count,
@@ -23,7 +24,7 @@ const BOT_COUNTS: readonly SegmentOption<number>[] = [1, 2, 3, 4, 5].map((count)
  */
 @Component({
   selector: 'app-bot-game-page',
-  imports: [Button, GameSettings, Icon, Logo, Segmented],
+  imports: [ClickSound, Button, GameSettings, Icon, Logo, Segmented],
   templateUrl: './bot-game-page.html',
   styleUrl: './bot-game-page.scss',
 })

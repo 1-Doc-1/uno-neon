@@ -8,6 +8,7 @@ import { Icon } from '../../ui/icon';
 import { Logo } from '../../ui/logo';
 import { SoundControl } from '../../ui/sound-control';
 import { isRoomCode, NICKNAME_PATTERN } from '../../core/validation';
+import { ClickSound } from '../../ui/click-sound';
 
 /**
  * Accueil : un pseudo, puis trois grands choix (SPEC §12.1) : jouer tout de suite contre des bots, créer un salon, ou
@@ -15,7 +16,7 @@ import { isRoomCode, NICKNAME_PATTERN } from '../../core/validation';
  */
 @Component({
   selector: 'app-home-page',
-  imports: [FormField, Button, Icon, Logo, SoundControl],
+  imports: [ClickSound, FormField, Button, Icon, Logo, SoundControl],
   templateUrl: './home-page.html',
   styleUrl: './home-page.scss',
 })

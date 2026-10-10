@@ -3,11 +3,12 @@ import type { Card, Color, PenaltyResponseOptions } from '../../protocol/generat
 import { Button } from '../../ui/button';
 import { CardFace } from '../../ui/card';
 import { Modal } from '../../ui/modal';
+import { ClickSound } from '../../ui/click-sound';
 
 /** Réponse à une pénalité, façon jeu de cartes : la carte jouée contre moi, puis « Contester » ou « Accepter ». */
 @Component({
   selector: 'app-challenge-dialog',
-  imports: [Modal, CardFace, Button],
+  imports: [ClickSound, Modal, CardFace, Button],
   template: `
     <app-modal [label]="title()">
       <div class="body">

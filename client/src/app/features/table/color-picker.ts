@@ -4,11 +4,12 @@ import { COLOR_NAME, COLORS } from '../../ui/color-meta';
 import { ColorSymbol } from '../../ui/color-symbol';
 import { Modal } from '../../ui/modal';
 import { Button } from '../../ui/button';
+import { ClickSound } from '../../ui/click-sound';
 
 /** Choix de la couleur d'un joker : quatre grandes tuiles, raccourcis clavier 1 à 4 (SPEC §12.3). */
 @Component({
   selector: 'app-color-picker',
-  imports: [Modal, ColorSymbol, Button],
+  imports: [ClickSound, Modal, ColorSymbol, Button],
   host: { '(document:keydown)': 'onKey($event)' },
   template: `
     <app-modal

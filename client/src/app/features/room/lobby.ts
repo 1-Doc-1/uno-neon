@@ -10,6 +10,7 @@ import { SegmentOption, Segmented } from '../../ui/segmented';
 import { BOT_LEVELS } from './bot-levels';
 import { deckSize } from './deck-size';
 import { GameSettings } from './game-settings';
+import { ClickSound } from '../../ui/click-sound';
 
 const MATCH_LENGTH_SUMMARY: Record<MatchLength, string> = {
   singleRound: 'Manche unique',
@@ -22,7 +23,7 @@ const COPIED_FEEDBACK_MS = 2000;
 /** Salon avant la partie : joueurs à gauche, réglages à droite, un grand bouton en bas (SPEC §12.2). */
 @Component({
   selector: 'app-lobby',
-  imports: [Avatar, Button, GameSettings, Icon, Logo, Segmented],
+  imports: [ClickSound, Avatar, Button, GameSettings, Icon, Logo, Segmented],
   templateUrl: './lobby.html',
   styleUrl: './lobby.scss',
 })

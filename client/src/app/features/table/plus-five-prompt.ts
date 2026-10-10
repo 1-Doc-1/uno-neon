@@ -1,6 +1,7 @@
 import { Component, input, output } from '@angular/core';
 import type { PenaltyResponseOptions } from '../../protocol/generated/protocol';
 import { Button } from '../../ui/button';
+import { ClickSound } from '../../ui/click-sound';
 
 /**
  * Un Joker +5 te vise : accepter (piocher le total), ou répliquer en posant un Joker +5 de ta main (on clique sur la
@@ -8,7 +9,7 @@ import { Button } from '../../ui/button';
  */
 @Component({
   selector: 'app-plus-five-prompt',
-  imports: [Button],
+  imports: [ClickSound, Button],
   template: `
     <section class="panel" aria-label="Un Joker +5 te vise">
       <h2>+5 contre toi !</h2>
