@@ -53,3 +53,12 @@ ami ──https──▶ Cloudflare ──tunnel sortant──▶ cloudflared �
 - L'adresse change à chaque lancement : l'hôte renvoie un nouveau lien à chaque soirée.
 - Cloudflare voit le trafic en clair (il termine le TLS) : acceptable pour un jeu entre amis, sans compte ni secret.
 - Sans nom propre, un ami ne peut pas « retrouver » la partie après l'arrêt : le salon vit tant que le script tourne.
+
+## Mesures (2026-10-10, par l'adresse du tunnel)
+- **Lighthouse** : bureau 100 / 100 / 100 (performance, accessibilité, bonnes pratiques), FCP 0,4 s, LCP 0,5 s, TBT 0 ms, CLS 0 ;
+  mobile (simulation 4G lente) 98 / 100 / 100, FCP 1,7 s, LCP 2,0 s, TBT 20 ms, CLS 0. Poids total de la page : 216 Kio.
+- **Bundle initial** : 276,7 Ko bruts (main 270 Ko + styles 6 Ko) ; `main.js` servi en gzip par Cloudflare : 88,5 Ko.
+- **Messages WebSocket** (une manche complète à deux navigateurs, 535 s au rythme réel, aucune erreur de console donc aucune
+  violation de CSP) : 161 envoyés, 69 octets en moyenne ; 544 reçus, 1 261 octets en moyenne, 3 269 au plus.
+- Rien d'assez facile à gagner pour être touché : le mobile perd 2 points sur la chaîne HTML → script → morceaux paresseux
+  (le chargeur d'`autoCsp` empêche le préchargement automatique).
