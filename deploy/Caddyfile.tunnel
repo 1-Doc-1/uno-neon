@@ -1,0 +1,60 @@
+# Caddy pour jouer par un tunnel (scripts/play-online.ps1, ADR 0033).
+# Caddy n'écoute que sur 127.0.0.1 : le seul chemin d'entrée est le tunnel Cloudflare (cloudflared) qui s'y connecte.
+# Les valeurs viennent de l'environnement du script :
+#   UNO_WEB_PORT      port local de Caddy
+#   UNO_SERVER_PORT   port local du serveur de jeu
+#   UNO_WEB_ROOT      dossier du client compilé (client/dist/client/browser)
+#   UNO_CSP_SCRIPT    sources de scripts autorisées, tirées de l'index.html compilé (hachages d'Angular `autoCsp`)
+{
+	admin off
+	auto_https off
+	# Le tunnel est le seul client : on lui fait confiance pour dire l'adresse du visiteur, que Cloudflare
+	# inscrit dans Cf-Connecting-Ip. Sans cela, les limites de débit par adresse seraient partagées par tous les visiteurs (tous vus comme 127.0.0.1).
+	servers {
+		trusted_proxies static 127.0.0.1/32 ::1/128
+		client_ip_headers Cf-Connecting-Ip
+	}
+}
+
+# Le tunnel transmet le nom de l'hôte du visiteur (xxxx.trycloudflare.com) : le site ne dépend d'aucun nom,
+# c'est l'adresse d'écoute (bind) qui le protège.
+http://:{$UNO_WEB_PORT} {
+	bind 127.0.0.1
+
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=86400"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=()"
+		Cross-Origin-Opener-Policy "same-origin"
+		Cross-Origin-Resource-Policy "same-origin"
+		Content-Security-Policy "default-src 'self'; script-src {$UNO_CSP_SCRIPT}; style-src 'self' 'unsafe-inline'; connect-src 'self' wss://{host}; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+		-Server
+	}
+
+	# L'état du serveur ne regarde que moi, pas les visiteurs du tunnel
+	handle /health {
+		respond 404
+	}
+
+	handle /ws* {
+		reverse_proxy 127.0.0.1:{$UNO_SERVER_PORT} {
+			# L'adresse vue par le serveur est celle du visiteur (jamais une valeur écrite par lui)
+			header_up X-Forwarded-For {client_ip}
+		}
+	}
+
+	handle {
+		root * {$UNO_WEB_ROOT}
+
+		@hashed path_regexp hashed -[A-Za-z0-9_]{8}\.(js|css|woff2)$
+		header @hashed Cache-Control "public, max-age=31536000, immutable"
+		@entry path / /index.html
+		header @entry Cache-Control "no-cache"
+
+		try_files {path} /index.html
+		file_server
+	}
+}

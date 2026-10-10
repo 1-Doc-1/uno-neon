@@ -332,7 +332,7 @@ Les messages d'erreur sont en anglais technique ; **le client traduit chaque cod
 - **Vérification de l'`Origin`** au handshake contre `UNO_ALLOWED_ORIGINS` (protection contre le détournement de WebSocket depuis un autre site).
 
 ### 9.5 Configuration (variables d'environnement)
-`UNO_PORT` (défaut 9001), `UNO_ALLOWED_ORIGINS` (liste séparée par des virgules), `UNO_TRUSTED_PROXY` (bool), `UNO_LOG_LEVEL`, et uniquement si compilé avec `UNO_ENABLE_TEST_HOOKS` : `UNO_TEST_SEED` (partie déterministe pour les tests E2E) et `UNO_TEST_RECONNECT_GRACE_MS` (grâce de reconnexion raccourcie).
+`UNO_PORT` (défaut 9001), `UNO_BIND_ADDRESS` (une adresse IP locale, par exemple `127.0.0.1` pour n'être joignable que depuis la machine ; absente : toutes les interfaces), `UNO_ALLOWED_ORIGINS` (liste séparée par des virgules), `UNO_TRUSTED_PROXY` (bool), `UNO_LOG_LEVEL`, et uniquement si compilé avec `UNO_ENABLE_TEST_HOOKS` : `UNO_TEST_SEED` (partie déterministe pour les tests E2E) et `UNO_TEST_RECONNECT_GRACE_MS` (grâce de reconnexion raccourcie).
 
 ### 9.6 Observabilité
 - Logs structurés spdlog : connexion/déconnexion, création/fermeture de salon, erreurs, avec `playerId` et `roomCode` (jamais le jeton de session).
@@ -562,6 +562,8 @@ Qualité : clang-format, clang-tidy, ESLint, Prettier. Aucune étape n'est termi
 - `client` : `npm ci`, lint, tests Vitest, build de prod, `npm audit --audit-level=high`.
 - **Déclencheurs** : `pull_request` vers `main` et lancement manuel, jamais un push de branche ; PR en brouillon ignorées ; `concurrency` par PR avec annulation. Un job `changes` (script `git diff`) décide quels jobs tournent (`if:` au niveau des jobs, jamais `paths:` au niveau du workflow : un check requis jamais déclenché bloquerait la fusion) : `docs/` seul → rien ; `client/` → client + e2e ; `server/` → serveur + e2e ; `protocol/`, `.github/` et le reste → tout. Permissions `contents: read`, aucun secret, jamais `pull_request_target`, actions épinglées par SHA.
 - `e2e` : après les deux précédents ; publie le rapport Playwright en artefact en cas d'échec.
+
+**Jouer par un tunnel depuis le PC de l'hôte** (lot S, ADR 0033) : `scripts/play-online.ps1` compile (release, sans crochets de test) et lance, tous liés à `127.0.0.1`, le serveur, Caddy (`deploy/Caddyfile.tunnel` : client compilé, `/ws` relayé, compression, cache long des fichiers à empreinte, mêmes en-têtes de sécurité et CSP que ci-dessous, `/health` fermé) et un quick tunnel Cloudflare dont l'adresse devient la **seule** origine autorisée (`UNO_ALLOWED_ORIGINS`). Le script refuse de publier l'adresse si un contrôle échoue (ports locaux, binaire sans `UNO_TEST_`, build sans pages `/dev`, en-têtes, origine étrangère refusée), garde le PC éveillé et arrête tout proprement (Ctrl+C, ou fermeture de la fenêtre par un objet Job Windows). Installation : `scripts/setup-online.ps1` (winget : `CaddyServer.Caddy`, `Cloudflare.cloudflared`).
 
 **Déploiement (phase 6)**
 - `deploy/Dockerfile.server` multi-étapes : build (Ubuntu + vcpkg, preset `release`) → exécution (Debian slim, utilisateur non-root, seulement le binaire).

@@ -99,7 +99,7 @@
 
 #### Lot S — sons et effets, mise en ligne par tunnel, mode d'emploi
 - [x] S1 Écran « Cliquer pour jouer » + son d'ouverture, clic d'interface, musique générée avec tension de fin de tour, réglages audio séparés, malus plus marquants, poussière des effets (ADR 0032)
-- [ ] S2 Jouer avec des amis par un tunnel (`scripts/play-online.ps1`, Caddy + cloudflared, ADR 0033)
+- [x] S2 Jouer avec des amis par un tunnel (`scripts/play-online.ps1`, Caddy + cloudflared, ADR 0033)
 - [ ] S3 Mode d'emploi (`docs/MODE-EMPLOI.md`) et page « Comment jouer »
 
 #### Phase 1 (suite)
@@ -153,6 +153,7 @@
 - [0029 — Cumul des pénalités : l'échelle +2 < +4 < +5](adr/0029-penalty-stacking.md)
 - [0031 — Cinématique d'introduction et sons synthétisés, déclenchés par l'AnimationDirector](adr/0031-intro-and-sound.md)
 - [0030 — Bots : stratégies sur la seule vue du joueur, adaptateur dans l'application](adr/0030-bots.md)
+- [0033 — Jouer avec des amis par un tunnel, depuis le PC de l'hôte](adr/0033-play-through-a-tunnel.md)
 - [0032 — Musique d'ambiance, réglages audio séparés, clic d'interface et poussière des effets](adr/0032-music-ui-sounds-and-dust.md)
 - [0021 — Direction artistique « Nuit » : l'esprit du jeu de cartes, le néon en réserve](adr/0021-art-direction-v2.md)
 

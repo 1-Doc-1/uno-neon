@@ -58,7 +58,8 @@
                   "with": "src/app/dev/dev.routes.prod.ts"
                 }
               ],
-              "outputHashing": "all"
+              "outputHashing": "all",
+              "security": { "autoCsp": true }
             },
             "development": {
               "optimization": false,
