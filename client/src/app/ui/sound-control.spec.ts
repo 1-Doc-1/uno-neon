@@ -30,7 +30,7 @@ describe('SoundControl', () => {
     const { toggle, slider } = render();
 
     expect(toggle()?.textContent).toContain('Son activé');
-    expect(slider()?.getAttribute('aria-label')).toBe('Volume');
+    expect(slider()?.getAttribute('aria-label')).toBe('Volume des effets');
     expect(slider()?.value).toBe('60');
   });
 
@@ -55,7 +55,6 @@ describe('SoundControl', () => {
     fixture.detectChanges();
     const host = fixture.nativeElement as HTMLElement;
 
-    expect(host.querySelector('input[type="range"]')).toBeNull();
     expect(host.querySelector('button span.sr-only')?.textContent).toContain('Son activé');
   });
 

@@ -5,6 +5,7 @@ import { CardFace } from '../../ui/card';
 import { COLOR_NAME, SHAPE_NAME, tintClass } from '../../ui/color-meta';
 import { ColorSymbol } from '../../ui/color-symbol';
 import { discardStack } from './fx/discard-pile';
+import { ClickSound } from '../../ui/click-sound';
 
 /**
  * La pioche et la défausse : la pioche est cliquable quand le serveur le permet ; la couleur active entoure la
@@ -12,7 +13,7 @@ import { discardStack } from './fx/discard-pile';
  */
 @Component({
   selector: 'app-piles',
-  imports: [CardFace, CardBack, ColorSymbol],
+  imports: [ClickSound, CardFace, CardBack, ColorSymbol],
   template: `
     <div class="deck-wrap">
       <button

@@ -97,6 +97,11 @@
 - [x] R2 Bots (ADR 0030) : `BotStrategy` Facile / Normal sur la seule `PlayerView`, adaptateur dans `uno_app` (réflexion 1 à 2 s après `actionsOpenAt`), `room.addBot`, `room.createBotGame`, nouvel accueil (3 choix), écran « Jouer contre des bots », bots au salon, badge « Bot »
 - [x] R3 Cinématique d'introduction (CSS + SVG, passable, une fois par session) et sons synthétisés (Web Audio, `AudioService` déclenché par l'`AnimationDirector`, bouton Son activé / coupé et volume), ADR 0031
 
+#### Lot S — sons et effets, mise en ligne par tunnel, mode d'emploi
+- [x] S1 Écran « Cliquer pour jouer » + son d'ouverture, clic d'interface, musique générée avec tension de fin de tour, réglages audio séparés, malus plus marquants, poussière des effets (ADR 0032)
+- [ ] S2 Jouer avec des amis par un tunnel (`scripts/play-online.ps1`, Caddy + cloudflared, ADR 0033)
+- [ ] S3 Mode d'emploi (`docs/MODE-EMPLOI.md`) et page « Comment jouer »
+
 #### Phase 1 (suite)
 - [ ] 1.6 Options maison (politiques injectables)
 
@@ -148,6 +153,7 @@
 - [0029 — Cumul des pénalités : l'échelle +2 < +4 < +5](adr/0029-penalty-stacking.md)
 - [0031 — Cinématique d'introduction et sons synthétisés, déclenchés par l'AnimationDirector](adr/0031-intro-and-sound.md)
 - [0030 — Bots : stratégies sur la seule vue du joueur, adaptateur dans l'application](adr/0030-bots.md)
+- [0032 — Musique d'ambiance, réglages audio séparés, clic d'interface et poussière des effets](adr/0032-music-ui-sounds-and-dust.md)
 - [0021 — Direction artistique « Nuit » : l'esprit du jeu de cartes, le néon en réserve](adr/0021-art-direction-v2.md)
 
 ## Journal
@@ -210,3 +216,4 @@
 - 2026-10-10 — R1 — cumul des pénalités (ADR 0029) : réglage `stacking` (`official` | `ladder`, remplace l'ancien `off`/`sameType`/`mixed`), échelle +2 < +4 < +5 (couleur ignorée, montants additionnés, +2 et +4 vers le joueur suivant dans le sens, +5 vers la cible), `AwaitingPlusFiveResponse` devenu `AwaitingStackResponse{total, top}`, pas de fenêtre pour la cible (cartes empilables dans `playableCardIds`, clic sur le paquet = piocher le total, pioche guidée automatique sans carte empilable), contestation du +4 désactivée à l'échelle ; **bug corrigé dans les deux modes** : les cartes de réponse sont mises en évidence dès l'arrivée de la pénalité (verrouillées jusqu'à `actionsOpenAt`) et la fenêtre du +5 officiel apparaît tout de suite ; simulation des deux modes, E2E « +2 sur +2 puis +4 » — `feat/penalty-stacking` / PR #36
 - 2026-10-10 — R2 — bots (ADR 0030) : `BotStrategy` Facile / Normal sur la seule `PlayerView` (test anti-triche, 1 000 vues par niveau, coups toujours légaux), adaptateur dans `uno_app` (réflexion 1 à 2 s après `actionsOpenAt`, mêmes contrôles qu'un humain, repli sur le coup du minuteur), `room.addBot {level}` et `room.createBotGame` (partie lancée tout de suite), un bot n'est jamais l'hôte ni attendu entre deux manches, le dernier humain parti ferme le salon ; client : accueil à trois choix, écran « Jouer contre des bots », bots au salon, badge « Bot », `GameSettings` partagé ; E2E « partie contre 2 bots jusqu'à la fin de la manche » — `feat/bots` / PR #37
 - 2026-10-10 — R3 — cinématique d'introduction (CSS + SVG, 2,7 s, passable, une fois par session, fondu en mouvement réduit) et sons synthétisés (ADR 0031) : 13 sons Web Audio, `AudioService` (rien avant une interaction, rien quand c'est coupé, activé à 60 % par défaut, réglage en `localStorage`) déclenché par l'`AnimationDirector` (un son = un effet), bouton « Son activé / coupé » et volume sur l'accueil et la table, E2E de la cinématique ; axe WCAG 2.2 AA sans violation sur l'accueil, l'écran des bots et la table — `feat/intro-and-sound`
+- 2026-10-10 — S1 — sons et effets (ADR 0032) : écran « Cliquer pour jouer » (le clic débloque l'audio et lance la cinématique avec un son d'ouverture), directive `ClickSound` (un test échoue si un gabarit a un bouton sans elle), `AudioService` à deux circuits (effets 60 %, musique 30 %), musique générée par `MusicEngine` (boucle de 16 battements, tempo 68 → 132 quand les 5 dernières secondes de mon tour approchent, désactivable), panneau « Réglages audio », malus à plusieurs couches, poussière (`ParticleSystem` pur, `ParticleCanvas` : un canvas, 40 particules, boucle arrêtée à vide, coupée en mouvement réduit) lancée par `EffectsLayer` ; tests client (353), E2E (28, dont axe sur l'écran « Cliquer pour jouer ») — `feat/audio-fx`

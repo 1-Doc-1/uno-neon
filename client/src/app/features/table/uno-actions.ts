@@ -1,4 +1,5 @@
 import { Component, input, output } from '@angular/core';
+import { ClickSound } from '../../ui/click-sound';
 
 /** Un bouton « Contre-UNO ! » : un par joueur dont la fenêtre est ouverte. */
 export interface CatchButton {
@@ -11,6 +12,7 @@ export interface CatchButton {
 
 /** Le bouton UNO et, empilés au même endroit, un « Contre-UNO ! » par cible (SPEC §12.3). */
 @Component({
+  imports: [ClickSound],
   selector: 'app-uno-actions',
   template: `
     <div class="actions" role="group" aria-label="Annonces UNO">

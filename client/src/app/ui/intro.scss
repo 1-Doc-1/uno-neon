@@ -120,3 +120,38 @@
     visibility: hidden;
   }
 }
+
+// L'écran « Cliquer pour jouer » : immobile, pour que le clic soit le seul geste attendu
+.gate {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--space-6);
+  background: var(--page-bg) fixed;
+}
+
+.gate-button {
+  min-height: 56px;
+  padding: 0 var(--space-6);
+  border: 2px solid var(--primary);
+  border-radius: var(--radius-pill);
+  background: var(--field);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--primary);
+    color: var(--text-on-neon);
+  }
+
+  &:focus-visible {
+    outline: 3px solid var(--focus-ring);
+    outline-offset: 4px;
+  }
+}

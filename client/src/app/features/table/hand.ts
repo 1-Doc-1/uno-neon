@@ -10,6 +10,7 @@ import {
 import type { Card } from '../../protocol/generated/protocol';
 import { CardFace } from '../../ui/card';
 import { cardLabel } from '../../ui/color-meta';
+import { ClickSound } from '../../ui/click-sound';
 
 const MAX_ROTATION_STEP_DEGREES = 3.2;
 const TOTAL_FAN_DEGREES = 36;
@@ -39,7 +40,7 @@ function fanStep(
  */
 @Component({
   selector: 'app-hand',
-  imports: [CardFace],
+  imports: [ClickSound, CardFace],
   template: `
     <ul
       class="hand"

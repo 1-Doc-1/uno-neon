@@ -8,6 +8,7 @@ import {
   input,
   signal,
   untracked,
+  viewChild,
 } from '@angular/core';
 import { CardFace } from '../../../ui/card';
 import { CardBack } from '../../../ui/card-back';
@@ -15,6 +16,7 @@ import { COLORS } from '../../../ui/color-meta';
 import type { ActiveEffect } from './animation-director';
 import { Anchors, Box, placeEffect, Placed, Tone } from './effect-geometry';
 import { FlightMotion } from './flight-motion';
+import { ParticleCanvas } from './particle-canvas';
 import { ReverseArrow } from './reverse-arrow';
 
 /** Une étoile à seize branches pour l'éclat « UNO ! » (rayons alternés, centrée en 0,0). */
@@ -32,6 +34,19 @@ const QUARTERS: Record<string, string> = {
   blue: 'M0 0 L-46 0 A46 46 0 0 1 0 -46 Z',
 };
 
+/** Le token CSS de chaque ton : la poussière prend la couleur de l'effet (or pour le +5), jamais une valeur en dur. */
+const TONE_TOKENS: Record<Tone, string> = {
+  red: '--game-red',
+  yellow: '--game-yellow',
+  green: '--game-green',
+  blue: '--game-blue',
+  white: '--text',
+  gold: '--gold-edge',
+};
+
+/** Combien de grains jaillissent : le +5 remplit le plafond de 40, le reste est plus discret. */
+const DUST_COUNT = { gold: 40, bigText: 24, reverse: 18, caught: 22, skip: 12 } as const;
+
 const SHAKE = [0, -7, 7, -5, 5, -2, 0].map((x) => ({ translate: `${x}px` }));
 const BLINK = [1, 0.35, 1, 0.35, 1].map((opacity) => ({ opacity }));
 
@@ -42,7 +57,7 @@ const BLINK = [1, 0.35, 1, 0.35, 1].map((opacity) => ({ opacity }));
  */
 @Component({
   selector: 'app-effects-layer',
-  imports: [CardFace, CardBack, FlightMotion, ReverseArrow],
+  imports: [CardFace, CardBack, FlightMotion, ParticleCanvas, ReverseArrow],
   templateUrl: './effects-layer.html',
   styleUrl: './effects-layer.scss',
   host: { 'aria-hidden': 'true' },
@@ -56,6 +71,7 @@ export class EffectsLayer {
   readonly handRect = input<(cardId: number) => DOMRect | null>(() => null);
 
   private readonly host: HTMLElement = inject(ElementRef).nativeElement;
+  private readonly dust = viewChild.required(ParticleCanvas);
   private readonly injector = inject(Injector);
   private readonly cache = new Map<number, Placed | null>();
   protected readonly placed = signal<readonly Placed[]>([]);
@@ -93,11 +109,51 @@ export class EffectsLayer {
     const anchors = this.anchors();
     for (const effect of active) {
       if (!this.cache.has(effect.id)) {
-        this.cache.set(effect.id, placeEffect(effect, anchors));
+        const placed = placeEffect(effect, anchors);
+        this.cache.set(effect.id, placed);
         this.hitSeat(effect);
+        this.raiseDust(placed);
       }
     }
     this.placed.set([...this.cache.values()].filter((placed): placed is Placed => placed !== null));
+  }
+
+  /** La poussière d'un effet (un effet = un son = des particules), jamais en mouvement réduit. */
+  private raiseDust(placed: Placed | null): void {
+    if (!placed || placed.reduced) {
+      return;
+    }
+    let at: Box;
+    let tone: Tone;
+    let count: number;
+    switch (placed.kind) {
+      case 'bigText':
+        ({ at, tone } = placed);
+        count = tone === 'gold' ? DUST_COUNT.gold : DUST_COUNT.bigText;
+        break;
+      case 'reverse':
+        at = placed.at;
+        tone = 'white';
+        count = DUST_COUNT.reverse;
+        break;
+      case 'skip':
+        at = placed.at;
+        tone = 'white';
+        count = DUST_COUNT.skip;
+        break;
+      case 'label':
+        if (placed.variant !== 'caught' && placed.variant !== 'challenge') {
+          return;
+        }
+        at = placed.at;
+        tone = placed.tone ?? 'white';
+        count = DUST_COUNT.caught;
+        break;
+      default:
+        return;
+    }
+    const color = getComputedStyle(this.host).getPropertyValue(TONE_TOKENS[tone]).trim();
+    this.dust().burst({ x: at.cx, y: at.cy, color: color || 'currentColor', count });
   }
 
   private anchors(): Anchors {

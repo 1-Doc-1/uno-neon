@@ -2,11 +2,12 @@ import { Component, computed, input, output } from '@angular/core';
 import type { SeatView } from '../../protocol/generated/protocol';
 import { Modal } from '../../ui/modal';
 import { Button } from '../../ui/button';
+import { ClickSound } from '../../ui/click-sound';
 
 /** Fin de partie : vainqueur et classement. (La revanche viendra après le MVP, étape 4.3b.) */
 @Component({
   selector: 'app-match-over-dialog',
-  imports: [Modal, Button],
+  imports: [ClickSound, Modal, Button],
   template: `
     <app-modal label="Fin de la partie">
       <div class="body">

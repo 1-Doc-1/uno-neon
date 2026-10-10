@@ -1,4 +1,5 @@
 import { Component, input, output } from '@angular/core';
+import { ClickSound } from './click-sound';
 
 export interface SegmentOption<T> {
   readonly value: T;
@@ -7,6 +8,7 @@ export interface SegmentOption<T> {
 
 /** Choix exclusif entre quelques valeurs (SPEC §11.5). */
 @Component({
+  imports: [ClickSound],
   selector: 'app-segmented',
   template: `
     <div role="radiogroup" [attr.aria-label]="label()">

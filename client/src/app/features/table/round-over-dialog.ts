@@ -3,11 +3,12 @@ import type { Card, RoundResult, SeatView } from '../../protocol/generated/proto
 import { CardFace } from '../../ui/card';
 import { Modal } from '../../ui/modal';
 import { Button } from '../../ui/button';
+import { ClickSound } from '../../ui/click-sound';
 
 /** Fin de manche : vainqueur, points, mains révélées, scores ; chacun valide pour enchaîner (SPEC §12.3). */
 @Component({
   selector: 'app-round-over-dialog',
-  imports: [Modal, CardFace, Button],
+  imports: [ClickSound, Modal, CardFace, Button],
   template: `
     <app-modal label="Fin de la manche">
       <div class="body">

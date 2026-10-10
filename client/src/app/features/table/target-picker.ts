@@ -2,6 +2,7 @@ import { afterNextRender, Component, ElementRef, input, output, viewChild } from
 import type { SeatView } from '../../protocol/generated/protocol';
 import { Avatar } from '../../ui/avatar';
 import { Button } from '../../ui/button';
+import { ClickSound } from '../../ui/click-sound';
 
 /**
  * Le choix de la cible d'un Joker +5 : une fenêtre qui liste les adversaires (initiale, pseudo, nombre de cartes).
@@ -10,7 +11,7 @@ import { Button } from '../../ui/button';
  */
 @Component({
   selector: 'app-target-picker',
-  imports: [Avatar, Button],
+  imports: [ClickSound, Avatar, Button],
   host: { '(document:keydown)': 'onKey($event)' },
   template: `
     <dialog #dialog class="panel" aria-label="Choisir la cible du Joker +5">

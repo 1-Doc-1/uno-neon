@@ -7,11 +7,12 @@ import { GameStore } from '../../state/game-store';
 import { Button } from '../../ui/button';
 import { Table } from '../table/table';
 import { Lobby } from './lobby';
+import { ClickSound } from '../../ui/click-sound';
 
 /** Page `/r/:code` : salon (lobby) ou table de jeu selon l'état, et entrée par lien partagé. */
 @Component({
   selector: 'app-room-page',
-  imports: [FormField, Button, Lobby, Table],
+  imports: [ClickSound, FormField, Button, Lobby, Table],
   templateUrl: './room-page.html',
   styleUrl: './room-page.scss',
 })

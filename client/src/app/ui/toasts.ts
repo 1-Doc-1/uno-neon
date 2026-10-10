@@ -1,8 +1,10 @@
 import { Component, inject } from '@angular/core';
+import { ClickSound } from './click-sound';
 import { GameStore } from '../state/game-store';
 
 /** Messages brefs (erreurs du serveur traduites en français), annoncés aux lecteurs d'écran. */
 @Component({
+  imports: [ClickSound],
   selector: 'app-toasts',
   template: `
     <div class="stack" role="status" aria-live="polite">
