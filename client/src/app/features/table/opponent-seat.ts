@@ -45,8 +45,12 @@ import { MAX_FAN_BACKS, OpponentFan } from './opponent-fan';
         <div class="ribbon">
           <p class="name">{{ seat().nickname }}</p>
           <p class="state">
-            <span class="dot" [class.off]="!seat().isConnected" aria-hidden="true"></span>
-            {{ seat().isConnected ? 'en ligne' : 'hors ligne' }}
+            @if (seat().isBot) {
+              <span class="bot-badge">Bot</span>
+            } @else {
+              <span class="dot" [class.off]="!seat().isConnected" aria-hidden="true"></span>
+              {{ seat().isConnected ? 'en ligne' : 'hors ligne' }}
+            }
           </p>
         </div>
         @if (forgotUno()) {

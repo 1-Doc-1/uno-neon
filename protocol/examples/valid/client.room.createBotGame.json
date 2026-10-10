@@ -1,0 +1,14 @@
+{
+  "v": 1,
+  "id": "c-3",
+  "type": "room.createBotGame",
+  "payload": {
+    "nickname": "Léa",
+    "botCount": 3,
+    "level": "easy",
+    "settings": {
+      "matchLength": "singleRound",
+      "stacking": "ladder"
+    }
+  }
+}

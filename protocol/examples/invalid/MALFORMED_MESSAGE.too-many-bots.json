@@ -1,0 +1,6 @@
+{
+  "v": 1,
+  "id": "c-12",
+  "type": "room.createBotGame",
+  "payload": { "nickname": "Léa", "botCount": 6, "level": "easy" }
+}

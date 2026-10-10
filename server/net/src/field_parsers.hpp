@@ -143,6 +143,15 @@ inline Parsed<std::uint8_t> parseCardMultiplierCode(const Json& value)
     return static_cast<std::uint8_t>(*multiplier);
 }
 
+inline Parsed<std::uint8_t> parseBotCount(const Json& value)
+{
+    const auto count = detail::parseInteger(value, app::kMinBotsInSoloGame, app::kMaxBotsInSoloGame);
+    if (!count) {
+        return std::unexpected(count.error());
+    }
+    return static_cast<std::uint8_t>(*count);
+}
+
 inline Parsed<std::uint8_t> parseMaxPlayers(const Json& value)
 {
     const auto count = detail::parseInteger(value, kMinRoomPlayers, kMaxRoomPlayers);

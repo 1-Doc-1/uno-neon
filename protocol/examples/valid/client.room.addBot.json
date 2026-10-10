@@ -3,6 +3,6 @@
   "id": "c-6",
   "type": "room.addBot",
   "payload": {
-    "strategy": "greedy"
+    "level": "normal"
   }
 }

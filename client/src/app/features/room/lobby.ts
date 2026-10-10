@@ -1,80 +1,28 @@
 import { Component, computed, inject, input, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import type {
-  CardMultiplier,
-  DrawAmount,
-  PenaltyStacking,
-  DrawRule,
-  MatchLength,
-  RoomView,
-  TurnTimerSeconds,
-} from '../../protocol/generated/protocol';
+import type { BotLevel, MatchLength, RoomView } from '../../protocol/generated/protocol';
 import { GameStore } from '../../state/game-store';
 import { Avatar } from '../../ui/avatar';
 import { Button } from '../../ui/button';
 import { Icon } from '../../ui/icon';
 import { Logo } from '../../ui/logo';
 import { SegmentOption, Segmented } from '../../ui/segmented';
+import { BOT_LEVELS } from './bot-levels';
 import { deckSize } from './deck-size';
+import { GameSettings } from './game-settings';
 
-const MATCH_LENGTHS: readonly SegmentOption<MatchLength>[] = [
-  { value: 'singleRound', label: 'Manche unique' },
-  { value: 'to250', label: '250 points' },
-  { value: 'to500', label: '500 points' },
-];
 const MATCH_LENGTH_SUMMARY: Record<MatchLength, string> = {
   singleRound: 'Manche unique',
   to250: 'Partie en 250 points',
   to500: 'Partie en 500 points',
 };
 
-const TURN_TIMERS: readonly SegmentOption<TurnTimerSeconds>[] = [
-  { value: 0, label: 'Sans' },
-  { value: 15, label: '15 s' },
-  { value: 30, label: '30 s' },
-  { value: 60, label: '60 s' },
-];
-
-const DRAW_RULES: readonly SegmentOption<DrawRule>[] = [
-  { value: 'guided', label: 'Guidée' },
-  { value: 'official', label: 'Officielle' },
-];
-
-const DRAW_AMOUNTS: readonly SegmentOption<DrawAmount>[] = [
-  { value: 'untilPlayable', label: 'Jusqu’à pouvoir jouer' },
-  { value: 'one', label: '1 carte' },
-];
-
-const STACKINGS: readonly SegmentOption<PenaltyStacking>[] = [
-  { value: 'official', label: 'Sans cumul' },
-  { value: 'ladder', label: 'Échelle' },
-];
-
-const MULTIPLIERS: readonly SegmentOption<CardMultiplier>[] = [
-  { value: 1, label: '×1' },
-  { value: 2, label: '×2' },
-  { value: 3, label: '×3' },
-  { value: 5, label: '×5' },
-];
-
-type LastCardRule = 'free' | 'declare';
-
-const LAST_CARD_RULES: readonly SegmentOption<LastCardRule>[] = [
-  { value: 'free', label: 'Libre' },
-  { value: 'declare', label: 'UNO obligatoire' },
-];
-
-const MAX_PLAYERS: readonly SegmentOption<number>[] = [2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => ({
-  value: n,
-  label: String(n),
-}));
-
 const COPIED_FEEDBACK_MS = 2000;
 
 /** Salon avant la partie : joueurs à gauche, réglages à droite, un grand bouton en bas (SPEC §12.2). */
 @Component({
   selector: 'app-lobby',
-  imports: [Avatar, Button, Icon, Logo, Segmented],
+  imports: [Avatar, Button, GameSettings, Icon, Logo, Segmented],
   templateUrl: './lobby.html',
   styleUrl: './lobby.scss',
 })
@@ -84,19 +32,15 @@ export class Lobby {
 
   readonly room = input.required<RoomView>();
 
-  protected readonly matchLengths = MATCH_LENGTHS;
-  protected readonly turnTimers = TURN_TIMERS;
-  protected readonly maxPlayers = MAX_PLAYERS;
-  protected readonly drawRules = DRAW_RULES;
-  protected readonly drawAmounts = DRAW_AMOUNTS;
-  protected readonly lastCardRules = LAST_CARD_RULES;
-  protected readonly stackings = STACKINGS;
-  protected readonly multipliers = MULTIPLIERS;
-
   /** Joueur dont l'exclusion attend une confirmation. */
   protected readonly kickCandidate = signal<string | null>(null);
   protected readonly copied = signal(false);
   protected readonly hintShown = signal(false);
+  protected readonly botLevel = signal<BotLevel>('normal');
+  protected readonly botLevels: readonly SegmentOption<BotLevel>[] = BOT_LEVELS;
+  protected readonly canAddBot = computed(
+    () => this.room().players.length < this.room().settings.maxPlayers,
+  );
 
   protected readonly me = computed(() =>
     this.room().players.find((p) => p.playerId === this.store.playerId()),
@@ -113,8 +57,6 @@ export class Lobby {
     return waiting.length > 0 ? `En attente de : ${waiting.join(', ')}` : null;
   });
 
-  protected readonly deckCards = computed(() => deckSize(this.room().settings));
-
   /** Résumé en lecture seule des réglages, pour ceux qui ne sont pas l'hôte. */
   protected readonly summary = computed(() => {
     const s = this.room().settings;
@@ -130,14 +72,6 @@ export class Lobby {
     };
   });
 
-  protected lastCardRule(): LastCardRule {
-    return this.room().settings.declareUnoToWin ? 'declare' : 'free';
-  }
-
-  protected setLastCardRule(rule: LastCardRule): void {
-    void this.store.updateSettings({ declareUnoToWin: rule === 'declare' });
-  }
-
   protected async copyCode(): Promise<void> {
     try {
       await navigator.clipboard.writeText(`${location.origin}/r/${this.room().code}`);
@@ -146,6 +80,10 @@ export class Lobby {
     } catch {
       this.store.notify('Impossible de copier : fais-le à la main.');
     }
+  }
+
+  protected addBot(): void {
+    void this.store.addBot(this.botLevel());
   }
 
   protected toggleReady(): void {

@@ -1,32 +1,57 @@
 <main class="page">
   <h1 class="logo"><app-logo [size]="72" /></h1>
 
-  <section class="panel box" aria-label="Rejoindre une partie">
+  <section class="panel box" aria-label="Commencer à jouer">
     <label class="field">
       <span>Ton pseudo</span>
       <input type="text" autocomplete="nickname" [formField]="form.nickname" />
     </label>
 
-    <button appButton kind="primary" (click)="create()" [disabled]="!canCreate()">
-      Créer un salon
-    </button>
+    <div class="choices">
+      <button
+        type="button"
+        class="choice main"
+        (click)="playAgainstBots()"
+        [disabled]="!canStart()"
+      >
+        <app-icon name="bot" class="icon" />
+        <span class="text">
+          <strong>Jouer contre des bots</strong>
+          <span>Une partie tout de suite, sans attendre personne</span>
+        </span>
+      </button>
 
-    <p class="divider" aria-hidden="true"><span>ou</span></p>
+      <button type="button" class="choice" (click)="create()" [disabled]="!canCreate()">
+        <app-icon name="cards" class="icon" />
+        <span class="text">
+          <strong>Créer un salon</strong>
+          <span>Invite tes amis avec un code</span>
+        </span>
+      </button>
 
-    <div class="join">
-      <label class="field grow">
-        <span>Code du salon</span>
-        <input
-          type="text"
-          class="code"
-          autocomplete="off"
-          autocapitalize="characters"
-          spellcheck="false"
-          placeholder="K7M4XP"
-          [formField]="form.code"
-        />
-      </label>
-      <button appButton kind="neutral" (click)="join()" [disabled]="!canJoin()">Rejoindre</button>
+      <div class="choice join" role="group" aria-labelledby="join-title">
+        <app-icon name="link" class="icon" />
+        <div class="text">
+          <strong id="join-title">Rejoindre un salon</strong>
+          <div class="join-row">
+            <label class="field grow">
+              <input
+                type="text"
+                class="code"
+                autocomplete="off"
+                autocapitalize="characters"
+                spellcheck="false"
+                placeholder="K7M4XP"
+                aria-label="Code du salon"
+                [formField]="form.code"
+              />
+            </label>
+            <button appButton kind="neutral" (click)="join()" [disabled]="!canJoin()">
+              Rejoindre
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
     @if (!store.ready()) {

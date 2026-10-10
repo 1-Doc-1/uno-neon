@@ -45,6 +45,28 @@ void Room::add(core::PlayerId player, std::string nickname)
     members.push_back(Member{.id = std::move(player), .nickname = std::move(nickname)});
 }
 
+void Room::addBot(core::PlayerId player, std::string nickname, BotLevel level)
+{
+    members.push_back(Member{
+        .id = std::move(player),
+        .nickname = std::move(nickname),
+        .ready = true,
+        .connected = true,
+        .isBot = true,
+        .botLevel = level,
+    });
+}
+
+std::size_t Room::humanCount() const
+{
+    return static_cast<std::size_t>(std::ranges::count(members, false, &Member::isBot));
+}
+
+bool Room::hasBots() const
+{
+    return std::ranges::any_of(members, &Member::isBot);
+}
+
 void Room::remove(const core::PlayerId& player)
 {
     const auto leaving = std::ranges::find(members, player, &Member::id);
@@ -56,15 +78,17 @@ void Room::remove(const core::PlayerId& player)
     if (members.empty() || host != player) {
         return;
     }
-    // The next connected member after the leaving seat, wrapping around; anyone if nobody is connected.
+    // The next connected player after the leaving seat, wrapping around; a bot is never the host (ADR 0030). Anyone
+    // human if nobody is connected.
     for (std::size_t offset = 0; offset < members.size(); ++offset) {
         const Member& candidate = members.at((leavingSeat + offset) % members.size());
-        if (candidate.connected) {
+        if (candidate.connected && !candidate.isBot) {
             host = candidate.id;
             return;
         }
     }
-    host = members.front().id;
+    const auto human = std::ranges::find(members, false, &Member::isBot);
+    host = (human != members.end() ? *human : members.front()).id;
 }
 
 response::RoomView Room::view() const
@@ -81,7 +105,7 @@ response::RoomView Room::view() const
             // Starting the match is the host's way of saying they are ready.
             .isReady = isRoomHost || member.ready,
             .isConnected = member.connected,
-            .isBot = false,
+            .isBot = member.isBot,
         });
     }
     return roomView;

@@ -114,10 +114,18 @@
       "type": "string",
       "enum": ["gg", "wow", "lol", "ouch", "think", "fire"]
     },
-    "BotStrategy": {
-      "title": "BotStrategy",
+    "BotLevel": {
+      "title": "BotLevel",
+      "description": "easy: a legal move at random. normal: a simple heuristic (ADR 0030).",
       "type": "string",
-      "enum": ["random", "greedy"]
+      "enum": ["easy", "normal"]
+    },
+    "BotCount": {
+      "title": "BotCount",
+      "description": "How many bots a game against bots has.",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 5
     },
     "PenaltyStacking": {
       "title": "PenaltyStacking",

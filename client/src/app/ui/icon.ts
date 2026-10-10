@@ -1,7 +1,18 @@
 import { Component, input } from '@angular/core';
 
 export type IconName =
-  'door' | 'crown' | 'copy' | 'check' | 'close' | 'arrow-cw' | 'arrow-ccw' | 'palette';
+  | 'door'
+  | 'crown'
+  | 'copy'
+  | 'check'
+  | 'close'
+  | 'arrow-cw'
+  | 'arrow-ccw'
+  | 'palette'
+  | 'bot'
+  | 'cards'
+  | 'plus'
+  | 'link';
 
 /**
  * Icônes maison : des tracés SVG écrits ici, dessinés sur une grille de 24 × 24 (trait arrondi, `currentColor`).
@@ -45,6 +56,26 @@ export type IconName =
         @case ('arrow-ccw') {
           <path d="M4 12a8 8 0 1 0 2.5-5.8" />
           <path d="M4 4v5h5" />
+        }
+        @case ('bot') {
+          <rect x="5" y="8" width="14" height="11" rx="3" />
+          <path d="M12 4v4" />
+          <circle cx="12" cy="3.5" r="1" fill="currentColor" />
+          <circle cx="9.5" cy="13" r="1.2" fill="currentColor" />
+          <circle cx="14.5" cy="13" r="1.2" fill="currentColor" />
+          <path d="M9.5 16.5h5" />
+        }
+        @case ('cards') {
+          <rect x="4" y="6" width="10" height="14" rx="2" />
+          <path d="M9 4h6a2 2 0 0 1 2 2v10" />
+          <path d="M17 8l3 1v9" />
+        }
+        @case ('plus') {
+          <path d="M12 5v14M5 12h14" />
+        }
+        @case ('link') {
+          <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" />
+          <path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />
         }
         @case ('palette') {
           <path

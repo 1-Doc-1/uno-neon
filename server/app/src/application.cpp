@@ -1,5 +1,6 @@
 #include "uno/app/application.hpp"
 
+#include "uno/app/bot_strategy.hpp"
 #include "uno/app/id_generator.hpp"
 #include "uno/app/nickname.hpp"
 #include "uno/app/room_settings.hpp"
@@ -9,7 +10,9 @@
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
+#include <string>
 #include <utility>
 #include <variant>
 
@@ -210,6 +213,44 @@ Application::Outcome Application::handle(ConnectionId connection, const request:
     return Reply::Ack;
 }
 
+Application::Outcome Application::handle(ConnectionId connection, const request::CreateBotGame& request)
+{
+    const auto session = sessionOf(connection);
+    if (!session) {
+        return std::unexpected(session.error());
+    }
+    if ((*session)->room) {
+        return fail(ErrorCode::AlreadyInRoom, "Leave your current room first");
+    }
+    const auto nickname = validateNickname(request.nickname);
+    if (!nickname) {
+        return fail(ErrorCode::NicknameInvalid, "A nickname has 2 to 16 letters, digits, spaces, _ or -");
+    }
+    if (request.botCount < kMinBotsInSoloGame || request.botCount > kMaxBotsInSoloGame) {
+        return fail(ErrorCode::InvalidSettings, "A game against bots has 1 to 5 bots");
+    }
+    RoomSettings settings;
+    if (request.settings) {
+        settings = applyPatch(settings, *request.settings);
+    }
+    // Nobody else joins: the room holds exactly the player and their bots
+    settings.maxPlayers = static_cast<std::uint8_t>(request.botCount + 1);
+    if (const auto problem = settingsProblem(settings, request.botCount + 1U)) {
+        return fail(ErrorCode::InvalidSettings, *problem);
+    }
+
+    const RoomCode code =
+        generateRoomCode(*random_, [this](const RoomCode& candidate) { return rooms_->find(candidate) != nullptr; });
+    Room& room = rooms_->add(Room(code, settings, (*session)->playerId, *nickname));
+    (*session)->room = code;
+    for (std::uint8_t bot = 0; bot < request.botCount; ++bot) {
+        addBotTo(room, request.level);
+    }
+    spdlog::info("room {} created by player {} for a game against {} bots", code.value, (*session)->playerId.value,
+                 request.botCount);
+    return startMatch(room);
+}
+
 Application::Outcome Application::handle(ConnectionId connection, const request::JoinRoom& request)
 {
     const auto session = sessionOf(connection);
@@ -321,10 +362,47 @@ Application::Outcome Application::handle(ConnectionId connection, const request:
     return Reply::Ack;
 }
 
-// NOLINTNEXTLINE(readability-convert-member-functions-to-static): same signature as the other handlers
-Application::Outcome Application::handle(ConnectionId /*connection*/, const request::AddBot& /*request*/)
+Application::Outcome Application::handle(ConnectionId connection, const request::AddBot& request)
 {
-    return fail(ErrorCode::UnknownType, "Bots are not available yet");
+    const auto session = sessionOf(connection);
+    if (!session) {
+        return std::unexpected(session.error());
+    }
+    const auto room = hostedLobbyOf(**session);
+    if (!room) {
+        return std::unexpected(room.error());
+    }
+    if ((*room)->isFull()) {
+        return fail(ErrorCode::RoomFull, "The room is full");
+    }
+    addBotTo(**room, request.level);
+    broadcastRoom(**room);
+    return Reply::Ack;
+}
+
+namespace {
+
+// Names a bot can take, in the order they are tried; the number of players in a room never exceeds ten.
+constexpr std::array kBotNames{"Pixel", "Nova", "Turbo", "Zéphyr", "Cosmo", "Ludo", "Mira", "Orion", "Bolt", "Neon"};
+
+} // namespace
+
+std::string Application::botNickname(const Room& room) const
+{
+    // Start anywhere in the list so that two rooms do not always meet the same bots
+    const auto start = random_->uniform(static_cast<std::uint32_t>(kBotNames.size()));
+    for (std::size_t offset = 0; offset < kBotNames.size(); ++offset) {
+        const std::string candidate = kBotNames.at((start + offset) % kBotNames.size());
+        if (!room.nicknameTaken(candidate)) {
+            return candidate;
+        }
+    }
+    return "Bot " + std::to_string(room.members.size());
+}
+
+void Application::addBotTo(Room& room, BotLevel level)
+{
+    room.addBot(generatePlayerId(*random_), botNickname(room), level);
 }
 
 Application::Outcome Application::handle(ConnectionId connection, const request::SendReaction& request)
@@ -530,7 +608,12 @@ Application::Outcome Application::play(ConnectionId connection, const core::Play
     if (!room) {
         return std::unexpected(room.error());
     }
-    Room& current = **room;
+    return applyPlayerAction(**room, (*session)->playerId, action);
+}
+
+Application::Outcome Application::applyPlayerAction(Room& current, const core::PlayerId& actor,
+                                                    const core::PlayerAction& action)
+{
     if (current.phase != response::RoomPhase::InGame || !current.match) {
         return fail(ErrorCode::InvalidPhase, "No match is running");
     }
@@ -539,12 +622,11 @@ Application::Outcome Application::play(ConnectionId connection, const core::Play
     // A player who is not on turn is told so by the engine, whatever the time.
     const bool turnAction =
         !std::holds_alternative<core::CallUno>(action) && !std::holds_alternative<core::CatchUno>(action);
-    if (turnAction && current.match->round().currentPlayer() == (*session)->playerId &&
-        clock_->nowMillis() < current.actionsOpenAt) {
+    if (turnAction && current.match->round().currentPlayer() == actor && clock_->nowMillis() < current.actionsOpenAt) {
         return fail(ErrorCode::EffectInProgress, "The effect in progress is not over");
     }
 
-    const auto events = current.match->apply((*session)->playerId, action, *random_);
+    const auto events = current.match->apply(actor, action, *random_);
     if (!events) {
         switch (events.error()) {
         case core::DomainError::NotYourTurn:
@@ -690,7 +772,7 @@ response::GameView Application::viewOf(const Room& room, const core::Match& matc
         view.seats.push_back(response::SeatInfo{
             .nickname = std::move(nickname),
             .isConnected = member != nullptr && member->connected,
-            .isBot = false,
+            .isBot = member != nullptr && member->isBot,
             .isHost = room.isHost(seat.playerId),
             .isReadyForNextRound = room.readyForNextRound.contains(seat.playerId),
         });

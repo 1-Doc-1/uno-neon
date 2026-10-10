@@ -13,6 +13,7 @@ export type Protocol = ClientMessage | ServerMessage;
 export type ClientMessage =
   | HelloMessage
   | CreateRoomMessage
+  | CreateBotGameMessage
   | JoinRoomMessage
   | LeaveRoomMessage
   | UpdateSettingsMessage
@@ -81,6 +82,14 @@ export type CardMultiplier1 = 1 | 2 | 3 | 5;
  */
 export type CardMultiplier2 = 1 | 2 | 3 | 5;
 /**
+ * How many bots a game against bots has.
+ */
+export type BotCount = number;
+/**
+ * easy: a legal move at random. normal: a simple heuristic (ADR 0030).
+ */
+export type BotLevel = 'easy' | 'normal';
+/**
  * 6 characters, without the ambiguous I, L, O, 0 and 1.
  */
 export type RoomCode = string;
@@ -92,7 +101,6 @@ export type EmptyPayload = Record<string, never>;
  * Opaque random identifier of a player (never a seat number).
  */
 export type PlayerId = string;
-export type BotStrategy = 'random' | 'greedy';
 /**
  * Identifier of a card, randomly assigned for each match: it reveals nothing about the card.
  */
@@ -278,6 +286,21 @@ export interface RoomSettingsPatch {
   wildDrawFiveMultiplier?: CardMultiplier2;
 }
 /**
+ * Creates a room, seats the sender and bots in it and starts the match at once, without a waiting room (ADR 0030). Not allowed while already in a room.
+ */
+export interface CreateBotGameMessage {
+  v: ProtocolVersion;
+  id: MessageId;
+  type: 'room.createBotGame';
+  payload: CreateBotGamePayload;
+}
+export interface CreateBotGamePayload {
+  nickname: Nickname;
+  botCount: BotCount;
+  level: BotLevel;
+  settings?: RoomSettingsPatch;
+}
+/**
  * Joins an existing room that is in the lobby and not full.
  */
 export interface JoinRoomMessage {
@@ -336,7 +359,7 @@ export interface KickPayload {
   playerId: PlayerId;
 }
 /**
- * Host only, in the lobby: adds a bot (phase 5).
+ * Host only, in the lobby: adds a bot, which is always ready. A bot is removed with room.kick (ADR 0030).
  */
 export interface AddBotMessage {
   v: ProtocolVersion;
@@ -345,7 +368,7 @@ export interface AddBotMessage {
   payload: AddBotPayload;
 }
 export interface AddBotPayload {
-  strategy: BotStrategy;
+  level: BotLevel;
 }
 /**
  * Host only: at least 2 players, all ready.

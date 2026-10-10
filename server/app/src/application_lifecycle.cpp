@@ -2,6 +2,7 @@
 // inactivity, session expiry) and the clocks of a match (turn timer, next round). Part of Application.
 
 #include "uno/app/application.hpp"
+#include "uno/app/bot_strategy.hpp"
 #include "uno/core/detail/overloaded.hpp"
 #include "uno/core/playability.hpp"
 
@@ -62,6 +63,32 @@ void playFirstPlayableCard(core::Match& match, const core::PlayerId& actor, core
     }
 }
 
+// The move the server makes for the player on turn whose clock ran out or whom nothing else could move, through the
+// same Match::apply as a player's own action: the same rules, the same events, and the UNO window closes as it would.
+void playTimeoutMove(core::Match& match, const core::PlayerId& actor, core::RandomSource& random,
+                     std::vector<core::DomainEvent>& events)
+{
+    const core::TurnPhase& phase = match.round().phase();
+    if (match.round().awaitsPenaltyAnswer()) {
+        autoApply(match, actor, core::RespondPenalty{.response = core::PenaltyResponse::Accept}, random, events);
+    } else if (std::holds_alternative<core::AwaitingColorChoice>(phase)) {
+        const auto color = core::kColors.at(random.uniform(static_cast<std::uint32_t>(core::kColors.size())));
+        autoApply(match, actor, core::ChooseColor{.color = color}, random, events);
+    } else if (std::holds_alternative<core::AwaitingDrawnCardDecision>(phase)) {
+        passOrPlayDrawnCard(match, actor, random, events);
+    } else if (std::holds_alternative<core::AwaitingPlay>(phase)) {
+        if (match.round().canDraw(actor)) {
+            autoApply(match, actor, core::DrawCard{}, random, events);
+            if (std::holds_alternative<core::AwaitingDrawnCardDecision>(match.round().phase())) {
+                passOrPlayDrawnCard(match, actor, random, events);
+            }
+        } else {
+            // Guided draw: the player had to play. Playing the first card that fits is the least surprising move.
+            playFirstPlayableCard(match, actor, random, events);
+        }
+    }
+}
+
 } // namespace
 
 // ---- membership ----
@@ -74,6 +101,12 @@ void Application::removeFromRoom(Room& room, const core::PlayerId& player)
     }
     const std::string nickname = leaving->nickname;
     const bool wasHost = room.isHost(player);
+    // A room needs a person: bots alone do not make a game (ADR 0030)
+    if (!leaving->isBot && room.humanCount() == 1) {
+        spdlog::info("room {} closed: no player left but bots", room.code.value);
+        destroyRoom(room, std::nullopt);
+        return;
+    }
     const bool inMatch = room.phase == response::RoomPhase::InGame && room.match.has_value();
 
     if (const auto grace = room.graceTimers.find(player.value); grace != room.graceTimers.end()) {
@@ -139,9 +172,10 @@ void Application::startNextRoundIfDue(Room& room, bool force)
     if (!betweenRounds) {
         return;
     }
-    const bool everyoneReady = force || std::ranges::all_of(room.members, [&room](const Member& member) {
-                                   return !member.connected || room.readyForNextRound.contains(member.id);
-                               });
+    const bool everyoneReady =
+        force || std::ranges::all_of(room.members, [&room](const Member& member) {
+            return member.isBot || !member.connected || room.readyForNextRound.contains(member.id);
+        });
     std::vector<core::DomainEvent> events;
     if (everyoneReady) {
         auto next = room.match->startNextRound(*random_);
@@ -261,6 +295,7 @@ void Application::armGameTimers(Room& room)
             timeouts_.nextRound, [this, code = room.code, version] { onNextRoundDue(code, version); });
         return;
     }
+    armBotTimer(room);
     // A move the engine says nobody can choose is played after a short pause, like the player would have (ADR 0017).
     if (room.match->round().forcedAction().has_value()) {
         room.forcedActionTimer =
@@ -289,6 +324,99 @@ void Application::armGameTimers(Room& room)
     room.turnDeadline = now + turnTime.count();
     const std::uint64_t epoch = ++room.turnEpoch;
     room.turnTimer = scheduler_->schedule(turnTime, [this, code = room.code, epoch] { onTurnExpired(code, epoch); });
+}
+
+void Application::armBotTimer(Room& room)
+{
+    scheduler_->cancel(std::exchange(room.botTimer, TimerHandle{}));
+    const bool playing = room.phase == response::RoomPhase::InGame && room.match.has_value() &&
+                         !room.match->winner().has_value() &&
+                         !std::holds_alternative<core::RoundOver>(room.match->round().phase());
+    if (!playing || !room.hasBots()) {
+        return;
+    }
+    // The bots wait for the effect in progress to be over, and for the grace period of an open UNO window (nobody may
+    // catch before), then think for a moment like a person would.
+    const std::int64_t now = clock_->nowMillis();
+    std::int64_t readyAt = room.actionsOpenAt;
+    for (const UnoWindowTiming& window : room.unoWindows) {
+        readyAt = std::max(readyAt, window.graceEndsAt);
+    }
+    const auto spread = std::max<std::int64_t>(0, (timeouts_.botThinkMax - timeouts_.botThinkMin).count());
+    const std::int64_t think = timeouts_.botThinkMin.count() +
+                               static_cast<std::int64_t>(random_->uniform(static_cast<std::uint32_t>(spread) + 1U));
+    const std::chrono::milliseconds delay{std::max<std::int64_t>(0, readyAt - now) + think};
+    room.botTimer = scheduler_->schedule(
+        delay, [this, code = room.code, version = room.stateVersion] { onBotsDue(code, version); });
+}
+
+void Application::onBotsDue(const RoomCode& code, std::uint64_t stateVersion)
+{
+    Room* const room = rooms_->find(code);
+    // A timer that outlived the state it was armed for does nothing: every broadcast arms a new one.
+    if (room == nullptr || room->stateVersion != stateVersion || !room->match.has_value() ||
+        room->phase != response::RoomPhase::InGame || room->match->winner().has_value()) {
+        return;
+    }
+    const core::PlayerId current = room->match->round().currentPlayer();
+    // The bot on turn first, then the others (to announce UNO or to catch somebody); one bot acts per wake-up, the
+    // broadcast that follows wakes the bots up again
+    std::vector<const Member*> bots;
+    for (const Member& member : room->members) {
+        if (member.isBot) {
+            bots.insert(member.id == current ? bots.begin() : bots.end(), &member);
+        }
+    }
+    for (const Member* bot : bots) {
+        if (playBot(*room, *bot)) {
+            break;
+        }
+    }
+    flush();
+}
+
+bool Application::playBot(Room& room, const Member& bot)
+{
+    if (!room.match.has_value()) {
+        return false;
+    }
+    const auto view = core::project(*room.match, bot.id);
+    if (!view) {
+        return false;
+    }
+    // Nobody may catch before the grace period of a window is over
+    const std::int64_t now = clock_->nowMillis();
+    std::vector<core::PlayerId> catchable;
+    for (const UnoWindowTiming& window : room.unoWindows) {
+        if (window.target != bot.id && now >= window.graceEndsAt) {
+            catchable.push_back(window.target);
+        }
+    }
+    const auto actions =
+        makeBotStrategy(bot.botLevel)->decide(BotView{.game = *view, .catchable = catchable}, *random_);
+    if (actions.empty()) {
+        return false;
+    }
+    const core::PlayerId actor = bot.id;
+    const bool onTurn = actor == room.match->round().currentPlayer();
+    bool moved = false;
+    for (const core::PlayerAction& action : actions) {
+        // Exactly the checks a person's action goes through (ADR 0030)
+        const Outcome outcome = applyPlayerAction(room, actor, action);
+        if (!outcome) {
+            spdlog::warn("room {}: the bot {} proposed an action that was refused: {}", room.code.value, actor.value,
+                         outcome.error().message);
+            break;
+        }
+        moved = true;
+    }
+    if (!moved && onTurn) {
+        // A bot that cannot move must not stop the table: the server plays for it, as for a player whose clock ran out
+        std::vector<core::DomainEvent> events;
+        playTimeoutMove(*room.match, actor, *random_, events);
+        afterMatchChange(room, events);
+    }
+    return true;
 }
 
 void Application::syncUnoWindows(Room& room)
@@ -358,6 +486,7 @@ void Application::destroyRoom(Room& room, std::optional<response::RoomClosedReas
     scheduler_->cancel(std::exchange(room.turnTimer, TimerHandle{}));
     scheduler_->cancel(std::exchange(room.nextRoundTimer, TimerHandle{}));
     scheduler_->cancel(std::exchange(room.forcedActionTimer, TimerHandle{}));
+    scheduler_->cancel(std::exchange(room.botTimer, TimerHandle{}));
     for (const UnoWindowTiming& window : room.unoWindows) {
         scheduler_->cancel(window.expiryTimer);
     }
@@ -399,28 +528,7 @@ void Application::onTurnExpired(const RoomCode& code, std::uint64_t turnEpoch)
     const core::PlayerId actor = match.round().currentPlayer();
     room->turnKey.reset(); // whatever happens, the next broadcast starts a new clock
     std::vector<core::DomainEvent> events;
-    // Every automatic action goes through Match::apply, like a player's own: the same rules, the same events,
-    // and the UNO window closes as it would have.
-
-    const core::TurnPhase& phase = match.round().phase();
-    if (match.round().awaitsPenaltyAnswer()) {
-        autoApply(match, actor, core::RespondPenalty{.response = core::PenaltyResponse::Accept}, *random_, events);
-    } else if (std::holds_alternative<core::AwaitingColorChoice>(phase)) {
-        const auto color = core::kColors.at(random_->uniform(static_cast<std::uint32_t>(core::kColors.size())));
-        autoApply(match, actor, core::ChooseColor{.color = color}, *random_, events);
-    } else if (std::holds_alternative<core::AwaitingDrawnCardDecision>(phase)) {
-        passOrPlayDrawnCard(match, actor, *random_, events);
-    } else if (std::holds_alternative<core::AwaitingPlay>(phase)) {
-        if (match.round().canDraw(actor)) {
-            autoApply(match, actor, core::DrawCard{}, *random_, events);
-            if (std::holds_alternative<core::AwaitingDrawnCardDecision>(match.round().phase())) {
-                passOrPlayDrawnCard(match, actor, *random_, events);
-            }
-        } else {
-            // Guided draw: the player had to play. Playing the first card that fits is the least surprising move.
-            playFirstPlayableCard(match, actor, *random_, events);
-        }
-    }
+    playTimeoutMove(match, actor, *random_, events);
     spdlog::info("room {}: turn of {} timed out", code.value, actor.value);
     afterMatchChange(*room, events);
     flush();

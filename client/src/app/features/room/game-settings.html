@@ -1,0 +1,115 @@
+<div class="setting">
+  <span class="setting-label">Durée de la partie</span>
+  <app-segmented
+    label="Durée de la partie"
+    [options]="matchLengths"
+    [value]="settings().matchLength"
+    (selected)="changed.emit({ matchLength: $event })"
+  />
+</div>
+<div class="setting">
+  <span class="setting-label">Minuteur par tour</span>
+  <app-segmented
+    label="Minuteur par tour"
+    [options]="turnTimers"
+    [value]="settings().turnTimerSeconds"
+    (selected)="changed.emit({ turnTimerSeconds: $event })"
+  />
+</div>
+@if (showMaxPlayers()) {
+  <div class="setting">
+    <span class="setting-label">Joueurs maximum</span>
+    <app-segmented
+      label="Joueurs maximum"
+      [options]="maxPlayers"
+      [value]="settings().maxPlayers"
+      (selected)="changed.emit({ maxPlayers: $event })"
+    />
+  </div>
+}
+<div class="setting">
+  <span class="setting-label">Règle de pioche</span>
+  <app-segmented
+    label="Règle de pioche"
+    [options]="drawRules"
+    [value]="settings().drawRule"
+    (selected)="changed.emit({ drawRule: $event })"
+  />
+  <p class="hint">
+    @if (settings().drawRule === 'guided') {
+      Guidée : on pioche quand on ne peut pas jouer, ou pour garder un +2 ou un Joker.
+    } @else {
+      Officielle : on peut toujours piocher au lieu de jouer.
+    }
+  </p>
+</div>
+<div class="setting">
+  <span class="setting-label">Pioche</span>
+  <app-segmented
+    label="Pioche"
+    [options]="drawAmounts"
+    [value]="settings().drawAmount"
+    (selected)="changed.emit({ drawAmount: $event })"
+  />
+  <p class="hint">
+    @if (settings().drawAmount === 'untilPlayable') {
+      Sans carte jouable, on pioche jusqu’à pouvoir jouer.
+    } @else {
+      Sans carte jouable, on pioche une seule carte.
+    }
+  </p>
+</div>
+<div class="setting">
+  <span class="setting-label">Dernière carte</span>
+  <app-segmented
+    label="Dernière carte"
+    [options]="lastCardRules"
+    [value]="lastCardRule()"
+    (selected)="setLastCardRule($event)"
+  />
+</div>
+<div class="setting">
+  <span class="setting-label">Cumul des pénalités</span>
+  <app-segmented
+    label="Cumul des pénalités"
+    [options]="stackings"
+    [value]="settings().stacking"
+    (selected)="changed.emit({ stacking: $event })"
+  />
+  <p class="hint">
+    @if (settings().stacking === 'ladder') {
+      Un +2, un +4 ou un +5 se pose sur une pénalité d’un niveau égal ou inférieur (+2 < +4 < +5) :
+      les cartes à piocher s’additionnent et le +4 ne se conteste pas.
+    } @else {
+      Sans cumul : un +2 se pioche tout de suite, un +4 se conteste, seul un +5 répond à un +5.
+    }
+  </p>
+</div>
+<div class="setting">
+  <span class="setting-label">Cartes +2 dans le paquet</span>
+  <app-segmented
+    label="Nombre de cartes +2"
+    [options]="multipliers"
+    [value]="settings().drawTwoMultiplier"
+    (selected)="changed.emit({ drawTwoMultiplier: $event })"
+  />
+</div>
+<div class="setting">
+  <span class="setting-label">Jokers +4 dans le paquet</span>
+  <app-segmented
+    label="Nombre de jokers +4"
+    [options]="multipliers"
+    [value]="settings().wildDrawFourMultiplier"
+    (selected)="changed.emit({ wildDrawFourMultiplier: $event })"
+  />
+</div>
+<div class="setting">
+  <span class="setting-label">Jokers +5 dans le paquet</span>
+  <app-segmented
+    label="Nombre de jokers +5"
+    [options]="multipliers"
+    [value]="settings().wildDrawFiveMultiplier"
+    (selected)="changed.emit({ wildDrawFiveMultiplier: $event })"
+  />
+  <p class="hint">Paquet de {{ deckCards() }} cartes.</p>
+</div>

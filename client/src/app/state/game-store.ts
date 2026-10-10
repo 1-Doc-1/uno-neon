@@ -3,6 +3,7 @@ import { describeError } from '../core/error-messages';
 import { GAME_TRANSPORT } from '../core/game-transport';
 import { SessionService } from '../core/session.service';
 import type {
+  BotLevel,
   ClientEvent,
   ClientMessage,
   Color,
@@ -114,6 +115,21 @@ export class GameStore {
   createRoom(nickname: string): Promise<boolean> {
     this.session.saveNickname(nickname);
     return this.request('room.create', { nickname });
+  }
+
+  /** Une partie contre des bots : le serveur crée le salon, y assoit les bots et lance la partie. */
+  createBotGame(
+    nickname: string,
+    botCount: number,
+    level: BotLevel,
+    settings: RoomSettingsPatch,
+  ): Promise<boolean> {
+    this.session.saveNickname(nickname);
+    return this.request('room.createBotGame', { nickname, botCount, level, settings });
+  }
+
+  addBot(level: BotLevel): Promise<boolean> {
+    return this.request('room.addBot', { level });
   }
 
   joinRoom(code: string, nickname: string): Promise<boolean> {

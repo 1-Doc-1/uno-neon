@@ -148,6 +148,7 @@ Interactions à gérer explicitement (et à tester) :
 - `declareUnoToWin` : un joueur à 1 carte jouable qui n'a pas annoncé UNO reçoit `MUST_DECLARE_UNO` s'il tente de la poser. Si le minuteur de tour expire dans cet état et qu'il ne peut pas piocher (pioche guidée, carte normale), le serveur annonce UNO puis pose la carte à sa place.
 - **Joker +5** (ADR 0028, tous testés) : **pioche guidée** : une cible sans Joker +5 n'a aucun choix, le serveur accepte pour elle (coup forcé, après `actionsOpenAt`) ; avec un +5 en main elle choisit (règle `official` : elle choisit toujours). **UNO** : le poseur qui reste à une carte ouvre une fenêtre de contre-UNO comme après toute pose ; une cible qui reçoit des cartes voit sa fenêtre fermée ; avec 2 cartes elle peut annoncer UNO avant de répliquer. **UNO obligatoire** : répliquer avec sa dernière carte, un +5, sans avoir annoncé UNO est refusé (`MUST_DECLARE_UNO`) et `me.mustDeclareUno` le dit. **Pioche épuisée** : la pénalité remélange la défausse (sauf la carte du dessus) et la cible pioche ce qui reste, sans erreur. **Départ** : si la cible part, la chaîne est annulée et le jeu reprend chez le joueur suivant ; si un autre joueur part, la chaîne continue. **Minuteur de tour** : la cible qui laisse expirer son tour accepte. **Sécurité** : le serveur valide la cible (joueur de la manche, différent de l'acteur), la couleur et la phase ; tout le monde voit qui est visé et le total, jamais les cartes piochées.
 - **Cumul à l'échelle** (ADR 0029, tous testés) : **dernière carte** : une pile qui se termine par la dernière carte d'un joueur finit la manche, la dernière cible pioche tout le total (ces cartes comptent au score). **UNO** : celui qui empile jusqu'à une carte ouvre une fenêtre de contre-UNO comme après toute pose ; avec le réglage « UNO obligatoire », empiler sa dernière carte sans avoir annoncé est refusé (`MUST_DECLARE_UNO`, `me.mustDeclareUno`). **Sens du jeu** : un +2 ou un +4 vise le joueur suivant dans le sens courant. **Pioche épuisée** : la cible pioche ce qui reste, sans erreur. **Départ** : si la cible part, la pile est annulée et le jeu reprend chez le joueur suivant ; si un autre joueur part, elle continue. **Minuteur de tour** : la cible qui laisse expirer son tour accepte. **Refus** : une carte trop faible ou qui n'est pas une carte de pénalité reçoit `ILLEGAL_MOVE` / `CANNOT_STACK`.
+- **Bots** (ADR 0030) : un bot n'a ni connexion ni session, ne se déconnecte jamais et n'est jamais attendu entre deux manches. Il réfléchit 1 à 2 s (`botThinkMin` / `botThinkMax`) **après `actionsOpenAt`** et après la grâce d'une fenêtre de contre-UNO ouverte ; ses actions passent par les mêmes contrôles que celles d'un humain (`EFFECT_IN_PROGRESS` compris) ; s'il propose un coup refusé, le serveur joue pour lui comme à l'expiration du minuteur. Quand le dernier humain part, le salon est fermé.
 - Le minuteur de tour n'est pas relancé par un événement qui ne change pas le tour (contre-UNO, annonce, fin d'une fenêtre de contre-UNO) : ADR 0020.
 
 ## 6. Architecture globale
@@ -244,7 +245,8 @@ Serveur → client : réponses `{ "v": 1, "type": "ack", "replyTo": "c-42" }` ou
 | `room.updateSettings` | `{ settings }` (partiel) | hôte, en lobby |
 | `room.setReady` | `{ ready }` | en lobby |
 | `room.kick` | `{ playerId }` | hôte, en lobby |
-| `room.addBot` | `{ strategy: "random" \| "greedy" }` | hôte, en lobby (phase 5) |
+| `room.addBot` | `{ level: "easy" \| "normal" }` | hôte, en lobby, salon non plein ; le bot est toujours prêt ; on le retire avec `room.kick` (ADR 0030) |
+| `room.createBotGame` | `{ nickname, botCount: 1..5, level, settings? }` | pas déjà dans un salon : le serveur crée le salon, y assoit les bots (`maxPlayers` = bots + 1) et **lance la partie aussitôt** (ADR 0030) |
 | `match.start` | `{}` | hôte, ≥ 2 joueurs, tous prêts |
 | `match.rematch` | `{}` | hôte, partie terminée |
 | `game.playCard` | `{ cardId, chosenColor?, swapTargetId?, targetId? }` | son tour, ou interception si `jumpIn` |
@@ -427,11 +429,13 @@ Un seul thème : anthracite / bleu nuit très sombre, panneaux en verre sombre. 
 
 ## 12. Écrans et parcours
 
-### 12.1 Accueil `/`
-Le logo en haut, **un seul panneau sobre** : pseudo, « Créer un salon » (primaire), « Rejoindre » avec le champ code. Rien d'autre.
+### 12.1 Accueil `/` et « Jouer contre des bots » `/bots`
+Le logo en haut, **un seul panneau sobre** : le pseudo, puis **trois grands choix** : « **Jouer contre des bots** » (primaire, vert), « **Créer un salon** » et « **Rejoindre un salon** » (avec le champ code et le bouton « Rejoindre »). Rien d'autre.
+« Jouer contre des bots » ouvre `/bots` : nombre de bots (1 à 5), niveau (Facile / Normal) et **les mêmes réglages de partie que le salon** (composant partagé, sans « Joueurs maximum » : le serveur fixe les places), puis « Jouer ». La partie démarre directement (`room.createBotGame`), sans salon d'attente ; sans pseudo valide on revient à l'accueil.
 
 ### 12.2 Salon (lobby) `/r/:code`
 - **Barre du haut** : logo à gauche ; à droite le code du salon (pastille mono) avec un bouton copier qui répond « Copié », puis « Quitter » (icône porte, rouge néon).
+- **Bots** (ADR 0030) : un bot porte le badge « Bot », il est prêt d'office ; l'hôte en ajoute (niveau Facile / Normal, tant que le salon n'est pas plein) et les retire d'un clic (« Retirer »). Un bot n'est jamais l'hôte, et une salle sans personne (que des bots) est fermée.
 - **Colonne gauche — joueurs** : couronne pour l'hôte (`aria-label="Hôte"`), « toi » discret, coche verte quand le joueur est prêt, « Exclure » en rouge néon (hôte seulement, avec confirmation).
 - **Colonne droite — réglages** : formulaire pour l'**hôte seulement** (durée, minuteur, joueurs maximum, règle de pioche, dernière carte) ; les autres voient un **résumé en lecture seule** sur deux lignes. Le serveur n'a pas à se fier à cet affichage : un non-hôte qui tente de modifier les réglages ou d'exclure reçoit `NOT_HOST` et rien ne change (test).
 - **Bas, au centre, un grand bouton** : « Prêt » (vert néon, bascule, `aria-pressed`) pour un joueur ; « Lancer la partie » (vert néon) pour l'hôte. Il n'y a pas de texte « En attente de… » : tant que la partie ne peut pas démarrer, « Lancer » est **atténué avec `aria-disabled`** (jamais `disabled`, pour garder survol et focus) et une **info-bulle**, au survol, au focus et au toucher, donne la raison (« En attente de : Loïc », « Il faut au moins 2 joueurs »), reliée par `aria-describedby`.
@@ -566,7 +570,7 @@ Chaque phase = une ou plusieurs branches + PR. Détail des étapes dans `docs/PR
 | **2 — Serveur réseau** | §9 | tests d'intégration verts ; une partie peut être jouée avec un petit script client de test |
 | **3 — Design system et UI** | §10 à §14 sur `FixtureTransport` | galerie complète, tous les scénarios capturés en 3 tailles et relus visuellement, axe sans erreur, navigation clavier complète |
 | **4 — Intégration** | `WebSocketTransport` branché, parcours complets | E2E verts (2 et 4 joueurs, reconnexion, clavier) |
-| **5 — Bots et finitions** | bots (`BotStrategy` : `RandomBot`, `GreedyBot` qui garde ses Jokers et vide ses grosses cartes ; un bot ne voit que sa `PlayerView` et agit via les mêmes `PlayerAction` qu'un humain, donc aucun cas particulier dans le moteur), son, réactions, audit `web-design-guidelines` + Lighthouse, corrections | audits sans problème majeur, objectifs §16 atteints |
+| **5 — Bots et finitions** | bots (`BotStrategy` : Facile = un coup légal au hasard, Normal = heuristique ; un bot ne voit que sa `PlayerView` et agit via les mêmes `PlayerAction` qu'un humain, donc aucun cas particulier dans le moteur : ADR 0030), son, réactions, audit `web-design-guidelines` + Lighthouse, corrections | audits sans problème majeur, objectifs §16 atteints |
 | **6 — Déploiement** | §18 | site accessible en HTTPS, partie jouée entre deux machines réelles |
 
 ## 20. Hors périmètre v1

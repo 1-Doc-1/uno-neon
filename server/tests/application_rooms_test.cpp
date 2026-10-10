@@ -489,18 +489,6 @@ TEST_CASE("A refused request tells nobody else anything", "[app][room]")
     REQUIRE(host.received().empty());
 }
 
-TEST_CASE("Bots are not available yet", "[app][room]")
-{
-    AppHarness harness;
-    auto host = harness.helloPlayer();
-    static_cast<void>(createRoom(host));
-    static_cast<void>(host.received());
-
-    host.send(request::AddBot{.strategy = request::BotStrategy::Random});
-
-    REQUIRE(refusal(host.received()) == ErrorCode::UnknownType);
-}
-
 // Lot H: the lobby shows settings and the kick button to the host only, and the server must not rely on that.
 TEST_CASE("A player who is not the host changes nothing: settings and members stay as they were", "[app][room]")
 {

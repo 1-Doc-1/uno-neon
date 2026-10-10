@@ -59,30 +59,92 @@
   }
 }
 
-.join {
+.choices {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.choice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  width: 100%;
+  min-height: 72px;
+  padding: var(--space-3) var(--space-4);
+  border: 2px solid transparent;
+  border-radius: var(--radius-lg);
+  background: var(--field);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    transform var(--dur-fast) var(--ease-out),
+    border-color var(--dur-base);
+
+  .icon {
+    flex: none;
+    font-size: 1.9rem;
+    color: var(--text-dim);
+  }
+
+  .text {
+    display: grid;
+    flex: 1;
+    gap: 2px;
+    min-width: 0;
+
+    strong {
+      font-family: var(--font-display);
+      font-size: var(--fs-lg);
+    }
+
+    span {
+      color: var(--text-dim);
+      font-size: var(--fs-sm);
+    }
+  }
+
+  &:not(.join):hover:not(:disabled) {
+    border-color: var(--focus-ring);
+    transform: translateY(-1px);
+  }
+
+  &:focus-visible {
+    border-color: var(--focus-ring);
+    outline: none;
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: default;
+  }
+
+  // Le choix principal : jouer tout de suite
+  &.main {
+    background: var(--primary);
+    color: var(--text-on-neon);
+
+    .icon,
+    .text span {
+      color: inherit;
+    }
+  }
+
+  &.join {
+    cursor: default;
+  }
+}
+
+.join-row {
   display: flex;
   align-items: flex-end;
   gap: var(--space-3);
+  margin-top: var(--space-2);
 
   .grow {
     flex: 1;
     min-width: 0;
-  }
-}
-
-.divider {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  color: var(--text-dim);
-  font-size: var(--fs-sm);
-
-  &::before,
-  &::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: rgb(255 255 255 / 0.1);
   }
 }
 

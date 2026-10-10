@@ -37,13 +37,26 @@
                 <span class="you">déconnecté</span>
               }
             </span>
+            @if (player.isBot) {
+              <span class="bot-badge">Bot</span>
+            }
             @if (player.isHost) {
               <span class="crown" role="img" aria-label="Hôte"><app-icon name="crown" /></span>
             }
             @if (player.isReady || player.isHost) {
               <span class="ready" role="img" aria-label="Prêt"><app-icon name="check" /></span>
             }
-            @if (isHost() && !player.isHost) {
+            @if (isHost() && player.isBot) {
+              <button
+                appButton
+                kind="danger"
+                class="small"
+                [attr.aria-label]="'Retirer ' + player.nickname"
+                (click)="store.kick(player.playerId)"
+              >
+                Retirer
+              </button>
+            } @else if (isHost() && !player.isHost) {
               @if (kickCandidate() === player.playerId) {
                 <button
                   appButton
@@ -68,125 +81,25 @@
           </li>
         }
       </ul>
+      @if (isHost()) {
+        <div class="add-bot">
+          <app-segmented
+            label="Niveau du bot"
+            [options]="botLevels"
+            [value]="botLevel()"
+            (selected)="botLevel.set($event)"
+          />
+          <button appButton kind="neutral" [disabled]="!canAddBot()" (click)="addBot()">
+            <app-icon name="bot" /> Ajouter un bot
+          </button>
+        </div>
+      }
     </section>
 
     <section class="panel settings" aria-labelledby="settings-title">
       <h2 id="settings-title">Réglages</h2>
       @if (isHost()) {
-        <div class="setting">
-          <span class="setting-label">Durée de la partie</span>
-          <app-segmented
-            label="Durée de la partie"
-            [options]="matchLengths"
-            [value]="room().settings.matchLength"
-            (selected)="store.updateSettings({ matchLength: $event })"
-          />
-        </div>
-        <div class="setting">
-          <span class="setting-label">Minuteur par tour</span>
-          <app-segmented
-            label="Minuteur par tour"
-            [options]="turnTimers"
-            [value]="room().settings.turnTimerSeconds"
-            (selected)="store.updateSettings({ turnTimerSeconds: $event })"
-          />
-        </div>
-        <div class="setting">
-          <span class="setting-label">Joueurs maximum</span>
-          <app-segmented
-            label="Joueurs maximum"
-            [options]="maxPlayers"
-            [value]="room().settings.maxPlayers"
-            (selected)="store.updateSettings({ maxPlayers: $event })"
-          />
-        </div>
-        <div class="setting">
-          <span class="setting-label">Règle de pioche</span>
-          <app-segmented
-            label="Règle de pioche"
-            [options]="drawRules"
-            [value]="room().settings.drawRule"
-            (selected)="store.updateSettings({ drawRule: $event })"
-          />
-          <p class="hint">
-            @if (room().settings.drawRule === 'guided') {
-              Guidée : on pioche quand on ne peut pas jouer, ou pour garder un +2 ou un Joker.
-            } @else {
-              Officielle : on peut toujours piocher au lieu de jouer.
-            }
-          </p>
-        </div>
-        <div class="setting">
-          <span class="setting-label">Pioche</span>
-          <app-segmented
-            label="Pioche"
-            [options]="drawAmounts"
-            [value]="room().settings.drawAmount"
-            (selected)="store.updateSettings({ drawAmount: $event })"
-          />
-          <p class="hint">
-            @if (room().settings.drawAmount === 'untilPlayable') {
-              Sans carte jouable, on pioche jusqu’à pouvoir jouer.
-            } @else {
-              Sans carte jouable, on pioche une seule carte.
-            }
-          </p>
-        </div>
-        <div class="setting">
-          <span class="setting-label">Dernière carte</span>
-          <app-segmented
-            label="Dernière carte"
-            [options]="lastCardRules"
-            [value]="lastCardRule()"
-            (selected)="setLastCardRule($event)"
-          />
-        </div>
-        <div class="setting">
-          <span class="setting-label">Cumul des pénalités</span>
-          <app-segmented
-            label="Cumul des pénalités"
-            [options]="stackings"
-            [value]="room().settings.stacking"
-            (selected)="store.updateSettings({ stacking: $event })"
-          />
-          <p class="hint">
-            @if (room().settings.stacking === 'ladder') {
-              Un +2, un +4 ou un +5 se pose sur une pénalité d’un niveau égal ou inférieur (+2 < +4
-              < +5) : les cartes à piocher s’additionnent et le +4 ne se conteste pas.
-            } @else {
-              Sans cumul : un +2 se pioche tout de suite, un +4 se conteste, seul un +5 répond à un
-              +5.
-            }
-          </p>
-        </div>
-        <div class="setting">
-          <span class="setting-label">Cartes +2 dans le paquet</span>
-          <app-segmented
-            label="Nombre de cartes +2"
-            [options]="multipliers"
-            [value]="room().settings.drawTwoMultiplier"
-            (selected)="store.updateSettings({ drawTwoMultiplier: $event })"
-          />
-        </div>
-        <div class="setting">
-          <span class="setting-label">Jokers +4 dans le paquet</span>
-          <app-segmented
-            label="Nombre de jokers +4"
-            [options]="multipliers"
-            [value]="room().settings.wildDrawFourMultiplier"
-            (selected)="store.updateSettings({ wildDrawFourMultiplier: $event })"
-          />
-        </div>
-        <div class="setting">
-          <span class="setting-label">Jokers +5 dans le paquet</span>
-          <app-segmented
-            label="Nombre de jokers +5"
-            [options]="multipliers"
-            [value]="room().settings.wildDrawFiveMultiplier"
-            (selected)="store.updateSettings({ wildDrawFiveMultiplier: $event })"
-          />
-          <p class="hint">Paquet de {{ deckCards() }} cartes.</p>
-        </div>
+        <app-game-settings [settings]="room().settings" (changed)="store.updateSettings($event)" />
       } @else {
         <p class="summary">{{ summary().first }}</p>
         <p class="summary">{{ summary().second }}</p>

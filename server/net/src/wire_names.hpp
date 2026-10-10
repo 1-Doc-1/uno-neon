@@ -141,10 +141,10 @@ struct WireNames<app::WildDrawFourMode> {
 };
 
 template <>
-struct WireNames<app::request::BotStrategy> {
+struct WireNames<app::BotLevel> {
     static constexpr std::array kTable{
-        WireName{.value = app::request::BotStrategy::Random, .name = "random"},
-        WireName{.value = app::request::BotStrategy::Greedy, .name = "greedy"},
+        WireName{.value = app::BotLevel::Easy, .name = "easy"},
+        WireName{.value = app::BotLevel::Normal, .name = "normal"},
     };
 };
 
