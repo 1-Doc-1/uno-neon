@@ -79,6 +79,20 @@ std::expected<bool, ConfigError> parseBoolean(std::string_view text)
     return std::unexpected(ConfigError::BooleanInvalid);
 }
 
+std::expected<std::string, ConfigError> parseBindAddress(std::string_view text)
+{
+    const auto address = trim(text);
+    constexpr std::size_t kLongestIpv6Text = 45;
+    const bool onlyAddressCharacters = std::ranges::all_of(address, [](char character) {
+        return std::isxdigit(static_cast<unsigned char>(character)) != 0 || character == ':' || character == '.';
+    });
+    const bool looksLikeAddress = address.find_first_of(".:") != std::string_view::npos;
+    if (address.empty() || address.size() > kLongestIpv6Text || !onlyAddressCharacters || !looksLikeAddress) {
+        return std::unexpected(ConfigError::BindAddressInvalid);
+    }
+    return std::string(address);
+}
+
 std::expected<std::vector<std::string>, ConfigError> parseAllowedOrigins(std::string_view text)
 {
     std::vector<std::string> origins;

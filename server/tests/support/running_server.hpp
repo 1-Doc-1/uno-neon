@@ -46,7 +46,12 @@ public:
                     started.set_exception(std::current_exception());
                 }
             });
-        port_ = port.get(); // rethrows a failure to start
+        try {
+            port_ = port.get(); // rethrows a failure to start
+        } catch (...) {
+            thread_.join(); // the thread has already ended: a joinable std::thread would terminate the test run
+            throw;
+        }
     }
 
     RunningServer(const RunningServer&) = delete;

@@ -18,6 +18,8 @@
 #include "support/wire_leak.hpp"
 #include "support/ws_client.hpp"
 #include <catch2/catch_test_macros.hpp>
+#include <spdlog/sinks/ostream_sink.h>
+#include <spdlog/spdlog.h>
 
 #include <algorithm>
 #include <chrono>
@@ -25,6 +27,7 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <sstream>
 #include <string>
 #include <utility>
 #include <variant>
@@ -383,4 +386,43 @@ TEST_CASE("The server stops within a second while a match is running and players
     deployment.reset();
 
     REQUIRE(std::chrono::steady_clock::now() - before < 1s);
+}
+
+TEST_CASE("The logs of a whole session hold no session token and no client address", "[server][integration][privacy]")
+{
+    REQUIRE(uno::net::initializeCryptoRuntime());
+    std::ostringstream captured;
+    const auto sink = std::make_shared<spdlog::sinks::ostream_sink_mt>(captured);
+    const auto previousLevel = spdlog::get_level();
+    spdlog::set_level(spdlog::level::trace); // the most talkative level: if it is not there, it is nowhere
+    spdlog::default_logger()->sinks().push_back(sink);
+
+    std::vector<std::string> tokens;
+    {
+        std::vector<Player> players;
+        auto deployment = std::make_unique<Deployment>();
+        players.push_back(enter(*deployment, "Alice"));
+        players.push_back(enter(*deployment, "Bob"));
+        const auto code = openRoom(players.at(0));
+        joinReady(players.at(1), code);
+        players.at(0).client.sendAndExpectAck(request::StartMatch{});
+        awaitUpdate(players.at(0), 0);
+        for (const Player& player : players) {
+            tokens.push_back(player.token.value);
+        }
+    } // the sockets close, the server stops: the closing is logged too
+
+    auto& sinks = spdlog::default_logger()->sinks();
+    std::erase(sinks, sink);
+    spdlog::set_level(previousLevel);
+
+    const std::string logs = captured.str();
+    REQUIRE_FALSE(logs.empty());
+    REQUIRE(tokens.size() == 2);
+    for (const std::string& token : tokens) {
+        REQUIRE_FALSE(token.empty());
+        REQUIRE_FALSE(logs.contains(token));
+    }
+    REQUIRE_FALSE(logs.contains("127.0.0.1"));
+    REQUIRE_FALSE(logs.contains("::1"));
 }

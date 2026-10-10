@@ -66,6 +66,13 @@ std::expected<uno::app::ServerConfig, std::string> loadConfig()
         }
         config.allowedOrigins = std::move(*parsedOrigins);
     }
+    if (const auto address = readEnvironmentVariable("UNO_BIND_ADDRESS")) {
+        auto parsedAddress = uno::app::parseBindAddress(*address);
+        if (!parsedAddress) {
+            return std::unexpected("UNO_BIND_ADDRESS must be an IP address like 127.0.0.1, got '" + *address + "'");
+        }
+        config.bindAddress = std::move(*parsedAddress);
+    }
     if (const auto proxy = readEnvironmentVariable("UNO_TRUSTED_PROXY")) {
         const auto parsedProxy = uno::app::parseBoolean(*proxy);
         if (!parsedProxy) {
@@ -112,6 +119,7 @@ int run()
 
     uno::net::WebSocketServerConfig serverConfig;
     serverConfig.port = config->port;
+    serverConfig.bindAddress = config->bindAddress;
     serverConfig.originPolicy = uno::net::OriginPolicy(config->allowedOrigins);
     serverConfig.trustedProxy = config->trustedProxy;
     serverConfig.roomCount = [&rooms] { return rooms.size(); };
@@ -131,8 +139,9 @@ int run()
         }
     });
 
-    spdlog::info("uno_server {} (protocol v{}) listening on port {}", uno::core::projectVersion(),
-                 uno::net::kProtocolVersion, server.port());
+    spdlog::info("uno_server {} (protocol v{}) listening on {}:{}", uno::core::projectVersion(),
+                 uno::net::kProtocolVersion, config->bindAddress.empty() ? "all interfaces" : config->bindAddress,
+                 server.port());
     server.run();
     spdlog::info("uno_server stopped");
     return EXIT_SUCCESS;

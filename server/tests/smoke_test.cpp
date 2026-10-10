@@ -50,3 +50,20 @@ TEST_CASE("UNO_PORT rejects text that is not a plain integer", "[app][config]")
         REQUIRE(uno::app::parsePort(text).error() == ConfigError::PortNotANumber);
     }
 }
+
+TEST_CASE("UNO_BIND_ADDRESS accepts an IPv4 or IPv6 address", "[app][config]")
+{
+    REQUIRE(uno::app::parseBindAddress("127.0.0.1") == "127.0.0.1");
+    REQUIRE(uno::app::parseBindAddress(" ::1 ") == "::1");
+    REQUIRE(uno::app::parseBindAddress("fe80::1") == "fe80::1");
+}
+
+TEST_CASE("UNO_BIND_ADDRESS rejects anything that is not an address", "[app][config]")
+{
+    using uno::app::ConfigError;
+
+    for (const char* text : {"", "   ", "localhost", "uno.example.com", "127.0.0.1/8", "0.0.0.0 ; rm", "deadbeef"}) {
+        INFO(text);
+        REQUIRE(uno::app::parseBindAddress(text).error() == ConfigError::BindAddressInvalid);
+    }
+}

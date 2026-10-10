@@ -29,6 +29,8 @@ struct RateLimits {
 
 struct WebSocketServerConfig {
     std::uint16_t port{}; // 0 lets the system pick a free port (tests)
+    // The local address to listen on (UNO_BIND_ADDRESS); empty means every interface.
+    std::string bindAddress;
     OriginPolicy originPolicy{{}};
     RateLimits rateLimits;
     // Whether X-Forwarded-For can be believed to tell the real address of a client (UNO_TRUSTED_PROXY).
