@@ -1,4 +1,7 @@
-import { expect, type Page } from '@playwright/test';
+import { errors, expect, type Page } from '@playwright/test';
+
+/** Un coup qui n'a plus de cible au bout de ce temps est un coup que le jeu a déjà joué à notre place. */
+const CLICK_TIMEOUT_MS = 3000;
 
 /**
  * Un joueur vu par son navigateur. Aucune attente fixe : tout passe par des états visibles (rôles, textes, libellés) ;
@@ -136,15 +139,26 @@ export class Player {
       return false;
     }
     const before = await this.snapshot();
-    if (await this.targetPicker.isVisible()) {
-      // La politique vise le premier adversaire de la liste
-      await this.targetPicker.locator('.target').first().click();
-    } else if (await this.acceptPenalty.isVisible()) {
-      await this.acceptPenalty.click();
-    } else if (await this.colorPicker.isVisible()) {
-      await this.colorPicker.getByRole('button', { name: 'Rouge' }).click();
-    } else {
-      await this.playableCards.first().click();
+    try {
+      if (await this.targetPicker.isVisible()) {
+        // La politique vise le premier adversaire de la liste
+        await this.targetPicker.locator('.target').first().click({ timeout: CLICK_TIMEOUT_MS });
+      } else if (await this.acceptPenalty.isVisible()) {
+        await this.acceptPenalty.click({ timeout: CLICK_TIMEOUT_MS });
+      } else if (await this.colorPicker.isVisible()) {
+        await this.colorPicker
+          .getByRole('button', { name: 'Rouge' })
+          .click({ timeout: CLICK_TIMEOUT_MS });
+      } else {
+        await this.playableCards.first().click({ timeout: CLICK_TIMEOUT_MS });
+      }
+    } catch (error) {
+      // Contre des bots (ou le serveur qui joue le coup forcé), le tour peut se terminer entre l'instant où l'on a
+      // décidé de jouer et le clic : la carte est alors désactivée. Ce n'est pas un échec, on regarde de nouveau.
+      if (error instanceof errors.TimeoutError) {
+        return false;
+      }
+      throw error;
     }
     await expect
       .poll(() => this.snapshot(), {

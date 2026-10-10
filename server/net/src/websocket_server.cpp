@@ -190,8 +190,12 @@ WebSocketServer::WebSocketServer(WebSocketServerConfig config, app::ConnectionHa
         });
     impl.app->any("/*", [](auto* response, auto* /*request*/) { response->writeStatus("404 Not Found")->end(); });
 
-    impl.app->listen(impl.config.port, LIBUS_LISTEN_EXCLUSIVE_PORT,
-                     [&impl](us_listen_socket_t* listenSocket) { impl.listenSocket = listenSocket; });
+    const auto onListening = [&impl](us_listen_socket_t* listenSocket) { impl.listenSocket = listenSocket; };
+    if (impl.config.bindAddress.empty()) {
+        impl.app->listen(impl.config.port, LIBUS_LISTEN_EXCLUSIVE_PORT, onListening);
+    } else {
+        impl.app->listen(impl.config.bindAddress, impl.config.port, LIBUS_LISTEN_EXCLUSIVE_PORT, onListening);
+    }
     if (impl.listenSocket == nullptr) {
         throw std::runtime_error("cannot listen on the requested port (already in use?)");
     }

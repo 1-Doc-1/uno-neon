@@ -13,6 +13,7 @@
 #include <nlohmann/json.hpp>
 
 #include <cstddef>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <variant>
@@ -319,4 +320,27 @@ TEST_CASE("Join attempts are limited per address, so room codes cannot be guesse
     }
     REQUIRE(limited == 2);
     REQUIRE(fixture.handler.requests().size() == 3);
+}
+
+TEST_CASE("A server bound to the loopback address answers on it", "[net][server][bind]")
+{
+    RecordingHandler handler;
+    uno::net::WebSocketServerConfig config = serverConfig(0, {});
+    config.bindAddress = "127.0.0.1";
+    RunningServer server(std::move(config), handler);
+
+    int status = 0;
+    const auto socket = TestWebSocket::connect(server.port(), kAllowedOrigin, status);
+
+    REQUIRE(socket.has_value());
+    REQUIRE(status == kSwitchingProtocols);
+}
+
+TEST_CASE("A server told to bind to an address this machine does not own refuses to start", "[net][server][bind]")
+{
+    RecordingHandler handler;
+    uno::net::WebSocketServerConfig config = serverConfig(0, {});
+    config.bindAddress = "203.0.113.77"; // TEST-NET-3 (RFC 5737): never assigned to a machine
+
+    REQUIRE_THROWS_AS(RunningServer(std::move(config), handler), std::runtime_error);
 }

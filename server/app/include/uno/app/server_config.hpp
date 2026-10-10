@@ -15,6 +15,9 @@ inline constexpr std::uint16_t kDefaultPort = 9001;
 
 struct ServerConfig {
     std::uint16_t port = kDefaultPort;
+    // UNO_BIND_ADDRESS: the one local address to listen on ("127.0.0.1" to be reachable from this machine only).
+    // Empty: every interface.
+    std::string bindAddress;
     std::vector<std::string> allowedOrigins = defaultAllowedOrigins();
     bool trustedProxy = false; // UNO_TRUSTED_PROXY: believe X-Forwarded-For for the address of a client
 };
@@ -24,6 +27,7 @@ enum class ConfigError : std::uint8_t {
     PortOutOfRange,
     OriginInvalid,
     BooleanInvalid,
+    BindAddressInvalid,
 };
 
 // Parses the value of UNO_PORT: a decimal integer in [1, 65535].
@@ -31,6 +35,9 @@ enum class ConfigError : std::uint8_t {
 
 // Parses a boolean variable (UNO_TRUSTED_PROXY): 1/true/yes/on or 0/false/no/off, in any case.
 [[nodiscard]] std::expected<bool, ConfigError> parseBoolean(std::string_view text);
+
+// Parses the value of UNO_BIND_ADDRESS: an IPv4 or IPv6 address, not a host name (a name could resolve to anything).
+[[nodiscard]] std::expected<std::string, ConfigError> parseBindAddress(std::string_view text);
 
 // Parses the value of UNO_ALLOWED_ORIGINS: comma-separated origins, each `http(s)://host[:port]` without
 // a path (that is the shape of an Origin header). At least one is required.
