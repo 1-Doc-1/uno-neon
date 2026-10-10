@@ -16,7 +16,7 @@ import { Button } from '../../ui/button';
       @if (options().canStack) {
         <p class="reply">Ou réponds avec ton Joker +5 : choisis-le dans ta main.</p>
       }
-      <button appButton kind="neutral" (click)="accepted.emit()">
+      <button appButton kind="neutral" [disabled]="waiting()" (click)="accepted.emit()">
         Accepter, piocher {{ options().amount }}
       </button>
     </section>
@@ -53,5 +53,7 @@ import { Button } from '../../ui/button';
 })
 export class PlusFivePrompt {
   readonly options = input.required<PenaltyResponseOptions>();
+  /** L'effet qui m'a visé est encore montré : le serveur n'accepte pas encore ma réponse (ADR 0027). */
+  readonly waiting = input(false);
   readonly accepted = output<void>();
 }

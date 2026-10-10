@@ -46,7 +46,10 @@ export type SessionToken = string;
  * Raw nickname. The server trims it and checks the rules (2 to 16 letters, digits, space, _ or -), answering NICKNAME_INVALID: only the size is bounded here.
  */
 export type Nickname = string;
-export type StackingMode = 'off' | 'sameType' | 'mixed';
+/**
+ * official: SPEC §3. ladder: penalty cards pile up, +2 < +4 < +5, and a +4 cannot be challenged (ADR 0029).
+ */
+export type PenaltyStacking = 'official' | 'ladder';
 /**
  * untilPlayable: a player with nothing to play draws until a card fits (ADR 0024); one: a single card (SPEC §3).
  */
@@ -257,7 +260,7 @@ export interface CreateRoomPayload {
  * Partial settings: only the fields to change.
  */
 export interface RoomSettingsPatch {
-  stacking?: StackingMode;
+  stacking?: PenaltyStacking;
   jumpIn?: boolean;
   sevenZero?: boolean;
   drawAmount?: DrawAmount;
@@ -530,7 +533,7 @@ export interface RoomView {
  * House rules chosen by the host (see SPEC §4).
  */
 export interface RoomSettings {
-  stacking: StackingMode;
+  stacking: PenaltyStacking;
   jumpIn: boolean;
   sevenZero: boolean;
   drawAmount: DrawAmount;

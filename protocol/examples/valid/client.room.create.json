@@ -5,7 +5,7 @@
   "payload": {
     "nickname": "Léa",
     "settings": {
-      "stacking": "mixed",
+      "stacking": "ladder",
       "matchLength": "singleRound"
     }
   }

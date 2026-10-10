@@ -39,7 +39,7 @@ Parsed<RoomSettingsPatch> parseSettingsPatch(const Json& value)
 {
     ObjectReader reader(value, "settings");
     RoomSettingsPatch patch;
-    patch.stacking = reader.optional<StackingMode>("stacking", detail::parseEnum<StackingMode>);
+    patch.stacking = reader.optional<core::PenaltyStacking>("stacking", detail::parseEnum<core::PenaltyStacking>);
     patch.jumpIn = reader.optional<bool>("jumpIn", detail::parseBool);
     patch.sevenZero = reader.optional<bool>("sevenZero", detail::parseBool);
     patch.drawAmount = reader.optional<core::DrawAmount>("drawAmount", detail::parseEnum<core::DrawAmount>);

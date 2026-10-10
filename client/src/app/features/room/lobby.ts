@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import type {
   CardMultiplier,
   DrawAmount,
+  PenaltyStacking,
   DrawRule,
   MatchLength,
   RoomView,
@@ -42,6 +43,11 @@ const DRAW_RULES: readonly SegmentOption<DrawRule>[] = [
 const DRAW_AMOUNTS: readonly SegmentOption<DrawAmount>[] = [
   { value: 'untilPlayable', label: 'Jusqu’à pouvoir jouer' },
   { value: 'one', label: '1 carte' },
+];
+
+const STACKINGS: readonly SegmentOption<PenaltyStacking>[] = [
+  { value: 'official', label: 'Sans cumul' },
+  { value: 'ladder', label: 'Échelle' },
 ];
 
 const MULTIPLIERS: readonly SegmentOption<CardMultiplier>[] = [
@@ -84,6 +90,7 @@ export class Lobby {
   protected readonly drawRules = DRAW_RULES;
   protected readonly drawAmounts = DRAW_AMOUNTS;
   protected readonly lastCardRules = LAST_CARD_RULES;
+  protected readonly stackings = STACKINGS;
   protected readonly multipliers = MULTIPLIERS;
 
   /** Joueur dont l'exclusion attend une confirmation. */
@@ -116,7 +123,9 @@ export class Lobby {
       first: `${MATCH_LENGTH_SUMMARY[s.matchLength]} · ${timer} · ${s.maxPlayers} joueurs max`,
       second: `Pioche ${s.drawRule === 'guided' ? 'guidée' : 'officielle'}, ${
         s.drawAmount === 'untilPlayable' ? 'jusqu’à pouvoir jouer' : '1 carte'
-      } · ${s.declareUnoToWin ? 'UNO obligatoire pour gagner' : 'dernière carte libre'}`,
+      } · ${s.declareUnoToWin ? 'UNO obligatoire pour gagner' : 'dernière carte libre'} · ${
+        s.stacking === 'ladder' ? 'pénalités cumulées (+2 < +4 < +5)' : 'pénalités sans cumul'
+      }`,
       third: `Paquet de ${deckSize(s)} cartes : +2 ×${s.drawTwoMultiplier}, +4 ×${s.wildDrawFourMultiplier}, +5 ×${s.wildDrawFiveMultiplier}`,
     };
   });

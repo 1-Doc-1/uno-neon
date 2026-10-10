@@ -134,7 +134,7 @@
       "unoWindows": [],
       "round": 1,
       "settings": {
-        "stacking": "mixed",
+        "stacking": "ladder",
         "jumpIn": false,
         "sevenZero": false,
         "drawAmount": "untilPlayable",

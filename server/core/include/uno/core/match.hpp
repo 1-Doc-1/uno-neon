@@ -5,6 +5,7 @@
 #include "uno/core/domain_event.hpp"
 #include "uno/core/draw_amount.hpp"
 #include "uno/core/draw_rule.hpp"
+#include "uno/core/penalty_stacking.hpp"
 #include "uno/core/player_action.hpp"
 #include "uno/core/player_id.hpp"
 #include "uno/core/random_source.hpp"
@@ -37,9 +38,10 @@ enum class MatchLength : std::uint8_t { SingleRound, To250, To500 };
 struct MatchSettings {
     MatchLength matchLength{MatchLength::To500};
     DrawRule drawRule{DrawRule::Official};
-    DrawAmount drawAmount{DrawAmount::One}; // ADR 0024
-    bool declareUnoToWin{false};            // ADR 0019
-    DeckSettings deck{};                    // ADR 0028: how many of the special cards the deck holds
+    DrawAmount drawAmount{DrawAmount::One};              // ADR 0024
+    bool declareUnoToWin{false};                         // ADR 0019
+    DeckSettings deck{};                                 // ADR 0028: how many of the special cards the deck holds
+    PenaltyStacking stacking{PenaltyStacking::Official}; // ADR 0029
 
     [[nodiscard]] bool operator==(const MatchSettings&) const = default;
 };

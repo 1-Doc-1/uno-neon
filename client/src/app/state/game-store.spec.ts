@@ -88,7 +88,7 @@ describe('GameStore', () => {
           code: 'ABCDEF',
           phase: 'lobby',
           settings: {
-            stacking: 'off',
+            stacking: 'official',
             jumpIn: false,
             sevenZero: false,
             drawAmount: 'untilPlayable',

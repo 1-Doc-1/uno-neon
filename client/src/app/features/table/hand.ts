@@ -55,7 +55,8 @@ function fanStep(
             class="slot"
             [class.playable]="isPlayable(card)"
             [class.unplayable]="stateOf(card) === 'unplayable'"
-            [disabled]="!isPlayable(card)"
+            [class.waiting]="locked()"
+            [disabled]="!isPlayable(card) || locked()"
             [attr.aria-label]="describe(card)"
             (click)="played.emit(card.id)"
           >
@@ -71,6 +72,8 @@ export class Hand {
   readonly cards = input.required<readonly Card[]>();
   readonly playableIds = input.required<readonly number[]>();
   readonly myTurn = input.required<boolean>();
+  /** Les cartes jouables sont montrées mais le serveur ne prend pas encore le coup : rien ne réagit. */
+  readonly locked = input(false);
   /** Les cartes en vol vers ma main, dans l'ordre d'arrivée : absentes de `cards`, elles s'y ajoutent à la fin. */
   readonly incoming = input<readonly number[]>([]);
   readonly played = output<number>();

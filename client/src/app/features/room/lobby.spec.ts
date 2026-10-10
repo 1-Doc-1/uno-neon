@@ -26,7 +26,7 @@ function roomOf(players: RoomMember[]): RoomView {
     code: 'K7M4XP',
     phase: 'lobby',
     settings: {
-      stacking: 'off',
+      stacking: 'official',
       jumpIn: false,
       sevenZero: false,
       drawAmount: 'untilPlayable',

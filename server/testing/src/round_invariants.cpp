@@ -83,16 +83,21 @@ void requireWildDrawFourPlayerIsNotCurrent(const core::Round& round)
     REQUIRE(round.currentPlayer() != awaiting->wildDrawFourPlayer);
 }
 
-// While a Wild Draw Five waits for its answer, what is owed is a whole number of fives, and the target (the current
-// player) has the turn: ADR 0028.
-void requirePlusFiveTotalIsCoherent(const core::Round& round)
+// While a stack of penalties waits for its answer, what is owed is at least what its top card inflicts, and the top
+// card is a penalty card. In the official rules only Wild Draw Fives pile up, so the total is a whole number of fives;
+// with the ladder they all add up (ADR 0028, 0029).
+void requireStackTotalIsCoherent(const core::Round& round)
 {
-    const auto* awaiting = std::get_if<core::AwaitingPlusFiveResponse>(&round.phase());
+    const auto* awaiting = std::get_if<core::AwaitingStackResponse>(&round.phase());
     if (awaiting == nullptr) {
         return;
     }
-    REQUIRE(awaiting->total >= core::kWildDrawFivePenaltyCards);
-    REQUIRE(awaiting->total % core::kWildDrawFivePenaltyCards == 0);
+    REQUIRE(core::penaltyLevel(awaiting->top).has_value());
+    REQUIRE(awaiting->total >= core::penaltyCards(awaiting->top));
+    if (round.stacking() == core::PenaltyStacking::Official) {
+        REQUIRE(awaiting->top == core::Rank::WildDrawFive);
+        REQUIRE(awaiting->total % core::kWildDrawFivePenaltyCards == 0);
+    }
 }
 
 // A UNO window only ever concerns a player holding exactly one card who did not announce it, once per player.
@@ -149,7 +154,7 @@ void requireRoundInvariants(const core::Round& round)
     requireCurrentColorMatchesPhase(round);
     requireDrawnCardStillInHand(round);
     requireWildDrawFourPlayerIsNotCurrent(round);
-    requirePlusFiveTotalIsCoherent(round);
+    requireStackTotalIsCoherent(round);
     requireRoundOverIsCoherent(round);
     requireUnoWindowsAreCoherent(round);
     requireAnnouncementsAreCoherent(round);

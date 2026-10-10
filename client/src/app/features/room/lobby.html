@@ -142,6 +142,24 @@
           />
         </div>
         <div class="setting">
+          <span class="setting-label">Cumul des pénalités</span>
+          <app-segmented
+            label="Cumul des pénalités"
+            [options]="stackings"
+            [value]="room().settings.stacking"
+            (selected)="store.updateSettings({ stacking: $event })"
+          />
+          <p class="hint">
+            @if (room().settings.stacking === 'ladder') {
+              Un +2, un +4 ou un +5 se pose sur une pénalité d’un niveau égal ou inférieur (+2 < +4
+              < +5) : les cartes à piocher s’additionnent et le +4 ne se conteste pas.
+            } @else {
+              Sans cumul : un +2 se pioche tout de suite, un +4 se conteste, seul un +5 répond à un
+              +5.
+            }
+          </p>
+        </div>
+        <div class="setting">
           <span class="setting-label">Cartes +2 dans le paquet</span>
           <app-segmented
             label="Nombre de cartes +2"

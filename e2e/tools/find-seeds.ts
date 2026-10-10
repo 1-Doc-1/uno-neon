@@ -32,6 +32,11 @@ interface Finding {
   drawTwo: boolean;
   /** Combien de Jokers +5 tiennent le premier joueur et l'autre dans leur main de départ. */
   plusFive: { first: number; other: number };
+  /**
+   * Cumul à l'échelle (ADR 0029) : le premier joueur a un +2 jouable et un +4, l'autre un +2 et ni +4 ni +5. Bob +2, Alice +2 dessus,
+   * Bob +4 dessus, Alice (sans rien pour empiler) pioche huit cartes.
+   */
+  ladderChain: boolean;
   /** Le premier joueur a un +4 : bluff (il a la couleur active) ou légal ? */
   wildDrawFour: 'none' | 'bluff' | 'legal';
   /** Version de la vue où quelqu'un n'a plus qu'une carte pour la première fois, et qui. */
@@ -124,6 +129,18 @@ async function run(seed: number, port: number): Promise<Finding> {
       drawTwo: hand.some(
         (card) => card.rank === 'drawTwo' && firstView.me.playableCardIds.includes(card.id),
       ),
+      ladderChain:
+        hand.some(
+          (card) => card.rank === 'drawTwo' && firstView.me.playableCardIds.includes(card.id),
+        ) &&
+        wd4 &&
+        (() => {
+          const other = ((first === 'A' ? b : a).view as PlayerView).me.hand;
+          return (
+            other.some((card) => card.rank === 'drawTwo') &&
+            !other.some((card) => card.rank === 'wildDrawFour' || card.rank === 'wildDrawFive')
+          );
+        })(),
       wildDrawFour: !wd4 ? 'none' : hasActiveColor ? 'bluff' : 'legal',
       plusFive: {
         first: hand.filter((card) => card.rank === 'wildDrawFive').length,

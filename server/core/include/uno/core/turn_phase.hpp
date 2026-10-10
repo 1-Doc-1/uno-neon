@@ -43,13 +43,16 @@ struct AwaitingPenaltyResponse {
     bool operator==(const AwaitingPenaltyResponse&) const = default;
 };
 
-// A Wild Draw Five was played: the turn already moved to its target, who must accept the penalty (draw `total`, lose
-// the turn) or answer with a Wild Draw Five of their own, which names a new target and raises the total by five
-// (ADR 0028). A Wild Draw Five cannot be challenged. The target is the current player.
-struct AwaitingPlusFiveResponse {
+// A penalty is pending and cannot be contested: the turn already moved to its target, who must accept it (draw `total`,
+// lose the turn) or play a penalty card of their own on top (ADR 0028, 0029). `top` is the rank of the card that last
+// raised the total: only a card of that level or higher can be played. In the official rules only a Wild Draw Five
+// ever lands here, so only another Wild Draw Five answers it; with the ladder (PenaltyStacking::Ladder) a Draw Two or a
+// Wild Draw Four does too. The target is the current player.
+struct AwaitingStackResponse {
     std::size_t total{};
+    Rank top{Rank::WildDrawFive};
 
-    bool operator==(const AwaitingPlusFiveResponse&) const = default;
+    bool operator==(const AwaitingStackResponse&) const = default;
 };
 
 // A player played their last card (SPEC §3). `points` is what the winner scores: the value of every
@@ -63,6 +66,6 @@ struct RoundOver {
 };
 
 using TurnPhase = std::variant<AwaitingPlay, AwaitingDrawnCardDecision, AwaitingColorChoice, AwaitingPenaltyResponse,
-                               AwaitingPlusFiveResponse, RoundOver>;
+                               AwaitingStackResponse, RoundOver>;
 
 } // namespace uno::core

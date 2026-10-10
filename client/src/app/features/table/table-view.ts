@@ -106,11 +106,21 @@ export class TableView {
   protected readonly pendingTarget = signal<number | null>(null);
   /** La cible déjà choisie du Joker +5 qui attend sa couleur. */
   private readonly chosenTarget = signal<string | null>(null);
-  /** Le Joker +5 qui me vise attend ma réponse : accepter ou répliquer (une pénalité sans contestation possible). */
+  /**
+   * Une pénalité sans contestation possible me vise et le serveur ne m'offre pas le paquet pour la prendre : une fenêtre
+   * propose d'accepter, la réplique se fait en cliquant une carte. Avec le cumul en échelle (`canDraw`), il n'y a pas
+   * de fenêtre : le paquet prend tout, les cartes qui s'empilent sont jouables dans la main.
+   */
   protected readonly plusFiveAnswer = computed(() => {
-    const options = this.view().me.penaltyResponse;
-    return options && !options.canChallenge ? options : null;
+    const view = this.view();
+    const options = view.me.penaltyResponse;
+    return options && !options.canChallenge && !view.me.canDraw ? options : null;
   });
+  /**
+   * Une pénalité m'attend : mes cartes empilables sont mises en évidence dès qu'elle arrive, même si le serveur
+   * n'accepte ma réponse qu'à `actionsOpenAt` (elles restent alors verrouillées).
+   */
+  protected readonly answeringPenalty = computed(() => this.view().me.penaltyResponse != null);
   protected readonly challengeOptions = computed(() => {
     const options = this.view().me.penaltyResponse;
     return options?.canChallenge ? options : null;

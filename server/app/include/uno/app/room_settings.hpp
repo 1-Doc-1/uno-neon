@@ -4,6 +4,7 @@
 #include "uno/core/draw_amount.hpp"
 #include "uno/core/draw_rule.hpp"
 #include "uno/core/match.hpp"
+#include "uno/core/penalty_stacking.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -12,7 +13,6 @@
 
 namespace uno::app {
 
-enum class StackingMode : std::uint8_t { Off, SameType, Mixed };
 enum class WildDrawFourMode : std::uint8_t { OfficialChallenge, Strict };
 enum class TurnTimerSeconds : std::uint8_t { Off = 0, Fifteen = 15, Thirty = 30, Sixty = 60 };
 
@@ -21,7 +21,7 @@ inline constexpr std::uint8_t kMaxRoomPlayers = 10;
 
 // House rules chosen by the host (SPEC §4, protocol `RoomSettings`).
 struct RoomSettings {
-    StackingMode stacking{StackingMode::Off};
+    core::PenaltyStacking stacking{core::PenaltyStacking::Official}; // ADR 0029
     bool jumpIn{false};
     bool sevenZero{false};
     core::DrawAmount drawAmount{core::DrawAmount::UntilPlayable}; // ADR 0024
@@ -50,7 +50,7 @@ struct RoomSettings {
 
 // Partial settings: only the fields to change (protocol `RoomSettingsPatch`).
 struct RoomSettingsPatch {
-    std::optional<StackingMode> stacking;
+    std::optional<core::PenaltyStacking> stacking;
     std::optional<bool> jumpIn;
     std::optional<bool> sevenZero;
     std::optional<core::DrawAmount> drawAmount;

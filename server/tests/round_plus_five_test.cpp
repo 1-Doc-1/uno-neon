@@ -100,7 +100,7 @@ constexpr std::uint64_t kSeed = 42;
 
 [[nodiscard]] std::size_t pendingTotal(const Round& round)
 {
-    const auto* awaiting = std::get_if<AwaitingPlusFiveResponse>(&round.phase());
+    const auto* awaiting = std::get_if<AwaitingStackResponse>(&round.phase());
     REQUIRE(awaiting != nullptr);
     return awaiting->total;
 }

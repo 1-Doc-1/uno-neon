@@ -39,4 +39,9 @@ export const SEEDS = {
   plusFiveSimple: 1,
   /** Même réglage : Bob et Alice ont chacun exactement un Joker +5. Défausse : 6 rouge. */
   plusFiveAnswered: 23,
+  /**
+   * Cumul à l'échelle (ADR 0029), paquet à ×5 +2 et ×5 +4 (UNO_FIND_SETTINGS='{"stacking":"ladder","drawTwoMultiplier":5,"wildDrawFourMultiplier":5}') :
+   * Bob joue en premier sur un 0 jaune, avec un +2 jaune jouable, un autre +2 rouge et deux +4. Alice a un +2 et ni +4 ni +5.
+   */
+  ladderChain: 54,
 } as const;

@@ -387,6 +387,7 @@ Application::Outcome Application::startMatch(Room& room)
                                           .drawAmount = room.settings.drawAmount,
                                           .declareUnoToWin = room.settings.declareUnoToWin,
                                           .deck = room.settings.deck(),
+                                          .stacking = room.settings.stacking,
                                       },
                                       *random_);
     if (!started) {
@@ -580,9 +581,11 @@ Application::Outcome Application::play(ConnectionId connection, const core::Play
         case core::DomainError::OnlyPlusFivePlayable:
             return fail(ErrorCode::IllegalMove, "Only a Wild Draw Five answers a Wild Draw Five",
                         IllegalMoveReason::OnlyPlusFivePlayable);
+        case core::DomainError::NotStackable:
+            return fail(ErrorCode::IllegalMove, "This card is weaker than the pending penalty",
+                        IllegalMoveReason::CannotStack);
         case core::DomainError::CannotChallenge:
-            return fail(ErrorCode::IllegalMove, "A Wild Draw Five cannot be challenged",
-                        IllegalMoveReason::CannotChallenge);
+            return fail(ErrorCode::IllegalMove, "A penalty cannot be challenged", IllegalMoveReason::CannotChallenge);
         case core::DomainError::UnoWindowClosed:
         case core::DomainError::CannotCatchSelf:
         case core::DomainError::UnknownPlayer:

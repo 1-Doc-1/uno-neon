@@ -5,6 +5,7 @@
 #include "uno/core/detail/overloaded.hpp"
 #include "uno/core/domain_error.hpp"
 #include "uno/core/domain_event.hpp"
+#include "uno/core/penalty_stacking.hpp"
 #include "uno/core/piles.hpp"
 #include "uno/core/playability.hpp"
 #include "uno/core/player_action.hpp"
@@ -114,6 +115,7 @@ std::expected<RoundStart, DomainError> Round::start(RoundSetup setup, RandomSour
     round.drawRule_ = setup.drawRule;
     round.drawAmount_ = setup.drawAmount;
     round.declareUnoToWin_ = setup.declareUnoToWin;
+    round.stacking_ = setup.stacking;
 
     std::vector<DomainEvent> events{RoundStarted{.dealer = dealer, .firstCard = *flipped}};
     if (flipped->rank == Rank::Wild) {
@@ -148,8 +150,8 @@ bool Round::mustDeclareUno(const PlayerId& player) const
     if (hand.size() != 1 || unoCalled_.at(turnOrder_.currentSeat())) {
         return false;
     }
-    if (std::holds_alternative<AwaitingPlusFiveResponse>(phase_)) {
-        return hand.front().rank == Rank::WildDrawFive; // the only card that can answer
+    if (const auto* stack = std::get_if<AwaitingStackResponse>(&phase_)) {
+        return canStackOn(hand.front().rank, stack->top); // the only card that can answer
     }
     return std::holds_alternative<AwaitingPlay>(phase_) && isPlayable(hand.front(), discardPile_.top(), currentColor_);
 }
@@ -157,19 +159,27 @@ bool Round::mustDeclareUno(const PlayerId& player) const
 bool Round::awaitsPenaltyAnswer() const noexcept
 {
     return std::holds_alternative<AwaitingPenaltyResponse>(phase_) ||
-           std::holds_alternative<AwaitingPlusFiveResponse>(phase_);
+           std::holds_alternative<AwaitingStackResponse>(phase_);
 }
 
-bool Round::holdsWildDrawFive(const PlayerId& player) const
+bool Round::canStackOnPending(const PlayerId& player) const
 {
+    const auto* stack = std::get_if<AwaitingStackResponse>(&phase_);
     const auto seat = turnOrder_.seatOf(player);
-    return seat.has_value() &&
-           std::ranges::any_of(hands_.at(*seat), [](const Card& card) { return card.rank == Rank::WildDrawFive; });
+    return stack != nullptr && seat.has_value() && player == turnOrder_.current() &&
+           std::ranges::any_of(hands_.at(*seat), [&](const Card& card) { return canStackOn(card.rank, stack->top); });
 }
 
 bool Round::canDraw(const PlayerId& player) const
 {
-    if (player != turnOrder_.current() || !std::holds_alternative<AwaitingPlay>(phase_)) {
+    if (player != turnOrder_.current()) {
+        return false;
+    }
+    // Ladder (ADR 0029): there is no window to answer, a click on the draw pile takes what is owed.
+    if (std::holds_alternative<AwaitingStackResponse>(phase_)) {
+        return stacking_ == PenaltyStacking::Ladder;
+    }
+    if (!std::holds_alternative<AwaitingPlay>(phase_)) {
         return false;
     }
     if (drawRule_ == DrawRule::Official) {
@@ -207,9 +217,9 @@ std::optional<PlayerAction> Round::forcedAction() const
             hand, [&](const Card& card) { return isPlayable(card, discardPile_.top(), currentColor_); });
         return nothingPlayable ? std::optional<PlayerAction>{DrawCard{}} : std::nullopt;
     }
-    // A target with no Wild Draw Five to answer with has no choice left but to draw (ADR 0028).
-    if (std::holds_alternative<AwaitingPlusFiveResponse>(phase_)) {
-        return holdsWildDrawFive(turnOrder_.current())
+    // A target with no card to answer with has no choice left but to draw (ADR 0028, 0029).
+    if (std::holds_alternative<AwaitingStackResponse>(phase_)) {
+        return canStackOnPending(turnOrder_.current())
                    ? std::nullopt
                    : std::optional<PlayerAction>{RespondPenalty{.response = PenaltyResponse::Accept}};
     }
@@ -269,12 +279,12 @@ std::expected<Card, DomainError> Round::validatePlay(const PlayerId& actor, cons
     if (actor != turnOrder_.current()) {
         return std::unexpected{DomainError::NotYourTurn};
     }
-    const bool answering = std::holds_alternative<AwaitingPlusFiveResponse>(phase_);
+    const auto* stack = std::get_if<AwaitingStackResponse>(&phase_);
     if (const auto* awaitingDrawn = std::get_if<AwaitingDrawnCardDecision>(&phase_)) {
         if (awaitingDrawn->drawnCard != action.cardId) {
             return std::unexpected{DomainError::OnlyDrawnCardPlayable};
         }
-    } else if (!std::holds_alternative<AwaitingPlay>(phase_) && !answering) {
+    } else if (!std::holds_alternative<AwaitingPlay>(phase_) && stack == nullptr) {
         return std::unexpected{DomainError::InvalidPhase};
     }
 
@@ -285,9 +295,10 @@ std::expected<Card, DomainError> Round::validatePlay(const PlayerId& actor, cons
         return std::unexpected{DomainError::CardNotInHand};
     }
     const Card card = *found;
-    // ADR 0028: the target of a Wild Draw Five can only answer with another one.
-    if (answering && card.rank != Rank::WildDrawFive) {
-        return std::unexpected{DomainError::OnlyPlusFivePlayable};
+    // ADR 0028, 0029: a pending penalty is only answered by a penalty card of the same level or a higher one.
+    if (stack != nullptr && !canStackOn(card.rank, stack->top)) {
+        return std::unexpected{stack->top == Rank::WildDrawFive ? DomainError::OnlyPlusFivePlayable
+                                                                : DomainError::NotStackable};
     }
 
     if (isWild(card.rank) != action.chosenColor.has_value()) {
@@ -297,7 +308,8 @@ std::expected<Card, DomainError> Round::validatePlay(const PlayerId& actor, cons
         return std::unexpected{target.error()};
     }
 
-    if (!isPlayable(card, discardPile_.top(), currentColor_)) {
+    // Stacking ignores colors (ADR 0029): the card was already checked against the pending penalty.
+    if (stack == nullptr && !isPlayable(card, discardPile_.top(), currentColor_)) {
         return std::unexpected{DomainError::ColorMismatch};
     }
     // House rule (ADR 0019): checked after the legality of the card, so that an unplayable card says why.
@@ -315,16 +327,11 @@ std::expected<std::vector<DomainEvent>, DomainError> Round::applyPlayCard(const 
         return std::unexpected{validated.error()};
     }
     const Card card = *validated;
-    const auto* answering = std::get_if<AwaitingPlusFiveResponse>(&phase_);
     const auto actorSeat = turnOrder_.currentSeat();
     auto& hand = hands_.at(actorSeat);
 
     const auto previousColor = currentColor_;
-    // What the target of a Wild Draw Five owes once this card is down: five more than what was already pending.
-    const std::size_t plusFiveTotal =
-        card.rank == Rank::WildDrawFive
-            ? kWildDrawFivePenaltyCards + (answering != nullptr ? answering->total : std::size_t{0})
-            : std::size_t{0};
+    const auto penalty = penaltyOfPlay(card, action);
 
     hand.erase(std::ranges::find(hand, card.id, &Card::id));
     discardPile_.place(card);
@@ -340,19 +347,20 @@ std::expected<std::vector<DomainEvent>, DomainError> Round::applyPlayCard(const 
     } else {
         currentColor_ = card.color;
     }
-    if (action.target.has_value()) {
-        events.emplace_back(PlusFiveTargeted{.player = actor, .target = *action.target, .total = plusFiveTotal});
+    if (action.target.has_value() && penalty.has_value()) {
+        events.emplace_back(PlusFiveTargeted{.player = actor, .target = penalty->target, .total = penalty->total});
     }
 
     if (hand.empty()) {
-        endRound(actor, card.rank, action.target, plusFiveTotal, random, events);
+        endRound(actor, penalty, random, events);
         return events;
     }
 
-    if (action.target.has_value()) {
+    if (penalty.has_value() && (card.rank == Rank::WildDrawFive || stacking_ == PenaltyStacking::Ladder)) {
         // The target must answer before anything else happens: the turn moves to them right away, wherever they sit.
-        turnOrder_.moveTo(*action.target);
-        phase_ = AwaitingPlusFiveResponse{.total = plusFiveTotal};
+        // A Draw Two or a Wild Draw Four does the same with the ladder, and then cannot be contested (ADR 0029).
+        turnOrder_.moveTo(penalty->target);
+        phase_ = AwaitingStackResponse{.total = penalty->total, .top = card.rank};
         events.emplace_back(TurnChanged{.player = turnOrder_.current()});
     } else if (card.rank == Rank::WildDrawFour) {
         // previousColor is only ever empty while awaiting the very first color choice (ADR 0007),
@@ -375,10 +383,26 @@ std::expected<std::vector<DomainEvent>, DomainError> Round::applyPlayCard(const 
     return events;
 }
 
+std::optional<Penalty> Round::penaltyOfPlay(const Card& card, const PlayCard& action) const
+{
+    const auto* stack = std::get_if<AwaitingStackResponse>(&phase_);
+    const std::size_t alreadyOwed = stack != nullptr ? stack->total : 0;
+    if (card.rank == Rank::WildDrawFive && action.target.has_value()) {
+        return Penalty{.target = *action.target, .total = alreadyOwed + kWildDrawFivePenaltyCards};
+    }
+    if (card.rank == Rank::DrawTwo || card.rank == Rank::WildDrawFour) {
+        return Penalty{.target = turnOrder_.next(), .total = alreadyOwed + penaltyCards(card.rank)};
+    }
+    return std::nullopt;
+}
+
 std::expected<std::vector<DomainEvent>, DomainError> Round::applyDrawCard(const PlayerId& actor, RandomSource& random)
 {
     if (actor != turnOrder_.current()) {
         return std::unexpected{DomainError::NotYourTurn};
+    }
+    if (const auto* stack = std::get_if<AwaitingStackResponse>(&phase_); stack != nullptr && canDraw(actor)) {
+        return acceptStack(actor, stack->total, random);
     }
     if (!std::holds_alternative<AwaitingPlay>(phase_)) {
         return std::unexpected{DomainError::InvalidPhase};
@@ -474,8 +498,8 @@ Round::applyRespondPenalty(const PlayerId& actor, const RespondPenalty& action, 
     if (actor != turnOrder_.current()) {
         return std::unexpected{DomainError::NotYourTurn};
     }
-    if (const auto* plusFive = std::get_if<AwaitingPlusFiveResponse>(&phase_)) {
-        return answerPlusFive(actor, action, plusFive->total, random);
+    if (const auto* plusFive = std::get_if<AwaitingStackResponse>(&phase_)) {
+        return answerStack(actor, action, plusFive->total, random);
     }
     const auto* awaiting = std::get_if<AwaitingPenaltyResponse>(&phase_);
     if (awaiting == nullptr) {
@@ -538,12 +562,18 @@ Round::applyRespondPenalty(const PlayerId& actor, const RespondPenalty& action, 
 }
 
 std::expected<std::vector<DomainEvent>, DomainError>
-Round::answerPlusFive(const PlayerId& target, const RespondPenalty& action, std::size_t total, RandomSource& random)
+Round::answerStack(const PlayerId& target, const RespondPenalty& action, std::size_t total, RandomSource& random)
 {
-    // Nothing is left to contest: a Wild Draw Five is what it says it is (ADR 0028). Answering it is a PlayCard.
+    // Nothing is left to contest: a penalty on the stack is what it says it is (ADR 0028, 0029). Answering it is a
+    // PlayCard.
     if (action.response == PenaltyResponse::Challenge) {
         return std::unexpected{DomainError::CannotChallenge};
     }
+    return acceptStack(target, total, random);
+}
+
+std::vector<DomainEvent> Round::acceptStack(const PlayerId& target, std::size_t total, RandomSource& random)
+{
     std::vector<DomainEvent> events;
     drawPenalty(target, total, random, events);
     turnOrder_.advance();
@@ -563,7 +593,7 @@ bool Round::canCallUno(const PlayerId& player) const
     const bool aboutToPlayWithTwoCards =
         player == turnOrder_.current() && hands_.at(*seat).size() == 2 &&
         (std::holds_alternative<AwaitingPlay>(phase_) || std::holds_alternative<AwaitingDrawnCardDecision>(phase_) ||
-         std::holds_alternative<AwaitingPlusFiveResponse>(phase_));
+         std::holds_alternative<AwaitingStackResponse>(phase_));
     return downToOneCard || aboutToPlayWithTwoCards;
 }
 
@@ -641,18 +671,13 @@ void Round::drawPenalty(const PlayerId& player, std::size_t count, RandomSource&
     events.emplace_back(PenaltyCardsDrawn{.player = player, .cards = idsOf(drawn.cards)});
 }
 
-void Round::endRound(const PlayerId& winner, Rank rank, const std::optional<PlayerId>& plusFiveTarget,
-                     std::size_t plusFiveTotal, RandomSource& random, std::vector<DomainEvent>& events)
+void Round::endRound(const PlayerId& winner, const std::optional<Penalty>& penalty, RandomSource& random,
+                     std::vector<DomainEvent>& events)
 {
-    // SPEC §3: the next player still draws for a last Draw Two or Wild Draw Four, and those cards
-    // count in the score. A last Wild Draw Four cannot be challenged: nothing is left to contest.
-    if (rank == Rank::DrawTwo) {
-        drawPenalty(turnOrder_.next(), kDrawTwoPenaltyCards, random, events);
-    } else if (rank == Rank::WildDrawFour) {
-        drawPenalty(turnOrder_.next(), kWildDrawFourPenaltyCards, random, events);
-    } else if (plusFiveTarget.has_value()) {
-        // The whole chain falls on the last target: nobody is left to answer (ADR 0028).
-        drawPenalty(*plusFiveTarget, plusFiveTotal, random, events);
+    // SPEC §3: the target still draws for a last Draw Two, Wild Draw Four or Wild Draw Five, and those cards count in
+    // the score. Nothing is left to contest or to answer with, so the whole stack falls on them (ADR 0028, 0029).
+    if (penalty.has_value()) {
+        drawPenalty(penalty->target, penalty->total, random, events);
     }
     std::uint32_t points = 0;
     for (const auto& hand : hands_) {
@@ -762,9 +787,9 @@ std::expected<std::vector<DomainEvent>, DomainError> Round::removePlayer(const P
     std::vector<DomainEvent> events;
     const auto* penalty = std::get_if<AwaitingPenaltyResponse>(&phase_);
     const bool penaltyVoid = penalty != nullptr && (wasCurrent || penalty->wildDrawFourPlayer == player);
-    // A chain of Wild Draw Five is void when its target leaves: play resumes with whoever follows them (ADR 0028)
-    const bool plusFiveVoid = wasCurrent && std::holds_alternative<AwaitingPlusFiveResponse>(phase_);
-    if (penaltyVoid || plusFiveVoid) {
+    // A stack of penalties is void when its target leaves: play resumes with whoever follows them (ADR 0028, 0029)
+    const bool stackVoid = wasCurrent && std::holds_alternative<AwaitingStackResponse>(phase_);
+    if (penaltyVoid || stackVoid) {
         phase_ = AwaitingPlay{};
     }
     if (wasCurrent && !std::holds_alternative<RoundOver>(phase_)) {

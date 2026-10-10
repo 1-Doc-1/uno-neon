@@ -119,10 +119,11 @@
       "type": "string",
       "enum": ["random", "greedy"]
     },
-    "StackingMode": {
-      "title": "StackingMode",
+    "PenaltyStacking": {
+      "title": "PenaltyStacking",
       "type": "string",
-      "enum": ["off", "sameType", "mixed"]
+      "description": "official: SPEC §3. ladder: penalty cards pile up, +2 < +4 < +5, and a +4 cannot be challenged (ADR 0029).",
+      "enum": ["official", "ladder"]
     },
     "WildDrawFourMode": {
       "title": "WildDrawFourMode",
@@ -171,7 +172,7 @@
       "type": "object",
       "properties": {
         "stacking": {
-          "$ref": "#/$defs/StackingMode"
+          "$ref": "#/$defs/PenaltyStacking"
         },
         "jumpIn": {
           "type": "boolean"
@@ -237,7 +238,7 @@
       "type": "object",
       "properties": {
         "stacking": {
-          "$ref": "#/$defs/StackingMode"
+          "$ref": "#/$defs/PenaltyStacking"
         },
         "jumpIn": {
           "type": "boolean"

@@ -5,6 +5,7 @@
 #include "uno/core/domain_event.hpp"
 #include "uno/core/draw_amount.hpp"
 #include "uno/core/draw_rule.hpp"
+#include "uno/core/penalty_stacking.hpp"
 #include "uno/core/piles.hpp"
 #include "uno/core/player_action.hpp"
 #include "uno/core/player_id.hpp"
@@ -21,21 +22,25 @@
 namespace uno::core {
 
 inline constexpr std::size_t kHandSize = 7;
-inline constexpr std::size_t kDrawTwoPenaltyCards = 2;
-inline constexpr std::size_t kWildDrawFourPenaltyCards = 4;
 inline constexpr std::size_t kFailedChallengePenaltyCards = 6; // a challenge lost against a legal +4
 inline constexpr std::size_t kUnoPenaltyCards = 2;
-inline constexpr std::size_t kWildDrawFivePenaltyCards = 5; // each Wild Draw Five of a chain adds this much
 
 using Hand = std::vector<Card>;
+
+// A penalty a played card inflicts: who draws, and how many cards in all (the whole stack, ADR 0029).
+struct Penalty {
+    PlayerId target;
+    std::size_t total{};
+};
 
 struct RoundSetup {
     std::vector<PlayerId> seats; // clockwise
     PlayerId dealer;
     std::vector<Card> deck; // already shuffled, in draw order: front() is drawn first
     DrawRule drawRule{DrawRule::Official};
-    DrawAmount drawAmount{DrawAmount::One}; // ADR 0024
-    bool declareUnoToWin{false};            // house rule (ADR 0019): the last card needs an announcement
+    DrawAmount drawAmount{DrawAmount::One};              // ADR 0024
+    bool declareUnoToWin{false};                         // house rule (ADR 0019): the last card needs an announcement
+    PenaltyStacking stacking{PenaltyStacking::Official}; // house rule (ADR 0029)
 };
 
 // Round::start returns one of these; defined below the class, since it holds a Round by value.
@@ -80,15 +85,16 @@ public:
     [[nodiscard]] DrawRule drawRule() const noexcept { return drawRule_; }
     [[nodiscard]] DrawAmount drawAmount() const noexcept { return drawAmount_; }
     [[nodiscard]] bool declareUnoToWin() const noexcept { return declareUnoToWin_; }
+    [[nodiscard]] PenaltyStacking stacking() const noexcept { return stacking_; }
     // Whether `player` is stuck on their last card for want of an announcement (ADR 0019): the house rule is on, it is
     // their turn to play, they hold one card that could be played, and they have not announced UNO. They can only
     // CallUno. Never a reason to draw: the card is playable, so neither the guided draw nor forcedAction() moves on.
     [[nodiscard]] bool mustDeclareUno(const PlayerId& player) const;
     // Whether the current player is the target of a penalty they may still answer: a Wild Draw Four (accept or
-    // challenge) or a Wild Draw Five (accept or answer with another, ADR 0028).
+    // challenge) or a pending stack of penalties (accept or play a card on it, ADR 0028 and 0029).
     [[nodiscard]] bool awaitsPenaltyAnswer() const noexcept;
-    // Whether `player` holds a Wild Draw Five, the only card that answers one.
-    [[nodiscard]] bool holdsWildDrawFive(const PlayerId& player) const;
+    // Whether `player` holds a card that may go on the pending stack of penalties (false when none is pending).
+    [[nodiscard]] bool canStackOnPending(const PlayerId& player) const;
     // Whether DrawCard would be accepted from `player` right now: their turn, nothing else to answer, and the draw
     // rule lets them draw (ADR 0017).
     [[nodiscard]] bool canDraw(const PlayerId& player) const;
@@ -122,6 +128,8 @@ private:
                                                                const PlayerId& actor) const;
     [[nodiscard]] std::expected<std::vector<DomainEvent>, DomainError>
     applyPlayCard(const PlayerId& actor, const PlayCard& action, RandomSource& random);
+    // The penalty `card` inflicts once played on what is already owed: nothing for a card that is not a penalty card.
+    [[nodiscard]] std::optional<Penalty> penaltyOfPlay(const Card& card, const PlayCard& action) const;
     [[nodiscard]] std::expected<std::vector<DomainEvent>, DomainError> applyDrawCard(const PlayerId& actor,
                                                                                      RandomSource& random);
     [[nodiscard]] std::expected<std::vector<DomainEvent>, DomainError> applyPass(const PlayerId& actor);
@@ -136,14 +144,15 @@ private:
     // Makes `player` draw `count` cards as a penalty (fewer if the piles run short, SPEC §3), appending
     // DeckReshuffled if needed, then PenaltyCardsDrawn, to `events`.
     void drawPenalty(const PlayerId& player, std::size_t count, RandomSource& random, std::vector<DomainEvent>& events);
-    // `winner` just played their last card, `rank`: resolves the penalty of a last Draw Two, Wild Draw Four or Wild
-    // Draw Five (whose target, if any, draws `plusFiveTotal`), scores the hands and moves to RoundOver, appending the
-    // events to `events`.
-    void endRound(const PlayerId& winner, Rank rank, const std::optional<PlayerId>& plusFiveTarget,
-                  std::size_t plusFiveTotal, RandomSource& random, std::vector<DomainEvent>& events);
-    // The target of a Wild Draw Five accepts the pending total (a challenge is refused): ADR 0028.
+    // `winner` just played their last card: makes the target of the penalty it carries, if any, draw it (a last
+    // penalty card still counts), scores the hands and moves to RoundOver, appending the events to `events`.
+    void endRound(const PlayerId& winner, const std::optional<Penalty>& penalty, RandomSource& random,
+                  std::vector<DomainEvent>& events);
+    // The target of a stack of penalties accepts the pending total (a challenge is refused): ADR 0028 and 0029.
     [[nodiscard]] std::expected<std::vector<DomainEvent>, DomainError>
-    answerPlusFive(const PlayerId& target, const RespondPenalty& action, std::size_t total, RandomSource& random);
+    answerStack(const PlayerId& target, const RespondPenalty& action, std::size_t total, RandomSource& random);
+    // Makes `target` draw the pending `total` and lose their turn.
+    [[nodiscard]] std::vector<DomainEvent> acceptStack(const PlayerId& target, std::size_t total, RandomSource& random);
 
     // Adds drawn or penalty cards to a hand. A player who receives cards is no longer in the UNO
     // situation they announced, or could be caught in.
@@ -163,6 +172,7 @@ private:
 
     TurnOrder turnOrder_;
     PlayerId dealer_;
+    PenaltyStacking stacking_{PenaltyStacking::Official};
     DrawRule drawRule_{DrawRule::Official};
     DrawAmount drawAmount_{DrawAmount::One};
     bool declareUnoToWin_{false};

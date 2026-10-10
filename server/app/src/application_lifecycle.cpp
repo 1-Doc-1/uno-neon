@@ -182,6 +182,7 @@ std::chrono::milliseconds Application::presentationBudgetOf(std::span<const core
     std::size_t cards = 0;
     bool cardPlayed = false;
     bool penalty = false;
+    bool plusFiveTargeted = false;
     bool turnAction = false;
     for (const core::DomainEvent& event : events) {
         std::visit(core::detail::Overloaded{
@@ -205,7 +206,10 @@ std::chrono::milliseconds Application::presentationBudgetOf(std::span<const core
                            budget += timeouts_.effectStep;
                            turnAction = true;
                        },
-                       [&](const core::PlusFiveTargeted&) { budget += timeouts_.effectStep; },
+                       [&](const core::PlusFiveTargeted&) {
+                           budget += timeouts_.effectStep;
+                           plusFiveTargeted = true;
+                       },
                        [&](const core::ChallengeResolved&) {
                            budget += timeouts_.effectStep;
                            turnAction = true;
@@ -221,8 +225,11 @@ std::chrono::milliseconds Application::presentationBudgetOf(std::span<const core
                    },
                    event);
     }
-    // A Draw Two or a Wild Draw Four played in this batch also shows its "+2" / "+4", once.
-    if (cardPlayed && (penalty || std::holds_alternative<core::AwaitingPenaltyResponse>(roundAfter.phase()))) {
+    // A Draw Two or a Wild Draw Four played in this batch also shows its "+2" / "+4", once: drawn at once, awaiting a
+    // response, or (ladder, ADR 0029) put on the stack. A Wild Draw Five has its own effect above.
+    const bool stacked = std::holds_alternative<core::AwaitingStackResponse>(roundAfter.phase()) && !plusFiveTargeted;
+    if (cardPlayed &&
+        (penalty || stacked || std::holds_alternative<core::AwaitingPenaltyResponse>(roundAfter.phase()))) {
         budget += timeouts_.effectStep;
     }
     budget += timeouts_.drawStep * static_cast<std::chrono::milliseconds::rep>(cards);

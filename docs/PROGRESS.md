@@ -92,6 +92,9 @@
 - [x] Q6 Client : carte dorée, choix de la cible (liste ou siège), invite de réponse, effets or, démo, réglages du salon
 - [x] Q7 E2E (+5 simple, +5 répliqué), graines recalculées pour le paquet de 110 cartes, ADR 0028
 
+#### Lot R — cumul des pénalités, bots et nouvel accueil, cinématique et sons
+- [x] R1 Règle maison « Cumul des pénalités » (`stacking: ladder`, ADR 0029) : moteur, protocole, salon, client, simulation, E2E
+
 #### Phase 1 (suite)
 - [ ] 1.6 Options maison (politiques injectables)
 
@@ -140,6 +143,7 @@
 - [0026 — Pioche rythmée : le serveur décide du rythme (`drawStepMs`), les clients le suivent](adr/0026-paced-draw.md)
 - [0027 — Résolution d'un effet : le serveur dit quand le tour s'ouvre (`actionsOpenAt`)](adr/0027-effect-resolution.md)
 - [0028 — Joker +5 et composition réglable du paquet](adr/0028-wild-draw-five.md)
+- [0029 — Cumul des pénalités : l'échelle +2 < +4 < +5](adr/0029-penalty-stacking.md)
 - [0021 — Direction artistique « Nuit » : l'esprit du jeu de cartes, le néon en réserve](adr/0021-art-direction-v2.md)
 
 ## Journal

@@ -35,6 +35,8 @@ enum class DomainError : std::uint8_t {
     InvalidTarget,        // ILLEGAL_MOVE / INVALID_TARGET: not a player of the round, or the actor themselves
     OnlyPlusFivePlayable, // ILLEGAL_MOVE / ONLY_PLUS_FIVE_PLAYABLE: a Wild Draw Five can only be answered with another
     CannotChallenge,      // ILLEGAL_MOVE / CANNOT_CHALLENGE: a Wild Draw Five cannot be contested
+    // ADR 0029: penalty stacking.
+    NotStackable, // ILLEGAL_MOVE / NOT_STACKABLE: the card is weaker than the pending penalty (or not a penalty card)
 };
 
 } // namespace uno::core

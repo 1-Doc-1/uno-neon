@@ -280,7 +280,7 @@ TEST_CASE("Guided draw: a target holding a Wild Draw Five is left to choose", "[
     table->harness.scheduler.advance(30s); // longer than the effect and the forced-move pause, shorter than the turn
 
     REQUIRE(table->room().stateVersion == version);
-    REQUIRE(std::holds_alternative<core::AwaitingPlusFiveResponse>(table->room().match->round().phase()));
+    REQUIRE(std::holds_alternative<core::AwaitingStackResponse>(table->room().match->round().phase()));
 }
 
 TEST_CASE("A target who lets the turn timer expire accepts the penalty", "[app][plusFive]")
@@ -298,7 +298,7 @@ TEST_CASE("A target who lets the turn timer expire accepts the penalty", "[app][
 
     table->harness.scheduler.advance(2min);
 
-    REQUIRE_FALSE(std::holds_alternative<core::AwaitingPlusFiveResponse>(table->room().match->round().phase()));
+    REQUIRE_FALSE(std::holds_alternative<core::AwaitingStackResponse>(table->room().match->round().phase()));
     REQUIRE(table->room().match->round().hand(target)->size() >= cardsBefore + 5 - 1);
 }
 
