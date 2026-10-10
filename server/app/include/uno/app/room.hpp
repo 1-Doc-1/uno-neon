@@ -1,5 +1,6 @@
 #pragma once
 
+#include "uno/app/bot_level.hpp"
 #include "uno/app/identifiers.hpp"
 #include "uno/app/ports.hpp"
 #include "uno/app/room_settings.hpp"
@@ -43,6 +44,9 @@ struct Member {
     std::string nickname;
     bool ready{false};
     bool connected{true};
+    // A bot has no session and no connection: it is always ready and always there (ADR 0030).
+    bool isBot{false};
+    BotLevel botLevel{BotLevel::Normal};
 };
 
 // A room: the people in it, the host's settings and, once started, the match. Seats are the members'
@@ -59,6 +63,9 @@ public:
     [[nodiscard]] bool isHost(const core::PlayerId& player) const { return player == host; }
 
     void add(core::PlayerId player, std::string nickname);
+    void addBot(core::PlayerId player, std::string nickname, BotLevel level);
+    [[nodiscard]] std::size_t humanCount() const;
+    [[nodiscard]] bool hasBots() const;
     // Removes the member; the host role passes to the next connected member in seat order (SPEC §5).
     void remove(const core::PlayerId& player);
 
@@ -87,6 +94,7 @@ public:
     std::uint64_t turnCount{0};     // bumped each time the engine passes the turn
     TimerHandle nextRoundTimer;
     TimerHandle forcedActionTimer; // plays the move a player has no choice about (guided draw)
+    TimerHandle botTimer;          // lets the bots think and play (ADR 0030)
     std::unordered_map<std::string, TimerHandle> graceTimers; // by player id: disconnected, waiting to come back
     std::optional<std::int64_t> turnDeadline;                 // epoch ms, shown in the views
     std::int64_t actionsOpenAt{0}; // epoch ms: turn actions are refused before (ADR 0027); never moves backwards

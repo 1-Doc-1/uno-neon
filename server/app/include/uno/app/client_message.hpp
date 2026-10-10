@@ -1,5 +1,6 @@
 #pragma once
 
+#include "uno/app/bot_level.hpp"
 #include "uno/app/identifiers.hpp"
 #include "uno/app/room_settings.hpp"
 #include "uno/core/card.hpp"
@@ -15,7 +16,6 @@
 // uno_net builds them from JSON; the application layer decides whether they are allowed.
 namespace uno::app::request {
 
-enum class BotStrategy : std::uint8_t { Random, Greedy };
 enum class Emote : std::uint8_t { Gg, Wow, Lol, Ouch, Think, Fire };
 
 struct Hello {
@@ -30,6 +30,17 @@ struct CreateRoom {
     std::optional<RoomSettingsPatch> settings;
 
     bool operator==(const CreateRoom&) const = default;
+};
+
+// A game against bots without a waiting room: the room is created, filled with `botCount` bots and started at once
+// (ADR 0030).
+struct CreateBotGame {
+    std::string nickname; // raw, like CreateRoom's
+    std::uint8_t botCount{};
+    BotLevel level{};
+    std::optional<RoomSettingsPatch> settings;
+
+    bool operator==(const CreateBotGame&) const = default;
 };
 
 struct JoinRoom {
@@ -62,7 +73,7 @@ struct Kick {
 };
 
 struct AddBot {
-    BotStrategy strategy{};
+    BotLevel level{};
 
     bool operator==(const AddBot&) const = default;
 };
@@ -124,9 +135,9 @@ struct SendReaction {
     bool operator==(const SendReaction&) const = default;
 };
 
-using Body = std::variant<Hello, CreateRoom, JoinRoom, LeaveRoom, UpdateSettings, SetReady, Kick, AddBot, StartMatch,
-                          Rematch, ReadyForNextRound, PlayCard, DrawCard, Pass, ChooseColor, RespondPenalty, CallUno,
-                          CatchUno, SendReaction>;
+using Body = std::variant<Hello, CreateRoom, CreateBotGame, JoinRoom, LeaveRoom, UpdateSettings, SetReady, Kick, AddBot,
+                          StartMatch, Rematch, ReadyForNextRound, PlayCard, DrawCard, Pass, ChooseColor, RespondPenalty,
+                          CallUno, CatchUno, SendReaction>;
 
 // A message and the identifier the answer (`ack` or `error`) will echo in `replyTo`.
 struct Envelope {

@@ -39,6 +39,8 @@ app::Timeouts makeTimeouts([[maybe_unused]] const EnvironmentLookup& environment
         timeouts.effectStep = step;
         timeouts.drawStep = step;
         timeouts.actionCooldown = step;
+        timeouts.botThinkMin = step;
+        timeouts.botThinkMax = step;
     }
 #endif
     return timeouts;

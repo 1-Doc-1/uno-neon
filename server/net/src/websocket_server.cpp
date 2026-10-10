@@ -106,8 +106,9 @@ struct WebSocketServer::Impl {
     [[nodiscard]] std::optional<app::response::Error>
     checkAddressLimits(const ConnectionData& data, const app::request::Envelope& request, RateClock::time_point now)
     {
-        if (std::holds_alternative<app::request::CreateRoom>(request.body) &&
-            !createLimiter.tryRecord(data.address, now)) {
+        const bool createsRoom = std::holds_alternative<app::request::CreateRoom>(request.body) ||
+                                 std::holds_alternative<app::request::CreateBotGame>(request.body);
+        if (createsRoom && !createLimiter.tryRecord(data.address, now)) {
             return rateLimited(request.id, "Too many rooms created from this address");
         }
         if (std::holds_alternative<app::request::JoinRoom>(request.body) && !joinLimiter.tryRecord(data.address, now)) {

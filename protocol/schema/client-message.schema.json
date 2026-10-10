@@ -11,6 +11,9 @@
       "$ref": "#/$defs/CreateRoomMessage"
     },
     {
+      "$ref": "#/$defs/CreateBotGameMessage"
+    },
+    {
       "$ref": "#/$defs/JoinRoomMessage"
     },
     {
@@ -122,6 +125,44 @@
             }
           },
           "required": ["nickname"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["v", "id", "type", "payload"],
+      "additionalProperties": false
+    },
+    "CreateBotGameMessage": {
+      "title": "CreateBotGameMessage",
+      "description": "Creates a room, seats the sender and bots in it and starts the match at once, without a waiting room (ADR 0030). Not allowed while already in a room.",
+      "type": "object",
+      "properties": {
+        "v": {
+          "$ref": "common.schema.json#/$defs/ProtocolVersion"
+        },
+        "id": {
+          "$ref": "common.schema.json#/$defs/MessageId"
+        },
+        "type": {
+          "const": "room.createBotGame"
+        },
+        "payload": {
+          "title": "CreateBotGamePayload",
+          "type": "object",
+          "properties": {
+            "nickname": {
+              "$ref": "common.schema.json#/$defs/Nickname"
+            },
+            "botCount": {
+              "$ref": "common.schema.json#/$defs/BotCount"
+            },
+            "level": {
+              "$ref": "common.schema.json#/$defs/BotLevel"
+            },
+            "settings": {
+              "$ref": "common.schema.json#/$defs/RoomSettingsPatch"
+            }
+          },
+          "required": ["nickname", "botCount", "level"],
           "additionalProperties": false
         }
       },
@@ -270,7 +311,7 @@
     },
     "AddBotMessage": {
       "title": "AddBotMessage",
-      "description": "Host only, in the lobby: adds a bot (phase 5).",
+      "description": "Host only, in the lobby: adds a bot, which is always ready. A bot is removed with room.kick (ADR 0030).",
       "type": "object",
       "properties": {
         "v": {
@@ -286,11 +327,11 @@
           "title": "AddBotPayload",
           "type": "object",
           "properties": {
-            "strategy": {
-              "$ref": "common.schema.json#/$defs/BotStrategy"
+            "level": {
+              "$ref": "common.schema.json#/$defs/BotLevel"
             }
           },
-          "required": ["strategy"],
+          "required": ["level"],
           "additionalProperties": false
         }
       },

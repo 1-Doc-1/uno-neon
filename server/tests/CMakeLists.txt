@@ -13,6 +13,7 @@ add_executable(uno_tests
     bot_strategy_test.cpp
     application_match_test.cpp
     application_plus_five_test.cpp
+    application_bots_test.cpp
     application_stacking_test.cpp
     application_presentation_test.cpp
     application_rooms_test.cpp

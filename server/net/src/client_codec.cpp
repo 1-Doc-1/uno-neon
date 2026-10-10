@@ -101,6 +101,20 @@ Parsed<request::Body> decodeCreateRoom(const Json& payload)
     return create;
 }
 
+Parsed<request::Body> decodeCreateBotGame(const Json& payload)
+{
+    ObjectReader reader(payload, "payload");
+    request::CreateBotGame game;
+    game.nickname = reader.required<std::string>("nickname", parseNickname);
+    game.botCount = reader.required<std::uint8_t>("botCount", detail::parseBotCount);
+    game.level = reader.required<BotLevel>("level", detail::parseEnum<BotLevel>);
+    game.settings = reader.optional<RoomSettingsPatch>("settings", parseSettingsPatch);
+    if (auto finished = reader.finish(); !finished) {
+        return std::unexpected(finished.error());
+    }
+    return game;
+}
+
 Parsed<request::Body> decodeJoinRoom(const Json& payload)
 {
     ObjectReader reader(payload, "payload");
@@ -150,7 +164,7 @@ Parsed<request::Body> decodeAddBot(const Json& payload)
 {
     ObjectReader reader(payload, "payload");
     request::AddBot bot;
-    bot.strategy = reader.required<request::BotStrategy>("strategy", detail::parseEnum<request::BotStrategy>);
+    bot.level = reader.required<BotLevel>("level", detail::parseEnum<BotLevel>);
     if (auto finished = reader.finish(); !finished) {
         return std::unexpected(finished.error());
     }
@@ -223,6 +237,7 @@ struct MessageType {
 constexpr std::array kMessageTypes{
     MessageType{.name = "session.hello", .decode = decodeHello},
     MessageType{.name = "room.create", .decode = decodeCreateRoom},
+    MessageType{.name = "room.createBotGame", .decode = decodeCreateBotGame},
     MessageType{.name = "room.join", .decode = decodeJoinRoom},
     MessageType{.name = "room.leave", .decode = emptyPayload<request::LeaveRoom>},
     MessageType{.name = "room.updateSettings", .decode = decodeUpdateSettings},
@@ -365,7 +380,16 @@ Description describe(const request::Kick& body)
 
 Description describe(const request::AddBot& body)
 {
-    return {.type = "room.addBot", .payload = Json{{"strategy", detail::toWire(body.strategy)}}};
+    return {.type = "room.addBot", .payload = Json{{"level", detail::toWire(body.level)}}};
+}
+
+Description describe(const request::CreateBotGame& body)
+{
+    Json payload{{"nickname", body.nickname}, {"botCount", body.botCount}, {"level", detail::toWire(body.level)}};
+    if (body.settings) {
+        payload.emplace("settings", encodeSettingsPatch(*body.settings));
+    }
+    return {.type = "room.createBotGame", .payload = std::move(payload)};
 }
 
 Description describe(const request::StartMatch& /*body*/)

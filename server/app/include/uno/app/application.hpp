@@ -42,6 +42,9 @@ struct Timeouts {
     // After every turn action nobody acts before this has passed, whatever the action showed: the table has time to see
     // it.
     std::chrono::milliseconds actionCooldown{std::chrono::milliseconds(1500)};
+    // A bot thinks for a random time between these two, once the effect in progress is over (ADR 0030).
+    std::chrono::milliseconds botThinkMin{std::chrono::milliseconds(1000)};
+    std::chrono::milliseconds botThinkMax{std::chrono::milliseconds(2000)};
 };
 
 // The use cases of the server: sessions, rooms and (from step 2.4) matches. It reacts to what the
@@ -83,6 +86,7 @@ private:
 
     Outcome handle(ConnectionId connection, const request::Hello& request);
     Outcome handle(ConnectionId connection, const request::CreateRoom& request);
+    Outcome handle(ConnectionId connection, const request::CreateBotGame& request);
     Outcome handle(ConnectionId connection, const request::JoinRoom& request);
     Outcome handle(ConnectionId connection, const request::LeaveRoom& request);
     Outcome handle(ConnectionId connection, const request::UpdateSettings& request);
@@ -105,8 +109,15 @@ private:
 
     // Applies a player action to the match of the sender's room and tells everyone what happened.
     Outcome play(ConnectionId connection, const core::PlayerAction& action);
+    // Applies `action` for `actor` to the match of `room` and tells everyone what happened: the part of play() that
+    // does not depend on a connection, so that a bot goes through exactly the same checks as a person (ADR 0030).
+    Outcome applyPlayerAction(Room& current, const core::PlayerId& actor, const core::PlayerAction& action);
     // Deals the first round of a new match to the members of the room, in seat order.
     Outcome startMatch(Room& room);
+    // A name for a new bot that nobody in the room uses.
+    [[nodiscard]] std::string botNickname(const Room& room) const;
+    // Seats a new bot of `level` in `room`. Shared by the lobby's "add a bot" and the game against bots.
+    void addBotTo(Room& room, BotLevel level);
 
     // The session behind a connection that said hello, or SESSION_REQUIRED.
     [[nodiscard]] std::expected<Session*, Failure> sessionOf(ConnectionId connection);
@@ -143,6 +154,11 @@ private:
                                                                  const core::Round& roundAfter) const;
     // The forced move and the clock of a new turn start at `room.actionsOpenAt`, when the effect in progress is over.
     void armGameTimers(Room& room);
+    // Schedules the bots' turn to think, after the effect in progress (ADR 0030).
+    void armBotTimer(Room& room);
+    void onBotsDue(const RoomCode& code, std::uint64_t stateVersion);
+    // Lets `bot` decide and act, through the checks a person's action goes through; false when it has nothing to do.
+    bool playBot(Room& room, const Member& bot);
     // Gives the windows the engine opened their times and timers, and forgets the ones it closed.
     void syncUnoWindows(Room& room);
     void onUnoWindowExpired(const RoomCode& code, const core::PlayerId& target, std::int64_t expiresAt);
