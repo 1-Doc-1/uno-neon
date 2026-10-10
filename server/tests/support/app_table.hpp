@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <iterator>
 #include <optional>
 #include <string>
 #include <type_traits>
@@ -123,7 +124,7 @@ inline request::PlayCard playRequest(const core::Card& card, const core::Round& 
     if (card.rank == core::Rank::WildDrawFive) {
         const auto seats = round.seats();
         const auto current = static_cast<std::size_t>(std::ranges::find(seats, round.currentPlayer()) - seats.begin());
-        play.targetId = seats[(current + 1) % seats.size()];
+        play.targetId = *std::next(seats.begin(), static_cast<std::ptrdiff_t>((current + 1) % seats.size()));
     }
     return play;
 }

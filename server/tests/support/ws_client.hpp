@@ -95,6 +95,11 @@ public:
     {
         const auto id = send(std::move(body));
         const auto answer = require(answerTo(id), "an answer");
+        if (const auto* error = std::get_if<app::response::Error>(&answer)) {
+            INFO("refused with error code " << static_cast<int>(error->code) << ", reason "
+                                            << (error->reason ? static_cast<int>(*error->reason) : -1) << ": "
+                                            << error->message);
+        }
         REQUIRE(std::holds_alternative<app::response::Ack>(answer));
     }
 

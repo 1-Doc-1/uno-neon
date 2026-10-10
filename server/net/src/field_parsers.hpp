@@ -119,13 +119,18 @@ inline Parsed<core::CardMultiplier> parseCardMultiplier(const Json& value)
     if (!times) {
         return std::unexpected(times.error());
     }
-    const auto found = std::ranges::find_if(core::kCardMultipliers, [&](core::CardMultiplier candidate) {
-        return static_cast<std::int64_t>(candidate) == *times;
-    });
-    if (found == core::kCardMultipliers.end()) {
+    switch (*times) {
+    case 1:
+        return core::CardMultiplier::One;
+    case 2:
+        return core::CardMultiplier::Two;
+    case 3:
+        return core::CardMultiplier::Three;
+    case 5:
+        return core::CardMultiplier::Five;
+    default:
         return std::unexpected("is not an allowed value");
     }
-    return *found;
 }
 
 // The same, as its integer code: for the readers that must return something even on error.
