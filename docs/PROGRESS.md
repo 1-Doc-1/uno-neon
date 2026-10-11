@@ -108,10 +108,10 @@
 
 **T1 — Règles et confort de jeu (`feat/game-rules-polish`)**
 - [x] T1.1 +5 « super carte » (ADR 0034 modifie 0028) : plus de réplique, pioche automatique du total ; chaîne close en mode Échelle ; moteur, simulation, protocole, « Comment jouer », E2E
-- [ ] T1.2 Tri automatique de la main (fonction pure) + FLIP
-- [ ] T1.3 Main réduite au-delà de 16 cartes (échelle selon la largeur)
-- [ ] T1.4 Journal : 5 lignes, anciennes en fondu
-- [ ] T1.5 Tension musicale dès 1/3 du temps du tour, montée progressive
+- [x] T1.2 Tri automatique de la main (fonction pure) + FLIP
+- [x] T1.3 Main réduite au-delà de 16 cartes (échelle selon la largeur)
+- [x] T1.4 Journal : 5 lignes, anciennes en fondu
+- [x] T1.5 Tension musicale dès 1/3 du temps du tour, montée progressive
 - [ ] T1.6 Réglage de salon « Vitesse des animations » (Normale / Rapide), animations ET budget/cooldown serveur
 
 **T2 — Salon, sessions et sécurité (`feat/lobby-sessions`)**

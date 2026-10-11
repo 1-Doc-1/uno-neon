@@ -6,7 +6,7 @@ import { describeEvent } from './describe-event';
 import { playedCards } from './fx/discard-pile';
 import { CardPlay, TableView } from './table-view';
 
-const JOURNAL_LINES = 4;
+const JOURNAL_LINES = 5;
 const BANNER_MS = 5000;
 
 /** Conteneur de la table : relie la vue du serveur au store et traduit les gestes du joueur en intentions. */

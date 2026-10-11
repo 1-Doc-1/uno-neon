@@ -1,6 +1,6 @@
 import type { Note } from './sounds';
 
-/** Tempo au repos, puis au plus tendu (les 5 dernières secondes du tour). */
+/** Tempo au repos, puis au plus tendu (le dernier tiers du tour). */
 export const CALM_BPM = 68;
 export const TENSE_BPM = 132;
 
@@ -24,6 +24,21 @@ const PROGRESSION: readonly Chord[] = [
   { bass: 98, arpeggio: [196, 246.9, 293.7, 392] },
 ];
 const ARPEGGIO_PATTERN = [0, 2, 1, 3, 2, 1, 3, 2] as const;
+
+/** La tension commence quand il ne reste que ce tiers du temps du tour. */
+const TENSION_STARTS_AT = 1 / 3;
+
+/**
+ * La tension de la musique pour la fin d'un tour : 0 tant qu'il reste plus d'un tiers du temps, puis elle monte
+ * progressivement jusqu'à 1 quand le temps est écoulé.
+ */
+export function tensionOfTurn(remainingMs: number, totalMs: number): number {
+  if (totalMs <= 0) {
+    return 0;
+  }
+  const fraction = clamp01(remainingMs / totalMs);
+  return fraction >= TENSION_STARTS_AT ? 0 : 1 - fraction / TENSION_STARTS_AT;
+}
 
 /** Le tempo (battements par minute) pour une tension de 0 à 1. */
 export function bpmOf(tension: number): number {

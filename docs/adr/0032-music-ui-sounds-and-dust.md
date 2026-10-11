@@ -19,7 +19,7 @@ boutons, des malus plus marquants, et un peu de matière visuelle sur les effets
 - **Musique générée** (`audio/music.ts`) : une boucle de 16 battements (La mineur : Am – F – C – G), un coussin tenu et un
   arpège léger, planifiés par petits lots de 0,4 s d'avance (`MusicEngine`) ; aucun fichier, aucune licence. Elle ne
   démarre qu'après le premier geste, s'arrête à volume zéro ou en muet.
-- **Tension de fin de tour** : `TableView` demande `setTension(true)` pendant les 5 dernières secondes **de mon** tour
+- **Tension de fin de tour** : `TableView` demande `setTension(niveau)` (0 à 1, `tensionOfTurn`) dès le dernier tiers **de mon** tour, en montée progressive (lot T1)
   (une fois le tour ouvert). La tension demandée est lissée à chaque tick : le tempo passe de 68 à 132 battements par minute
   et la musique gagne un pouls grave et un tic aigu ; elle retombe en douceur à la fin. Désactivable (réglage personnel).
 - **Clic d'interface** : une directive unique `ClickSound` (sélecteur `button`) joue `click`. Elle s'applique à tous les

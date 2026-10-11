@@ -57,7 +57,7 @@ export class AudioService {
   /** Le joueur veut que la musique monte en tension à la fin de son tour (activé par défaut). */
   readonly tensionEnabled = signal(read(TENSION_KEY) !== 'false');
   /** La tension demandée (la fin de mon tour approche), avant tout réglage du joueur. */
-  private readonly tensionRequested = signal(false);
+  private readonly tensionRequested = signal(0);
   /** La tension actuelle de la musique, de 0 (calme) à 1 (tendue) : elle monte et retombe progressivement. */
   readonly tension = signal(0);
   readonly musicBpm = computed(() => bpmOf(this.tension()));
@@ -126,8 +126,8 @@ export class AudioService {
     write(TENSION_KEY, String(enabled));
   }
 
-  /** La fin de mon tour approche (`true`) ou non : la musique monte en tension, puis revient à la normale. */
-  setTension(requested: boolean): void {
+  /** La tension demandée par la fin de mon tour, de 0 à 1 : la musique monte progressivement, puis revient à la normale. */
+  setTension(requested: number): void {
     this.tensionRequested.set(requested);
   }
 
@@ -162,7 +162,7 @@ export class AudioService {
     this.music ??= new MusicEngine(
       () => context.currentTime,
       (note, begin) => this.schedule(context, musicBus, note, begin),
-      () => (this.tensionRequested() && this.tensionEnabled() ? 1 : 0),
+      () => (this.tensionEnabled() ? this.tensionRequested() : 0),
       (level) => this.tension.set(level),
     );
     this.music.start();

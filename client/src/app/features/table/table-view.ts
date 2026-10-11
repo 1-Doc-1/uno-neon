@@ -11,6 +11,7 @@ import {
   untracked,
   viewChild,
 } from '@angular/core';
+import { tensionOfTurn } from '../../audio/music';
 import { AudioService } from '../../audio/audio.service';
 import type { Card, Color, PlayerView } from '../../protocol/generated/protocol';
 import type { EventBatch } from '../../state/game-store';
@@ -38,9 +39,8 @@ const NARROW_QUERY = '(max-width: 639px)';
 /** En portrait étroit : au-delà, les adversaires passent en bande défilante. */
 const MAX_ARC_OPPONENTS = 4;
 const NARROW_MAX_BACKS = 5;
-const JOURNAL_LINES = 2;
+const JOURNAL_LINES = 5;
 /** Les dernières secondes de mon tour, pendant lesquelles la musique monte en tension. */
-const TENSION_SECONDS = 5;
 
 export interface CardPlay {
   readonly cardId: number;
@@ -229,16 +229,17 @@ export class TableView {
   protected readonly names = computed(() =>
     Object.fromEntries(this.view().players.map((seat) => [seat.playerId, seat.nickname])),
   );
-  /** Mon tour touche à sa fin : l'`AudioService` en fait monter la tension de la musique (si je l'ai permis). */
-  private readonly turnEnding = computed(() => {
-    const seconds = this.turnSeconds();
-    return (
-      this.myTurn() &&
-      this.actionsOpen() &&
-      seconds !== null &&
-      seconds > 0 &&
-      seconds <= TENSION_SECONDS
-    );
+  /**
+   * Mon tour touche à sa fin : dès qu'il n'en reste qu'un tiers, la tension de la musique monte (si je l'ai permis,
+   * `AudioService`).
+   */
+  private readonly turnTension = computed(() => {
+    const deadline = this.view().turnDeadline;
+    if (!this.myTurn() || !this.actionsOpen() || deadline === null) {
+      return 0;
+    }
+    const total = (this.view().settings.turnTimerSeconds ?? 0) * 1000;
+    return tensionOfTurn(deadline - this.serverNow(), total);
   });
   protected readonly currentName = computed(() => this.nameOf(this.view().currentPlayerId));
   protected readonly turnSeconds = computed(() => this.secondsUntil(this.view().turnDeadline));
@@ -271,8 +272,8 @@ export class TableView {
   );
 
   constructor() {
-    effect(() => this.audio.setTension(this.turnEnding()));
-    inject(DestroyRef).onDestroy(() => this.audio.setTension(false));
+    effect(() => this.audio.setTension(this.turnTension()));
+    inject(DestroyRef).onDestroy(() => this.audio.setTension(0));
     // Le lot d'événements pilote les effets ; la couleur d'avant la mise à jour est retenue le temps d'une roue
     effect(() => {
       const batch = this.batch();
