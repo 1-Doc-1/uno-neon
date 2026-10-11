@@ -15,6 +15,7 @@
 #include "uno/testing/seeded_random_source.hpp"
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 
 #include <cstddef>
 #include <cstdint>
@@ -22,8 +23,8 @@
 #include <variant>
 #include <vector>
 
-// The Wild Draw Five (ADR 0028): playable on anything, it names a colour and a target; the target accepts and draws,
-// or answers with a Wild Draw Five of their own and the total grows by five.
+// The Wild Draw Five (ADR 0028, 0034): playable on anything, it names a colour and a target; the target draws five and
+// loses the turn, nothing answers it.
 
 using namespace uno::core;
 using uno::testing::coloredCard;
@@ -249,84 +250,51 @@ TEST_CASE("Play resumes after the target in the direction of play, counter-clock
     requireRoundInvariants(round);
 }
 
-TEST_CASE("The target can answer with a Wild Draw Five: the total grows by five and the target changes",
+TEST_CASE("Nothing answers a Wild Draw Five, not even another one: it is the super card (ADR 0034)",
           "[core][round][plusFive]")
-{
-    SeededRandomSource random{kSeed};
-    auto round = table({{plusFive(0)}, {}, {plusFive(200)}}, random, greenOnes(41, 10));
-    REQUIRE(round.apply(player(0), playFive(0, Color::Green, 2), random).has_value());
-
-    // Seat 2 answers and aims back at the player who aimed at them
-    const auto events = round.apply(player(2), playFive(200, Color::Yellow, 0), random);
-
-    REQUIRE(events.has_value());
-    REQUIRE(*events == std::vector<DomainEvent>{
-                           CardPlayed{.player = player(2), .cardId = CardId{200}},
-                           ColorChosen{.player = player(2), .color = Color::Yellow},
-                           PlusFiveTargeted{.player = player(2), .target = player(0), .total = 10},
-                           TurnChanged{.player = player(0)},
-                       });
-    REQUIRE(round.currentPlayer() == player(0));
-    REQUIRE(round.currentColor() == Color::Yellow);
-    REQUIRE(pendingTotal(round) == 10);
-    requireRoundInvariants(round);
-
-    // The last target accepts the whole chain; play resumes after them
-    REQUIRE(round.apply(player(0), RespondPenalty{.response = PenaltyResponse::Accept}, random).has_value());
-    REQUIRE(handOf(round, player(0)).size() == kHandSize - 1 + 10);
-    REQUIRE(round.currentPlayer() == player(1));
-}
-
-TEST_CASE("The chain goes on as long as there is a Wild Draw Five to answer with", "[core][round][plusFive]")
-{
-    SeededRandomSource random{kSeed};
-    auto round = table({{plusFive(0)}, {plusFive(100)}, {plusFive(200)}, {plusFive(300)}}, random, greenOnes(41, 20));
-    REQUIRE(round.apply(player(0), playFive(0, Color::Green, 1), random).has_value());
-    REQUIRE(round.apply(player(1), playFive(100, Color::Green, 2), random).has_value());
-    REQUIRE(round.apply(player(2), playFive(200, Color::Green, 3), random).has_value());
-    REQUIRE(round.apply(player(3), playFive(300, Color::Green, 0), random).has_value());
-    REQUIRE(pendingTotal(round) == 20);
-
-    REQUIRE(round.apply(player(0), RespondPenalty{.response = PenaltyResponse::Accept}, random).has_value());
-
-    REQUIRE(handOf(round, player(0)).size() == kHandSize - 1 + 20);
-    requireRoundInvariants(round);
-}
-
-TEST_CASE("The target of a Wild Draw Five can only answer with another Wild Draw Five", "[core][round][plusFive]")
 {
     SeededRandomSource random{kSeed};
     auto round = table(
         {
             {plusFive(0)},
             {
+                plusFive(99),
                 wildCard(100, Rank::WildDrawFour),
                 coloredCard(101, Color::Green, Rank::DrawTwo),
                 wildCard(102, Rank::Wild),
                 coloredCard(103, Color::Green, Rank::Five),
             },
         },
-        random);
+        random, greenOnes(41, 5));
     REQUIRE(round.apply(player(0), playFive(0, Color::Green, 1), random).has_value());
 
+    SECTION("not another Wild Draw Five")
+    {
+        REQUIRE(round.apply(player(1), playFive(99, Color::Red, 0), random).error() == DomainError::NotStackable);
+    }
     SECTION("not a Wild Draw Four")
     {
         const auto result = round.apply(
             player(1), PlayCard{.cardId = CardId{100}, .chosenColor = Color::Red, .target = std::nullopt}, random);
-        REQUIRE(result.error() == DomainError::OnlyPlusFivePlayable);
+        REQUIRE(result.error() == DomainError::NotStackable);
     }
     SECTION("not a Draw Two, nor a Wild, nor a card of the colour")
     {
         for (const std::uint32_t id : {101U, 102U, 103U}) {
             CAPTURE(id);
-            REQUIRE(round.apply(player(1), playPlain(id), random).error() == DomainError::OnlyPlusFivePlayable);
+            REQUIRE(round.apply(player(1), playPlain(id), random).error() == DomainError::NotStackable);
         }
     }
-    SECTION("drawing, passing or choosing a colour are out of phase")
+    SECTION("drawing, passing or choosing a colour: only the draw pile is open, to take what is owed")
     {
-        REQUIRE(round.apply(player(1), DrawCard{}, random).error() == DomainError::InvalidPhase);
         REQUIRE(round.apply(player(1), Pass{}, random).error() == DomainError::InvalidPhase);
         REQUIRE(round.apply(player(1), ChooseColor{.color = Color::Red}, random).error() == DomainError::InvalidPhase);
+        REQUIRE(round.canDraw(player(1)));
+        const auto before = handOf(round, player(1)).size();
+        REQUIRE(round.apply(player(1), DrawCard{}, random).has_value());
+        REQUIRE(handOf(round, player(1)).size() == before + 5);
+        REQUIRE(round.currentPlayer() == player(2)); // seat 1 lost the turn
+        return;
     }
     SECTION("nobody else can answer")
     {
@@ -371,27 +339,6 @@ TEST_CASE("A Wild Draw Five played as the last card ends the round: the target d
     requireRoundInvariants(round);
 }
 
-TEST_CASE("Answering with the last card ends the round: the whole chain falls on the last target",
-          "[core][round][plusFive]")
-{
-    SeededRandomSource random{kSeed};
-    // Seat 0: two Wild Draw Five left. Seat 1 answers in the middle.
-    auto round = twoPlayersDownTo({plusFive(5), plusFive(6)}, {plusFive(100)}, greenOnes(41, 15), random);
-    REQUIRE(round.apply(player(0), playFive(5, Color::Green, 1), random).has_value());
-    REQUIRE(round.apply(player(1), playFive(100, Color::Green, 0), random).has_value());
-    REQUIRE(pendingTotal(round) == 10);
-
-    const auto events = round.apply(player(0), playFive(6, Color::Green, 1), random);
-
-    REQUIRE(events.has_value());
-    const auto* drawn = std::get_if<PenaltyCardsDrawn>(&events->at(3));
-    REQUIRE(drawn != nullptr);
-    REQUIRE(drawn->player == player(1));
-    REQUIRE(drawn->cards.size() == 15);
-    REQUIRE(std::holds_alternative<RoundOver>(round.phase()));
-    requireRoundInvariants(round);
-}
-
 TEST_CASE("When the piles run short the target draws what remains, without error", "[core][round][plusFive]")
 {
     SeededRandomSource random{kSeed};
@@ -423,32 +370,16 @@ TEST_CASE("Playing a Wild Draw Five down to one card opens the UNO window, like 
     requireRoundInvariants(round);
 }
 
-TEST_CASE("The target who receives cards loses the UNO window they could be caught in", "[core][round][plusFive]")
+TEST_CASE("With the house rule, the last Wild Draw Five needs UNO announced first", "[core][round][plusFive]")
 {
     SeededRandomSource random{kSeed};
-    auto round = twoPlayersDownTo({plusFive(5), coloredCard(6, Color::Red, Rank::Five)}, {plusFive(100)},
-                                  greenOnes(41, 10), random);
+    // 2 players, UNO obligatory: seat 0 has two Wild Draw Five left
+    auto round = twoPlayersDownTo({plusFive(5), plusFive(6)}, {}, greenOnes(41, 20), random, true);
     REQUIRE(round.apply(player(0), playFive(5, Color::Green, 1), random).has_value());
-    REQUIRE(round.hasUnoWindowOn(player(0)));
+    REQUIRE(round.apply(player(1), RespondPenalty{.response = PenaltyResponse::Accept}, random).has_value());
 
-    // Seat 1 answers: seat 0 is the target and receives the whole chain once they accept
-    REQUIRE(round.apply(player(1), playFive(100, Color::Green, 0), random).has_value());
-    REQUIRE(round.apply(player(0), RespondPenalty{.response = PenaltyResponse::Accept}, random).has_value());
-
-    REQUIRE_FALSE(round.hasUnoWindowOn(player(0)));
-    requireRoundInvariants(round);
-}
-
-TEST_CASE("With the house rule, answering with the last card needs UNO announced first", "[core][round][plusFive]")
-{
-    SeededRandomSource random{kSeed};
-    // Seat 1 is run down to a single Wild Draw Five by the helper's skips; 2 players, UNO obligatory
-    auto round = twoPlayersDownTo({plusFive(5), plusFive(6)}, {plusFive(100)}, greenOnes(41, 20), random, true);
-    REQUIRE(round.apply(player(0), playFive(5, Color::Green, 1), random).has_value());
-    REQUIRE(round.mustDeclareUno(player(1)) == false); // seven cards
-
-    // Seat 0 holds one card after this: playing it needs UNO
-    REQUIRE(round.apply(player(1), playFive(100, Color::Green, 0), random).has_value());
+    // Back to seat 0 with a single card: playing it needs UNO
+    REQUIRE(round.currentPlayer() == player(0));
     REQUIRE(round.mustDeclareUno(player(0)));
     REQUIRE(round.apply(player(0), playFive(6, Color::Green, 1), random).error() == DomainError::MustDeclareUno);
     REQUIRE(round.apply(player(0), CallUno{}, random).has_value());
@@ -456,33 +387,17 @@ TEST_CASE("With the house rule, answering with the last card needs UNO announced
     REQUIRE(std::holds_alternative<RoundOver>(round.phase()));
 }
 
-TEST_CASE("Guided draw: a target without a Wild Draw Five has no choice, with one they choose",
+TEST_CASE("The target of a Wild Draw Five always draws by itself, whatever the draw rule and their hand (ADR 0034)",
           "[core][round][plusFive]")
 {
+    const auto rule = GENERATE(DrawRule::Guided, DrawRule::Official);
+    const std::vector<Card> targetHand = GENERATE(std::vector<Card>{}, std::vector<Card>{plusFive(100)});
+    CAPTURE(rule, targetHand.size());
     SeededRandomSource random{kSeed};
-    auto round = table({{plusFive(0)}, {}, {plusFive(200)}}, random, greenOnes(41, 5), 4, DrawRule::Guided);
+    auto round = table({{plusFive(0)}, targetHand}, random, greenOnes(41, 5), 4, rule);
     REQUIRE(round.apply(player(0), playFive(0, Color::Green, 1), random).has_value());
 
-    // Seat 1 holds no Wild Draw Five: accepting is the only thing left, the engine says so
     REQUIRE(round.forcedAction() == std::optional<PlayerAction>{RespondPenalty{.response = PenaltyResponse::Accept}});
-}
-
-TEST_CASE("Guided draw: a target holding a Wild Draw Five is not forced", "[core][round][plusFive]")
-{
-    SeededRandomSource random{kSeed};
-    auto round = table({{plusFive(0)}, {}, {plusFive(200)}}, random, greenOnes(41, 5), 4, DrawRule::Guided);
-    REQUIRE(round.apply(player(0), playFive(0, Color::Green, 2), random).has_value());
-
-    REQUIRE_FALSE(round.forcedAction().has_value());
-}
-
-TEST_CASE("Official draw rule: the target always chooses", "[core][round][plusFive]")
-{
-    SeededRandomSource random{kSeed};
-    auto round = table({{plusFive(0)}}, random, greenOnes(41, 5));
-    REQUIRE(round.apply(player(0), playFive(0, Color::Green, 1), random).has_value());
-
-    REQUIRE_FALSE(round.forcedAction().has_value());
 }
 
 TEST_CASE("When the target leaves, the chain is void and play resumes after them", "[core][round][plusFive]")
@@ -533,7 +448,7 @@ TEST_CASE("A Wild Draw Five flipped as the first card goes back into the pile", 
     REQUIRE(round.drawPile().size() == 1);
 }
 
-TEST_CASE("The view of the target shows what is owed and the Wild Draw Five that can answer", "[core][round][plusFive]")
+TEST_CASE("The view of the target shows what is owed and nothing to answer with", "[core][round][plusFive]")
 {
     SeededRandomSource random{kSeed};
     auto round = table({{plusFive(0)}, {plusFive(100)}}, random, greenOnes(41, 5));
@@ -547,8 +462,9 @@ TEST_CASE("The view of the target shows what is owed and the Wild Draw Five that
     REQUIRE(target->phase == ViewPhase::AwaitingPenaltyResponse);
     REQUIRE(target->pendingDraw == 5);
     REQUIRE(target->currentPlayerId == player(1));
-    REQUIRE(target->me.playableCardIds == std::vector<CardId>{CardId{100}});
-    REQUIRE(target->me.penaltyResponse == PenaltyResponseOptions{.amount = 5, .canChallenge = false, .canStack = true});
+    REQUIRE(target->me.canDraw);
+    REQUIRE(target->me.playableCardIds.empty()); // even the target's own Wild Draw Five cannot answer
+    REQUIRE(target->me.penaltyResponse == PenaltyResponseOptions{.amount = 5, .canChallenge = false, .canStack = false});
     // The others see who is targeted and the total, nothing to answer
     REQUIRE(bystander.has_value());
     REQUIRE(bystander->pendingDraw == 5);
@@ -557,16 +473,3 @@ TEST_CASE("The view of the target shows what is owed and the Wild Draw Five that
     REQUIRE(bystander->me.playableCardIds.empty());
 }
 
-TEST_CASE("A target with no Wild Draw Five cannot stack", "[core][round][plusFive]")
-{
-    SeededRandomSource random{kSeed};
-    auto round = table({{plusFive(0)}}, random, greenOnes(41, 5));
-    REQUIRE(round.apply(player(0), playFive(0, Color::Green, 1), random).has_value());
-    const MatchProgress progress{.roundNumber = 1, .scores = {0, 0, 0, 0}, .winner = std::nullopt};
-
-    const auto target = project(round, player(1), progress);
-
-    REQUIRE(target.has_value());
-    REQUIRE(target->me.penaltyResponse->canStack == false);
-    REQUIRE(target->me.playableCardIds.empty());
-}

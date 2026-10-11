@@ -227,8 +227,7 @@ TEST_CASE("The ladder: a penalty card goes on a pending penalty of a lower or eq
         requireRoundInvariants(round);
     } else {
         REQUIRE_FALSE(result.has_value());
-        REQUIRE(result.error() ==
-                (pendingRank == Rank::WildDrawFive ? DomainError::OnlyPlusFivePlayable : DomainError::NotStackable));
+        REQUIRE(result.error() == DomainError::NotStackable);
         REQUIRE(round.currentPlayer() == player(1)); // nothing moved
         REQUIRE(pending(round).total == owed);
     }
@@ -241,7 +240,8 @@ TEST_CASE("The ladder compares levels, not colors", "[core][round][stacking]")
     REQUIRE(canStackOn(Rank::WildDrawFive, Rank::DrawTwo));
     REQUIRE(canStackOn(Rank::WildDrawFour, Rank::WildDrawFour));
     REQUIRE(canStackOn(Rank::WildDrawFive, Rank::WildDrawFour));
-    REQUIRE(canStackOn(Rank::WildDrawFive, Rank::WildDrawFive));
+    REQUIRE_FALSE(canStackOn(Rank::WildDrawFive, Rank::WildDrawFive)); // ADR 0034: nothing answers a +5
+    REQUIRE_FALSE(canStackOn(Rank::DrawTwo, Rank::WildDrawFive));
     REQUIRE_FALSE(canStackOn(Rank::DrawTwo, Rank::WildDrawFour));
     REQUIRE_FALSE(canStackOn(Rank::DrawTwo, Rank::WildDrawFive));
     REQUIRE_FALSE(canStackOn(Rank::WildDrawFour, Rank::WildDrawFive));
@@ -309,12 +309,13 @@ TEST_CASE("With the ladder, a click on the draw pile takes the whole penalty", "
     REQUIRE(round.currentPlayer() == player(2));
 }
 
-TEST_CASE("Only the ladder lets a click on the pile take a penalty", "[core][round][stacking]")
+TEST_CASE("Only the ladder, and the Wild Draw Five, let a click on the pile take a penalty", "[core][round][stacking]")
 {
     SeededRandomSource random{kSeed};
-    auto round = table({{plusFive(3)}}, random, {}, 3, DrawRule::Official, PenaltyStacking::Official);
-    REQUIRE(round.apply(player(0), playCard(3, Color::Red, 1), random).has_value());
+    auto round = table({{plusFour(3)}}, random, {}, 3, DrawRule::Official, PenaltyStacking::Official);
+    REQUIRE(round.apply(player(0), playCard(3, Color::Red), random).has_value());
 
+    // A Wild Draw Four is answered by accepting or challenging, not by a click on the pile
     REQUIRE_FALSE(round.canDraw(player(1)));
     REQUIRE(round.apply(player(1), DrawCard{}, random).error() == DomainError::InvalidPhase);
 }

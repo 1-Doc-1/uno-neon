@@ -52,7 +52,6 @@ enum class IllegalMoveReason : std::uint8_t {
     TargetRequired,       // a Wild Draw Five needs a target (ADR 0028)
     TargetNotAllowed,     // only a Wild Draw Five has a target
     InvalidTarget,        // the target is not another player of the round
-    OnlyPlusFivePlayable, // the target of a Wild Draw Five can only answer with another
 };
 
 } // namespace uno::app

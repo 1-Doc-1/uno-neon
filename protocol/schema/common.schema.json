@@ -344,8 +344,7 @@
         "MUST_DECLARE_UNO",
         "TARGET_REQUIRED",
         "TARGET_NOT_ALLOWED",
-        "INVALID_TARGET",
-        "ONLY_PLUS_FIVE_PLAYABLE"
+        "INVALID_TARGET"
       ]
     },
     "EmptyPayload": {

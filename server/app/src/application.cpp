@@ -660,9 +660,6 @@ Application::Outcome Application::applyPlayerAction(Room& current, const core::P
         case core::DomainError::InvalidTarget:
             return fail(ErrorCode::IllegalMove, "The target must be another player of the round",
                         IllegalMoveReason::InvalidTarget);
-        case core::DomainError::OnlyPlusFivePlayable:
-            return fail(ErrorCode::IllegalMove, "Only a Wild Draw Five answers a Wild Draw Five",
-                        IllegalMoveReason::OnlyPlusFivePlayable);
         case core::DomainError::NotStackable:
             return fail(ErrorCode::IllegalMove, "This card is weaker than the pending penalty",
                         IllegalMoveReason::CannotStack);

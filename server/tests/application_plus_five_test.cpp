@@ -264,7 +264,7 @@ TEST_CASE("Guided draw: a target without a Wild Draw Five draws the total by its
     REQUIRE(table->room().actionsOpenAt >= table->harness.clock.nowMillis() + (5 * 1000ms).count());
 }
 
-TEST_CASE("Guided draw: a target holding a Wild Draw Five is left to choose", "[app][plusFive]")
+TEST_CASE("Even a target holding a Wild Draw Five draws by itself: nothing answers it (ADR 0034)", "[app][plusFive]")
 {
     auto [table, card] = tableWherePlayerOnTurnHoldsPlusFive(3, core::DrawRule::Guided, true, Timeouts{});
     const auto poser = table->room().match->round().currentPlayer();
@@ -279,8 +279,8 @@ TEST_CASE("Guided draw: a target holding a Wild Draw Five is left to choose", "[
 
     table->harness.scheduler.advance(30s); // longer than the effect and the forced-move pause, shorter than the turn
 
-    REQUIRE(table->room().stateVersion == version);
-    REQUIRE(std::holds_alternative<core::AwaitingStackResponse>(table->room().match->round().phase()));
+    REQUIRE(table->room().stateVersion == version + 1);
+    REQUIRE(std::holds_alternative<core::AwaitingPlay>(table->room().match->round().phase()));
 }
 
 TEST_CASE("A target who lets the turn timer expire accepts the penalty", "[app][plusFive]")
@@ -300,35 +300,6 @@ TEST_CASE("A target who lets the turn timer expire accepts the penalty", "[app][
 
     REQUIRE_FALSE(std::holds_alternative<core::AwaitingStackResponse>(table->room().match->round().phase()));
     REQUIRE(table->room().match->round().hand(target)->size() >= cardsBefore + 5 - 1);
-}
-
-TEST_CASE("The target answers with a Wild Draw Five through the application, and the total grows", "[app][plusFive]")
-{
-    auto [table, card] =
-        tableWherePlayerOnTurnHoldsPlusFive(3, core::DrawRule::Official, true, withoutPresentationDelay());
-    const auto poser = table->room().match->round().currentPlayer();
-    const auto target = playerAfter(table->room().match->round(), poser);
-    table->playerWithId(poser).send(request::PlayCard{
-        .cardId = card.id,
-        .chosenColor = core::Color::Green,
-        .swapTargetId = std::nullopt,
-        .targetId = target,
-    });
-    const auto answer = plusFiveOf(table->room().match->round(), target);
-    REQUIRE(answer.has_value());
-    table->clearInboxes();
-
-    table->playerWithId(target).send(request::PlayCard{
-        .cardId = answer->id,
-        .chosenColor = core::Color::Blue,
-        .swapTargetId = std::nullopt,
-        .targetId = poser,
-    });
-
-    const auto update = table->playerWithId(poser).last<response::GameUpdate>();
-    REQUIRE(update.has_value());
-    REQUIRE(update->view.game.pendingDraw == 10);
-    REQUIRE(update->view.game.currentPlayerId == poser);
 }
 
 TEST_CASE("The target cannot challenge a Wild Draw Five", "[app][plusFive]")

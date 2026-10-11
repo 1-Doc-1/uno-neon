@@ -210,7 +210,6 @@ struct WireNames<app::IllegalMoveReason> {
         WireName{.value = app::IllegalMoveReason::TargetRequired, .name = "TARGET_REQUIRED"},
         WireName{.value = app::IllegalMoveReason::TargetNotAllowed, .name = "TARGET_NOT_ALLOWED"},
         WireName{.value = app::IllegalMoveReason::InvalidTarget, .name = "INVALID_TARGET"},
-        WireName{.value = app::IllegalMoveReason::OnlyPlusFivePlayable, .name = "ONLY_PLUS_FIVE_PLAYABLE"},
     };
 };
 
