@@ -21,6 +21,10 @@ const BANNER_MS = 5000;
       top: calc(var(--space-3) + 56px);
       left: var(--space-3);
       z-index: calc(var(--z-table) + 5);
+
+      @media (max-width: 639px), (max-height: 480px) {
+        top: var(--space-2);
+      }
     }
   `,
   imports: [TableView, ChatDock, GameMenu, PlayerMenu],

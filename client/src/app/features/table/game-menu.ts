@@ -90,7 +90,7 @@ import { Modal } from '../../ui/modal';
       gap: var(--space-2);
       width: 100%;
     }
-    @media (max-width: 639px) {
+    @media (max-width: 639px), (max-height: 480px) {
       .text {
         display: none;
       }

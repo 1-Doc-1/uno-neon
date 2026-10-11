@@ -8,6 +8,11 @@ html {
   color-scheme: dark;
   min-height: 100%;
   background: var(--page-bg) fixed;
+  // Pas de rebond ni de rafraîchissement en tirant la page, et pas de texte regonflé en paysage. Le zoom au pincement
+  // reste possible (accessibilité) : on corrige les débordements, on n'interdit pas de zoomer.
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
@@ -16,6 +21,10 @@ body {
   font-family: var(--font-ui);
   font-size: var(--fs-base);
   line-height: 1.5;
+  overscroll-behavior: none;
+  // Un toucher est un clic : pas d'attente ni de zoom au double toucher (le pincement reste libre)
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   color: var(--text);
   -webkit-font-smoothing: antialiased;
 }

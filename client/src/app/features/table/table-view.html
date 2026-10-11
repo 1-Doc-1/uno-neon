@@ -1,5 +1,5 @@
-<div class="table" [style.--seat-scale]="geometry()?.seatScale">
-  <app-sound-control class="sound-corner" [compact]="narrow()" />
+<div class="table" [class.short]="short()" [style.--seat-scale]="geometry()?.seatScale">
+  <app-sound-control class="sound-corner" [compact]="narrow() || short()" />
   @if (banner(); as text) {
     <p class="banner" role="status">{{ text }}</p>
   }

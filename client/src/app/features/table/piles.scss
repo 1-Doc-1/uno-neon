@@ -127,6 +127,13 @@
   color: var(--text);
 }
 
+// Téléphone en paysage : peu de hauteur, des piles plus petites
+@media (max-height: 480px) {
+  :host {
+    --card-w: clamp(60px, 20vh, 96px);
+  }
+}
+
 @media (max-width: 639px) {
   :host {
     --card-w: 88px;
