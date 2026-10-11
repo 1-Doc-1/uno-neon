@@ -29,6 +29,18 @@ constexpr std::int64_t kChatWindowMillis = 10000;
 } // namespace
 
 Application::Application(MessageSink& sink, RoomRepository& rooms, core::RandomSource& random, const Clock& clock,
+                         Scheduler& scheduler)
+    : Application(sink, rooms, random, clock, scheduler, Timeouts(), Limits())
+{
+}
+
+Application::Application(MessageSink& sink, RoomRepository& rooms, core::RandomSource& random, const Clock& clock,
+                         Scheduler& scheduler, Timeouts timeouts)
+    : Application(sink, rooms, random, clock, scheduler, timeouts, Limits())
+{
+}
+
+Application::Application(MessageSink& sink, RoomRepository& rooms, core::RandomSource& random, const Clock& clock,
                          Scheduler& scheduler, Timeouts timeouts, Limits limits)
     : sink_(&sink), rooms_(&rooms), random_(&random), clock_(&clock), scheduler_(&scheduler), timeouts_(timeouts),
       limits_(limits)

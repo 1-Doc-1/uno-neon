@@ -371,12 +371,12 @@ Description describe(const request::CreateRoom& body)
 
 Description describe(const request::JoinRoom& body)
 {
-    return {.type = "room.join",
-            .payload = Json{
-                {"code", body.code.value},
-                {"nickname", body.nickname},
-                {"avatarId", body.avatarId},
-            }};
+    Json payload{
+        {"code", body.code.value},
+        {"nickname", body.nickname},
+        {"avatarId", body.avatarId},
+    };
+    return {.type = "room.join", .payload = std::move(payload)};
 }
 
 Description describe(const request::LeaveRoom& /*body*/)
