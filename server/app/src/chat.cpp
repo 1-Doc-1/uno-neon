@@ -13,13 +13,13 @@ bool isForbidden(CodePoint codePoint)
 {
     return codePoint < 0x20 || (codePoint >= 0x7F && codePoint <= 0x9F) // controls, DEL, C1 controls
            || (codePoint >= 0x200B && codePoint <= 0x200F)              // zero-width and direction marks
-           || codePoint == 0x2028 || codePoint == 0x2029                 // line and paragraph separators
-           || (codePoint >= 0x202A && codePoint <= 0x202E)               // bidirectional embeddings and overrides
-           || (codePoint >= 0x2060 && codePoint <= 0x206F)               // invisible operators, deprecated formats
-           || (codePoint >= 0xE000 && codePoint <= 0xF8FF)               // private use
-           || codePoint == 0xFEFF                                        // byte order mark
-           || (codePoint >= 0xFFF0 && codePoint <= 0xFFFF)               // specials
-           || (codePoint >= 0xE0000);                                    // tags and supplementary private use
+           || codePoint == 0x2028 || codePoint == 0x2029                // line and paragraph separators
+           || (codePoint >= 0x202A && codePoint <= 0x202E)              // bidirectional embeddings and overrides
+           || (codePoint >= 0x2060 && codePoint <= 0x206F)              // invisible operators, deprecated formats
+           || (codePoint >= 0xE000 && codePoint <= 0xF8FF)              // private use
+           || codePoint == 0xFEFF                                       // byte order mark
+           || (codePoint >= 0xFFF0 && codePoint <= 0xFFFF)              // specials
+           || (codePoint >= 0xE0000);                                   // tags and supplementary private use
 }
 
 std::string_view trimSpaces(std::string_view text)

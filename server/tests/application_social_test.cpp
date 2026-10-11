@@ -9,9 +9,9 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <chrono>
+#include <cstdint>
 #include <set>
 #include <string>
-#include <cstdint>
 
 // What players do to each other around the match (ADR 0036, 0037): avatars, chat, going back to the lobby, being
 // kicked from a match, and the limits that keep one visitor from using up the server.
