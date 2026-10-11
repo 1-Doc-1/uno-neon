@@ -54,8 +54,17 @@ test.describe('toutes les tailles d’écran', () => {
       expect(await layoutProblems(player), 'mise en page de la table').toEqual([]);
       const axe = await new AxeBuilder({ page })
         .withTags(['wcag2a', 'wcag2aa', 'wcag22aa'])
+        // Les bots jouent pendant la mesure : les effets et le journal en fondu changent d'une image à l'autre
+        .exclude('app-effects-layer')
+        .exclude('.journal')
         .analyze();
-      expect(axe.violations.map((violation) => violation.id)).toEqual([]);
+      expect(
+        axe.violations.flatMap((violation) =>
+          violation.nodes.map(
+            (node) => `${violation.id}: ${node.target.join(' ')} ${node.any[0]?.message ?? ''}`,
+          ),
+        ),
+      ).toEqual([]);
       if (SHOT) {
         await page.screenshot({ path: `../docs/img/table-${size.name}.png` });
       }
