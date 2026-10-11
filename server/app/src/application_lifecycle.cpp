@@ -210,7 +210,7 @@ void Application::scheduleRoomExpiry(Room& room)
 }
 
 std::chrono::milliseconds Application::presentationBudgetOf(std::span<const core::DomainEvent> events,
-                                                            const core::Round& roundAfter, const Timeouts& pace) const
+                                                            const core::Round& roundAfter, const Timeouts& pace)
 {
     std::chrono::milliseconds budget{0};
     std::size_t cards = 0;

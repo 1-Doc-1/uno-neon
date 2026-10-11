@@ -169,9 +169,9 @@ private:
     // ---- timers (application_lifecycle.cpp) ----
     void scheduleRoomExpiry(Room& room);
     // How long the clients take to show `events` (a card played, the effects, the cards drawn): ADR 0027.
-    [[nodiscard]] std::chrono::milliseconds presentationBudgetOf(std::span<const core::DomainEvent> events,
-                                                                 const core::Round& roundAfter,
-                                                                 const Timeouts& pace) const;
+    [[nodiscard]] static std::chrono::milliseconds presentationBudgetOf(std::span<const core::DomainEvent> events,
+                                                                        const core::Round& roundAfter,
+                                                                        const Timeouts& pace);
     // The pauses of this room: `timeouts_`, shortened when the host chose fast animations.
     [[nodiscard]] Timeouts paceOf(const Room& room) const noexcept;
     // The forced move and the clock of a new turn start at `room.actionsOpenAt`, when the effect in progress is over.
