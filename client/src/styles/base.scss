@@ -126,3 +126,17 @@ select {
   inherits: true;
   initial-value: 0px;
 }
+
+// Taille normale d'une carte de ma main, avant la réduction des grosses mains (`handScale`)
+@property --card-base {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 72px;
+}
+
+// Marge latérale de ma main, en largeurs de carte : de quoi laisser déborder l'éventail sans sortir de l'écran
+@property --gutter-ratio {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0.8;
+}

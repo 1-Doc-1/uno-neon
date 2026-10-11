@@ -2,15 +2,18 @@ import {
   afterEveryRender,
   Component,
   computed,
+  DestroyRef,
   ElementRef,
   inject,
   input,
   output,
+  signal,
 } from '@angular/core';
 import type { Card } from '../../protocol/generated/protocol';
 import { CardFace } from '../../ui/card';
 import { cardLabel } from '../../ui/color-meta';
 import { ClickSound } from '../../ui/click-sound';
+import { handScale } from './hand-scale';
 
 /** Une carte en vol vers la main : sa place (`index`) dans la main triée de `count` cartes une fois arrivée. */
 export interface IncomingCard {
@@ -48,6 +51,7 @@ function fanStep(
 @Component({
   selector: 'app-hand',
   imports: [ClickSound, CardFace],
+  host: { '[style.--hand-scale]': 'scale()' },
   template: `
     <ul
       class="hand"
@@ -88,8 +92,20 @@ export class Hand {
 
   private readonly host: HTMLElement = inject(ElementRef).nativeElement;
   private readonly remembered = new Map<number, DOMRect>();
+  private readonly width = signal(0);
+  /** Au-delà de 16 cartes, les cartes rétrécissent pour tenir dans la largeur sans défilement. */
+  protected readonly scale = computed(() => {
+    const base = parseFloat(getComputedStyle(this.host).getPropertyValue('--card-base')) || 72;
+    const ratio = parseFloat(getComputedStyle(this.host).getPropertyValue('--gutter-ratio')) || 0.8;
+    return handScale(this.cards().length, this.width(), base, base * ratio);
+  });
 
   constructor() {
+    if (typeof ResizeObserver === 'function') {
+      const observer = new ResizeObserver(() => this.width.set(this.host.clientWidth));
+      observer.observe(this.host);
+      inject(DestroyRef).onDestroy(() => observer.disconnect());
+    }
     // On retient où était chaque carte : une carte jouée a quitté la main avant que l'animation ne démarre
     afterEveryRender({
       read: () => {
