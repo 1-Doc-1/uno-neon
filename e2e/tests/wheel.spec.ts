@@ -52,7 +52,7 @@ test.describe('roue de couleur', () => {
         expect(wedge.top, `quart ${index}`).toBeGreaterThanOrEqual(wheel.top - 1);
         expect(wedge.right, `quart ${index}`).toBeLessThanOrEqual(wheel.right + 1);
         expect(wedge.bottom, `quart ${index}`).toBeLessThanOrEqual(wheel.bottom + 1);
-        const content = boxes.contents[index];
+        const content = boxes.contents[index] as NonNullable<(typeof boxes.contents)[number]>;
         expect(content.left, `libellé ${index}`).toBeGreaterThanOrEqual(wedge.left - 1);
         expect(content.top, `libellé ${index}`).toBeGreaterThanOrEqual(wedge.top - 1);
         expect(content.right, `libellé ${index}`).toBeLessThanOrEqual(wedge.right + 1);
