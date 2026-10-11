@@ -102,6 +102,42 @@
 - [x] S2 Jouer avec des amis par un tunnel (`scripts/play-online.ps1`, Caddy + cloudflared, ADR 0033)
 - [x] S3 Mode d'emploi (`docs/MODE-EMPLOI.md`) et page « Comment jouer »
 
+#### Lots T-U — règles, salon et sécurité, table, mobile (4 PR à la suite : T1, T2, U1, U2)
+> Reprise après interruption : relire cette section, `git status`, `git log --oneline -10`, les PR ouvertes, puis continuer au premier point non coché. Problème bloquant noté ici (cause, essais) ; on fusionne ce qui est vert et on passe à la suite.
+> **En cours : T1 — branche `feat/game-rules-polish` (pas encore de PR)**
+
+**T1 — Règles et confort de jeu (`feat/game-rules-polish`)**
+- [ ] T1.1 +5 « super carte » (ADR 0034 modifie 0028) : plus de réplique, pioche automatique du total ; chaîne close en mode Échelle ; moteur, simulation, protocole, « Comment jouer », E2E
+- [ ] T1.2 Tri automatique de la main (fonction pure) + FLIP
+- [ ] T1.3 Main réduite au-delà de 16 cartes (échelle selon la largeur)
+- [ ] T1.4 Journal : 5 lignes, anciennes en fondu
+- [ ] T1.5 Tension musicale dès 1/3 du temps du tour, montée progressive
+- [ ] T1.6 Réglage de salon « Vitesse des animations » (Normale / Rapide), animations ET budget/cooldown serveur
+
+**T2 — Salon, sessions et sécurité (`feat/lobby-sessions`)**
+- [ ] T2.1 Fin de partie : Revanche / Retour au salon (hôte), abandon en cours de partie avec confirmation
+- [ ] T2.2 Exclusion par menu du profil + confirmation, salon et partie
+- [ ] T2.3 Cookie de session HttpOnly/Secure/SameSite=Strict (ADR)
+- [ ] T2.4 Un seul onglet actif (« Jouer ici »)
+- [ ] T2.5 Anti-abus : un salon par session, limites par IP (en-tête du tunnel de confiance), plafonds, nettoyage
+- [ ] T2.6 Avatars (12 SVG)
+- [ ] T2.7 Chat (200 car., débit, texte brut, repliable, masquer un joueur)
+- [ ] T2.8 Tests serveur, client, E2E ; 4.3b coché
+
+**U1 — Effets et mise en page de la table (`feat/table-visuals`)**
+- [ ] U1.1 Sièges : avatar + pseudo, cartes de dos en accordéon dessous, sans rotation
+- [ ] U1.2 Bug de taille des sièges selon la parité (cause en 2 lignes + test)
+- [ ] U1.3 Roue de choix de couleur en cercle, sans débordement
+- [ ] U1.4 Impact +2 / +4, sons distincts
+- [ ] U1.5 Cinématique de fin de partie (podium, scores, confettis, son)
+
+**U2 — Toutes tailles d'écran et téléphone (`feat/responsive-mobile`, étape 3.7)**
+- [ ] U2.1 Mise en page 360 → 1920 px, portrait et paysage ; effets sur sièges bornés à l'écran
+- [ ] U2.2 Audio sur téléphone (resume au geste, contournement iOS) + MODE-EMPLOI
+- [ ] U2.3 100dvh, overscroll, touch-action, zéro débordement horizontal (zoom conservé)
+- [ ] U2.4 Jeu au clavier seul de bout en bout
+- [ ] U2.5 E2E émulation iPhone/Android, captures 360/768/1440/1920 ; 3.7 coché
+
 #### Phase 1 (suite)
 - [ ] 1.6 Options maison (politiques injectables)
 
