@@ -92,12 +92,20 @@ TEST_CASE("The client address is the connection address unless the proxy is trus
 {
     REQUIRE(clientAddress("1.2.3.4", "9.9.9.9", false) == "1.2.3.4");
     REQUIRE(clientAddress("1.2.3.4", "", true) == "1.2.3.4");
-    REQUIRE(clientAddress("10.0.0.1", "9.9.9.9", true) == "9.9.9.9");
+    REQUIRE(clientAddress("127.0.0.1", "9.9.9.9", true) == "9.9.9.9");
+    REQUIRE(clientAddress("::1", "9.9.9.9", true) == "9.9.9.9");
+}
+
+TEST_CASE("The forwarded address is only believed when the connection comes from this machine", "[net][rate]")
+{
+    // Caddy runs beside the server (ADR 0036): from anybody else the header is a forgery, whatever the configuration
+    REQUIRE(clientAddress("10.0.0.1", "9.9.9.9", true) == "10.0.0.1");
+    REQUIRE(clientAddress("203.0.113.7", "127.0.0.1", true) == "203.0.113.7");
 }
 
 TEST_CASE("Behind a trusted proxy the last forwarded address wins, because the proxy appended it", "[net][rate]")
 {
     // Whatever the client claimed comes first; only the entry added by our own proxy can be believed.
-    REQUIRE(clientAddress("10.0.0.1", "6.6.6.6, 7.7.7.7 , 9.9.9.9", true) == "9.9.9.9");
-    REQUIRE(clientAddress("10.0.0.1", "6.6.6.6,", true) == "10.0.0.1");
+    REQUIRE(clientAddress("127.0.0.1", "6.6.6.6, 7.7.7.7 , 9.9.9.9", true) == "9.9.9.9");
+    REQUIRE(clientAddress("127.0.0.1", "6.6.6.6,", true) == "127.0.0.1");
 }

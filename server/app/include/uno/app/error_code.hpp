@@ -33,6 +33,8 @@ enum class ErrorCode : std::uint8_t {
     UnoWindowClosed,
     UnoGracePeriod,   // the offender is still the only one who may announce (ADR 0018)
     EffectInProgress, // a turn action came before `actionsOpenAt`: the effect in progress is not over (ADR 0027)
+    ServerFull,       // too many rooms or sessions at once (ADR 0036)
+    ChatInvalid,      // an empty, too long or unreadable chat message (ADR 0037)
 };
 
 // Detail of an IllegalMove error (protocol `IllegalMoveReason`).

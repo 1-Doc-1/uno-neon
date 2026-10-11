@@ -209,6 +209,7 @@ Json encodePlayers(const GameView& view)
             {"isHost", info.isHost},
             {"hasCalledUno", seat.hasCalledUno},
             {"isReadyForNextRound", info.isReadyForNextRound},
+            {"avatarId", info.avatarId},
         });
     }
     return players;
@@ -665,6 +666,7 @@ Parsed<SeatEntry> parseSeatEntry(const Json& value)
     entry.info.isHost = reader.required<bool>("isHost", parseBool);
     entry.seat.hasCalledUno = reader.required<bool>("hasCalledUno", parseBool);
     entry.info.isReadyForNextRound = reader.required<bool>("isReadyForNextRound", parseBool);
+    entry.info.avatarId = reader.required<std::uint8_t>("avatarId", parseAvatar);
     if (auto finished = reader.finish(); !finished) {
         return std::unexpected(finished.error());
     }

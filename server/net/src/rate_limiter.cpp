@@ -29,6 +29,11 @@ std::string_view trim(std::string_view text)
     return text;
 }
 
+bool isLoopback(std::string_view address)
+{
+    return address == "127.0.0.1" || address == "::1" || address == "0:0:0:0:0:0:0:1" || address == "::ffff:127.0.0.1";
+}
+
 } // namespace
 
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
@@ -80,7 +85,7 @@ void SlidingWindowLimiter::forgetExpiredKeys(RateClock::time_point now)
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 std::string clientAddress(std::string_view remoteAddress, std::string_view forwardedFor, bool trustedProxy)
 {
-    if (trustedProxy && !forwardedFor.empty()) {
+    if (trustedProxy && isLoopback(remoteAddress) && !forwardedFor.empty()) {
         const auto lastComma = forwardedFor.rfind(',');
         const auto last = trim(lastComma == std::string_view::npos ? forwardedFor : forwardedFor.substr(lastComma + 1));
         if (!last.empty()) {

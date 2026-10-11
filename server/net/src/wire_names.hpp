@@ -197,6 +197,8 @@ struct WireNames<app::ErrorCode> {
         WireName{.value = app::ErrorCode::UnoWindowClosed, .name = "UNO_WINDOW_CLOSED"},
         WireName{.value = app::ErrorCode::UnoGracePeriod, .name = "UNO_GRACE_PERIOD"},
         WireName{.value = app::ErrorCode::EffectInProgress, .name = "EFFECT_IN_PROGRESS"},
+        WireName{.value = app::ErrorCode::ServerFull, .name = "SERVER_FULL"},
+        WireName{.value = app::ErrorCode::ChatInvalid, .name = "CHAT_INVALID"},
     };
 };
 

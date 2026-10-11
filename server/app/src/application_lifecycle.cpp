@@ -99,7 +99,7 @@ void Application::removeFromRoom(Room& room, const core::PlayerId& player)
     if (leaving == nullptr) {
         return;
     }
-    const std::string nickname = leaving->nickname;
+    const FormerMember former{.nickname = leaving->nickname, .avatarId = leaving->avatarId};
     const bool wasHost = room.isHost(player);
     // A room needs a person: bots alone do not make a game (ADR 0030)
     if (!leaving->isBot && room.humanCount() == 1) {
@@ -128,7 +128,7 @@ void Application::removeFromRoom(Room& room, const core::PlayerId& player)
         } else {
             spdlog::error("room {}: the engine refused to remove player {}", room.code.value, player.value);
         }
-        room.formerNicknames.insert_or_assign(player.value, nickname);
+        room.formerMembers.insert_or_assign(player.value, former);
     }
     room.remove(player);
     room.readyForNextRound.erase(player);
@@ -148,6 +148,30 @@ void Application::removeFromRoom(Room& room, const core::PlayerId& player)
         // The player who left may have been the only one the next round was waiting for.
         startNextRoundIfDue(room, false);
     }
+}
+
+void Application::resetToLobby(Room& room)
+{
+    scheduler_->cancel(std::exchange(room.turnTimer, TimerHandle{}));
+    scheduler_->cancel(std::exchange(room.nextRoundTimer, TimerHandle{}));
+    scheduler_->cancel(std::exchange(room.forcedActionTimer, TimerHandle{}));
+    scheduler_->cancel(std::exchange(room.botTimer, TimerHandle{}));
+    for (const UnoWindowTiming& window : room.unoWindows) {
+        scheduler_->cancel(window.expiryTimer);
+    }
+    room.unoWindows.clear();
+    room.turnKey.reset();
+    room.turnDeadline.reset();
+    room.nextRoundDeadline.reset();
+    room.actionsOpenAt = 0;
+    room.match.reset();
+    room.readyForNextRound.clear();
+    room.formerMembers.clear();
+    room.phase = response::RoomPhase::Lobby;
+    for (Member& member : room.members) {
+        member.ready = member.isBot;
+    }
+    broadcastRoom(room);
 }
 
 void Application::afterMatchChange(Room& room, std::span<const core::DomainEvent> events,
@@ -594,6 +618,7 @@ void Application::onSessionIdle(const core::PlayerId& player)
     }
     playerOfToken_.erase(found->second.token.value);
     lastReactionAt_.erase(player.value);
+    chatTimes_.erase(player.value);
     sessions_.erase(player.value);
     flush();
 }

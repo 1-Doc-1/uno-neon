@@ -1,7 +1,10 @@
 #include "uno/net/websocket_server.hpp"
 
+#include "uno/app/id_generator.hpp"
 #include "uno/net/codec.hpp"
+#include "uno/net/crypto_random_source.hpp"
 #include "uno/net/rate_limiter.hpp"
+#include "uno/net/session_cookie.hpp"
 
 #include <spdlog/spdlog.h>
 #include <uwebsockets/App.h>
@@ -31,7 +34,8 @@ struct ConnectionData {
     app::ConnectionId id;
     unsigned malformedMessages = 0;
     TokenBucket bucket;
-    std::string address; // what the per-address limits are counted against
+    std::string address;     // what the per-address limits are counted against
+    app::SessionToken token; // from the session cookie, or made for this browser
 };
 
 using Socket = uWS::WebSocket<false, true, ConnectionData>;
@@ -45,12 +49,19 @@ struct WebSocketServer::Impl {
           createLimiter(config.rateLimits.createsPerMinute, std::chrono::minutes(1)),
           joinLimiter(config.rateLimits.joinsPerMinute, std::chrono::minutes(1))
     {
+        if (!config.newSessionToken) {
+            config.newSessionToken = [random = std::make_shared<CryptoRandomSource>()] {
+                return app::generateSessionToken(*random);
+            };
+        }
     }
 
     void handleOpen(Socket* socket)
     {
-        connections.emplace(socket->getUserData()->id, socket);
-        handler->onConnected(socket->getUserData()->id);
+        const ConnectionData& data = *socket->getUserData();
+        connections.emplace(data.id, socket);
+        ++connectionsPerAddress[data.address];
+        handler->onConnected(data.id, data.token);
     }
 
     // Answers a message that is not worth treating: an error, and a strike against the connection.
@@ -119,8 +130,14 @@ struct WebSocketServer::Impl {
 
     void handleClose(Socket* socket)
     {
-        const app::ConnectionId id = socket->getUserData()->id;
+        const ConnectionData& data = *socket->getUserData();
+        const app::ConnectionId id = data.id;
         connections.erase(id);
+        if (const auto count = connectionsPerAddress.find(data.address); count != connectionsPerAddress.end()) {
+            if (--count->second == 0) {
+                connectionsPerAddress.erase(count);
+            }
+        }
         handler->onDisconnected(id);
     }
 
@@ -131,16 +148,38 @@ struct WebSocketServer::Impl {
             response->writeStatus("403 Forbidden")->end("Origin not allowed");
             return;
         }
+        std::string address = clientAddress(response->getRemoteAddressAsText(), request->getHeader("x-forwarded-for"),
+                                            config.trustedProxy);
+        if (connections.size() >= config.connectionLimits.maxConnections ||
+            addressConnections(address) >= config.connectionLimits.maxConnectionsPerAddress) {
+            spdlog::warn("WebSocket refused: too many connections");
+            response->writeStatus("503 Service Unavailable")->end("Too many connections");
+            return;
+        }
+        // The browser keeps its session in a cookie it sends back by itself; a script never sees it (ADR 0036).
+        auto token = sessionTokenFromCookie(request->getHeader("cookie"));
+        if (!token) {
+            token = config.newSessionToken();
+        }
+        // The status line has to be written before the cookie header: the upgrade completes it with its own headers.
+        response->writeStatus("101 Switching Protocols")
+            ->writeHeader("Set-Cookie", sessionCookieHeader(*token, config.sessionCookieMaxAge));
         ConnectionData data{
             .id = app::ConnectionId{++lastConnectionId},
             .malformedMessages = 0,
             .bucket = TokenBucket(config.rateLimits.burst, config.rateLimits.perSecond, RateClock::now()),
-            .address = clientAddress(response->getRemoteAddressAsText(), request->getHeader("x-forwarded-for"),
-                                     config.trustedProxy),
+            .address = std::move(address),
+            .token = std::move(*token),
         };
         response->template upgrade<ConnectionData>(std::move(data), request->getHeader("sec-websocket-key"),
                                                    request->getHeader("sec-websocket-protocol"),
                                                    request->getHeader("sec-websocket-extensions"), context);
+    }
+
+    [[nodiscard]] std::size_t addressConnections(const std::string& address) const
+    {
+        const auto found = connectionsPerAddress.find(address);
+        return found == connectionsPerAddress.end() ? 0 : found->second;
     }
 
     void handleHealth(uWS::HttpResponse<false>* response) const
@@ -164,6 +203,7 @@ struct WebSocketServer::Impl {
     std::uint16_t boundPort = 0;
     std::uint64_t lastConnectionId = 0;
     std::unordered_map<app::ConnectionId, Socket*> connections;
+    std::unordered_map<std::string, std::size_t> connectionsPerAddress;
 };
 
 WebSocketServer::WebSocketServer(WebSocketServerConfig config, app::ConnectionHandler& handler)

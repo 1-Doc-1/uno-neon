@@ -39,7 +39,12 @@ public:
     // Opens the TCP connection and performs the HTTP upgrade. `origin` empty = no Origin header.
     // `status` is the HTTP status of the answer (101 when the upgrade succeeded); the object is only
     // returned usable for frames when it is 101.
-    [[nodiscard]] static std::optional<TestWebSocket> connect(std::uint16_t port, std::string_view origin, int& status);
+    // `cookie` is sent as the Cookie header when it is not empty.
+    [[nodiscard]] static std::optional<TestWebSocket> connect(std::uint16_t port, std::string_view origin, int& status,
+                                                              std::string_view cookie = {});
+
+    // The value of the Set-Cookie header of the upgrade answer, or empty.
+    [[nodiscard]] const std::string& setCookie() const;
 
     TestWebSocket(TestWebSocket&&) noexcept;
     TestWebSocket& operator=(TestWebSocket&&) noexcept;

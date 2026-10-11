@@ -218,9 +218,12 @@ TEST_CASE("A session nobody uses is forgotten after 10 minutes", "[app][lifecycl
     harness.application.onDisconnected(early.connection());
     harness.scheduler.advance(11min);
 
+    // The cookie of a forgotten session starts a brand new one: another player, no room to resume
     auto late = harness.connect();
     late.hello(token);
-    REQUIRE(refusal(late.received()) == ErrorCode::SessionExpired);
+    const auto welcome = require(late.last<response::Welcome>());
+    REQUIRE(welcome.playerId != player.id());
+    REQUIRE_FALSE(welcome.resumedRoomCode.has_value());
 }
 
 TEST_CASE("The turn deadline is shown, and a turn that times out draws a card and passes", "[app][lifecycle][turn]")

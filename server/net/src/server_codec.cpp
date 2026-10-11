@@ -47,11 +47,25 @@ Json encode(const response::Error& error)
 
 Json encode(const response::Welcome& welcome)
 {
-    Json payload{{"sessionToken", welcome.sessionToken.value}, {"playerId", welcome.playerId.value}};
+    Json payload{{"playerId", welcome.playerId.value}};
     if (welcome.resumedRoomCode) {
         payload.emplace("resumedRoomCode", welcome.resumedRoomCode->value);
     }
     return Json{{"v", kProtocolVersion}, {"type", "session.welcome"}, {"payload", std::move(payload)}};
+}
+
+Json encode(const response::SessionBusy& /*busy*/)
+{
+    return Json{{"v", kProtocolVersion}, {"type", "session.busy"}, {"payload", Json::object()}};
+}
+
+Json encode(const response::ChatMessage& chat)
+{
+    return Json{
+        {"v", kProtocolVersion},
+        {"type", "chat.message"},
+        {"payload", Json{{"playerId", chat.playerId.value}, {"text", chat.text}}},
+    };
 }
 
 Json encode(const response::RoomView& room)
@@ -66,6 +80,7 @@ Json encode(const response::RoomView& room)
             {"isReady", member.isReady},
             {"isConnected", member.isConnected},
             {"isBot", member.isBot},
+            {"avatarId", member.avatarId},
         });
     }
     return Json{
@@ -170,7 +185,6 @@ Parsed<response::Message> decodeWelcome(const Json& envelope)
     response::Welcome welcome;
     if (const Json* const payload = reader.requiredRaw("payload")) {
         ObjectReader payloadReader(*payload, "payload");
-        welcome.sessionToken = payloadReader.required<SessionToken>("sessionToken", detail::parseSessionToken);
         welcome.playerId = payloadReader.required<core::PlayerId>("playerId", detail::parsePlayerId);
         welcome.resumedRoomCode = payloadReader.optional<RoomCode>("resumedRoomCode", detail::parseRoomCode);
         if (auto finished = payloadReader.finish(); !finished) {
@@ -181,6 +195,39 @@ Parsed<response::Message> decodeWelcome(const Json& envelope)
         return std::unexpected(finished.error());
     }
     return welcome;
+}
+
+Parsed<response::Message> decodeSessionBusy(const Json& envelope)
+{
+    auto reader = envelopeReader(envelope);
+    if (const Json* const payload = reader.requiredRaw("payload")) {
+        ObjectReader payloadReader(*payload, "payload");
+        if (auto finished = payloadReader.finish(); !finished) {
+            return std::unexpected(finished.error());
+        }
+    }
+    if (auto finished = reader.finish(); !finished) {
+        return std::unexpected(finished.error());
+    }
+    return response::SessionBusy{};
+}
+
+Parsed<response::Message> decodeChatMessage(const Json& envelope)
+{
+    auto reader = envelopeReader(envelope);
+    response::ChatMessage chat;
+    if (const Json* const payload = reader.requiredRaw("payload")) {
+        ObjectReader payloadReader(*payload, "payload");
+        chat.playerId = payloadReader.required<core::PlayerId>("playerId", detail::parsePlayerId);
+        chat.text = payloadReader.required<std::string>("text", detail::parseString);
+        if (auto finished = payloadReader.finish(); !finished) {
+            return std::unexpected(finished.error());
+        }
+    }
+    if (auto finished = reader.finish(); !finished) {
+        return std::unexpected(finished.error());
+    }
+    return chat;
 }
 
 Parsed<std::uint8_t> parseSeat(const Json& value)
@@ -203,6 +250,7 @@ Parsed<response::RoomMember> parseRoomMember(const Json& value)
     member.isReady = reader.required<bool>("isReady", detail::parseBool);
     member.isConnected = reader.required<bool>("isConnected", detail::parseBool);
     member.isBot = reader.required<bool>("isBot", detail::parseBool);
+    member.avatarId = reader.required<std::uint8_t>("avatarId", detail::parseAvatar);
     if (auto finished = reader.finish(); !finished) {
         return std::unexpected(finished.error());
     }
@@ -327,6 +375,8 @@ constexpr std::array kServerMessageTypes{
     ServerMessageType{.name = "ack", .decode = decodeAck},
     ServerMessageType{.name = "error", .decode = decodeError},
     ServerMessageType{.name = "session.welcome", .decode = decodeWelcome},
+    ServerMessageType{.name = "session.busy", .decode = decodeSessionBusy},
+    ServerMessageType{.name = "chat.message", .decode = decodeChatMessage},
     ServerMessageType{.name = "room.update", .decode = decodeRoomUpdate},
     ServerMessageType{.name = "game.update", .decode = decodeGameUpdate},
     ServerMessageType{.name = "reaction", .decode = decodeReaction},

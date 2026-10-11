@@ -1,0 +1,8 @@
+{
+  "v": 1,
+  "id": "c-31",
+  "type": "chat.send",
+  "payload": {
+    "text": "Bien joué ! 🎉"
+  }
+}

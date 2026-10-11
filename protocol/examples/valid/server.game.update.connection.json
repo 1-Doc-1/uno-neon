@@ -78,7 +78,8 @@
           "isBot": false,
           "isHost": false,
           "hasCalledUno": false,
-          "isReadyForNextRound": false
+          "isReadyForNextRound": false,
+          "avatarId": 1
         },
         {
           "playerId": "p_Max8Qw3Zt",
@@ -90,7 +91,8 @@
           "isBot": false,
           "isHost": true,
           "hasCalledUno": false,
-          "isReadyForNextRound": false
+          "isReadyForNextRound": false,
+          "avatarId": 2
         },
         {
           "playerId": "p_Ines7Rt1Y",
@@ -102,7 +104,8 @@
           "isBot": false,
           "isHost": false,
           "hasCalledUno": false,
-          "isReadyForNextRound": false
+          "isReadyForNextRound": false,
+          "avatarId": 3
         }
       ],
       "currentPlayerId": "p_Lea4f9Kx2",

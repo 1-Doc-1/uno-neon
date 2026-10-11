@@ -4,6 +4,7 @@
 #include "uno/net/codec.hpp"
 #include "uno/net/crypto_runtime.hpp"
 #include "uno/net/origin_policy.hpp"
+#include "uno/net/session_cookie.hpp"
 #include "uno/net/websocket_server.hpp"
 
 #include "support/require.hpp"
@@ -343,4 +344,93 @@ TEST_CASE("A server told to bind to an address this machine does not own refuses
     config.bindAddress = "203.0.113.77"; // TEST-NET-3 (RFC 5737): never assigned to a machine
 
     REQUIRE_THROWS_AS(RunningServer(std::move(config), handler), std::runtime_error);
+}
+
+TEST_CASE("The handshake sets the session cookie: HttpOnly, Secure, SameSite=Strict", "[net][server][cookie]")
+{
+    REQUIRE(uno::net::initializeCryptoRuntime());
+    const Fixture fixture;
+    int status = 0;
+
+    const auto socket = require(TestWebSocket::connect(fixture.server.port(), kAllowedOrigin, status));
+
+    REQUIRE(status == kSwitchingProtocols);
+    const std::string& cookie = socket.setCookie();
+    REQUIRE(cookie.starts_with("uno_session="));
+    REQUIRE(cookie.contains("HttpOnly"));
+    REQUIRE(cookie.contains("Secure"));
+    REQUIRE(cookie.contains("SameSite=Strict"));
+    REQUIRE(uno::net::sessionTokenFromCookie(cookie).has_value());
+}
+
+TEST_CASE("Two first visits get two different tokens; a returning browser keeps its own", "[net][server][cookie]")
+{
+    REQUIRE(uno::net::initializeCryptoRuntime());
+    const Fixture fixture;
+    int status = 0;
+    const auto first = require(TestWebSocket::connect(fixture.server.port(), kAllowedOrigin, status));
+    const auto second = require(TestWebSocket::connect(fixture.server.port(), kAllowedOrigin, status));
+    const auto token = require(uno::net::sessionTokenFromCookie(first.setCookie()));
+
+    const auto returning =
+        require(TestWebSocket::connect(fixture.server.port(), kAllowedOrigin, status, "uno_session=" + token.value));
+
+    REQUIRE(uno::net::sessionTokenFromCookie(first.setCookie()) !=
+            uno::net::sessionTokenFromCookie(second.setCookie()));
+    REQUIRE(uno::net::sessionTokenFromCookie(returning.setCookie()) == token);
+}
+
+TEST_CASE("A malformed cookie is not believed: the browser gets a new token", "[net][server][cookie]")
+{
+    REQUIRE(uno::net::initializeCryptoRuntime());
+    const Fixture fixture;
+    int status = 0;
+
+    const auto socket =
+        require(TestWebSocket::connect(fixture.server.port(), kAllowedOrigin, status, "uno_session=not a token"));
+
+    const auto token = require(uno::net::sessionTokenFromCookie(socket.setCookie()));
+    REQUIRE(token.value.size() == 22);
+}
+
+TEST_CASE("One address cannot hold more connections than the limit", "[net][server][limits]")
+{
+    REQUIRE(uno::net::initializeCryptoRuntime());
+    uno::net::WebSocketServerConfig config;
+    config.originPolicy = uno::net::OriginPolicy({kAllowedOrigin});
+    config.connectionLimits = {.maxConnections = 100, .maxConnectionsPerAddress = 2};
+    RecordingHandler handler;
+    const RunningServer server(std::move(config), handler,
+                               [&handler](uno::net::WebSocketServer& running) { handler.attach(running); });
+    int status = 0;
+    const auto first = require(TestWebSocket::connect(server.port(), kAllowedOrigin, status));
+    const auto second = require(TestWebSocket::connect(server.port(), kAllowedOrigin, status));
+    REQUIRE(status == kSwitchingProtocols);
+
+    const auto third = TestWebSocket::connect(server.port(), kAllowedOrigin, status);
+
+    REQUIRE(status == 503);
+    static_cast<void>(first);
+    static_cast<void>(second);
+    static_cast<void>(third);
+}
+
+TEST_CASE("The whole server holds a limited number of connections", "[net][server][limits]")
+{
+    REQUIRE(uno::net::initializeCryptoRuntime());
+    uno::net::WebSocketServerConfig config;
+    config.originPolicy = uno::net::OriginPolicy({kAllowedOrigin});
+    config.connectionLimits = {.maxConnections = 1, .maxConnectionsPerAddress = 10};
+    RecordingHandler handler;
+    const RunningServer server(std::move(config), handler,
+                               [&handler](uno::net::WebSocketServer& running) { handler.attach(running); });
+    int status = 0;
+    const auto only = require(TestWebSocket::connect(server.port(), kAllowedOrigin, status));
+    REQUIRE(status == kSwitchingProtocols);
+
+    const auto refused = TestWebSocket::connect(server.port(), kAllowedOrigin, status);
+
+    REQUIRE(status == 503);
+    static_cast<void>(refused);
+    static_cast<void>(only);
 }

@@ -19,15 +19,20 @@ namespace uno::app::request {
 enum class Emote : std::uint8_t { Gg, Wow, Lol, Ouch, Think, Fire };
 
 struct Hello {
-    std::optional<SessionToken> sessionToken;
     std::string clientVersion;
 
     bool operator==(const Hello&) const = default;
 };
 
+// The session is already open in another tab: this connection takes it over, and the other one is closed (ADR 0036).
+struct TakeOver {
+    bool operator==(const TakeOver&) const = default;
+};
+
 struct CreateRoom {
     std::string nickname; // raw: the application layer trims and validates it
     std::optional<RoomSettingsPatch> settings;
+    std::uint8_t avatarId{0};
 
     bool operator==(const CreateRoom&) const = default;
 };
@@ -39,6 +44,7 @@ struct CreateBotGame {
     std::uint8_t botCount{};
     BotLevel level{};
     std::optional<RoomSettingsPatch> settings;
+    std::uint8_t avatarId{0};
 
     bool operator==(const CreateBotGame&) const = default;
 };
@@ -46,6 +52,7 @@ struct CreateBotGame {
 struct JoinRoom {
     RoomCode code;
     std::string nickname;
+    std::uint8_t avatarId{0};
 
     bool operator==(const JoinRoom&) const = default;
 };
@@ -76,6 +83,11 @@ struct AddBot {
     BotLevel level{};
 
     bool operator==(const AddBot&) const = default;
+};
+
+// The host sends everybody back to the lobby, abandoning the match if there is one (ADR 0037).
+struct BackToLobby {
+    bool operator==(const BackToLobby&) const = default;
 };
 
 struct StartMatch {
@@ -135,9 +147,16 @@ struct SendReaction {
     bool operator==(const SendReaction&) const = default;
 };
 
-using Body = std::variant<Hello, CreateRoom, CreateBotGame, JoinRoom, LeaveRoom, UpdateSettings, SetReady, Kick, AddBot,
-                          StartMatch, Rematch, ReadyForNextRound, PlayCard, DrawCard, Pass, ChooseColor, RespondPenalty,
-                          CallUno, CatchUno, SendReaction>;
+// A line of chat for the room (ADR 0037). Raw: the application layer validates it.
+struct SendChat {
+    std::string text;
+
+    bool operator==(const SendChat&) const = default;
+};
+
+using Body = std::variant<Hello, TakeOver, BackToLobby, SendChat, CreateRoom, CreateBotGame, JoinRoom, LeaveRoom,
+                          UpdateSettings, SetReady, Kick, AddBot, StartMatch, Rematch, ReadyForNextRound, PlayCard,
+                          DrawCard, Pass, ChooseColor, RespondPenalty, CallUno, CatchUno, SendReaction>;
 
 // A message and the identifier the answer (`ack` or `error`) will echo in `replyTo`.
 struct Envelope {

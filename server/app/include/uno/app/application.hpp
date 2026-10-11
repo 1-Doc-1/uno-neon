@@ -16,6 +16,7 @@
 
 #include <chrono>
 #include <cstdint>
+#include <deque>
 #include <expected>
 #include <optional>
 #include <span>
@@ -66,6 +67,12 @@ struct Timeouts {
     static constexpr std::chrono::milliseconds::rep kFastDivisor = 2;
 };
 
+// How much the server accepts at once (ADR 0036): beyond, a new room or a new session is refused with SERVER_FULL.
+struct Limits {
+    std::size_t maxRooms = 300;
+    std::size_t maxSessions = 2000;
+};
+
 // The use cases of the server: sessions, rooms and (from step 2.4) matches. It reacts to what the
 // transport reports and answers through the MessageSink; it knows neither sockets nor JSON.
 //
@@ -76,9 +83,9 @@ class Application final : public ConnectionHandler {
 public:
     // All dependencies are injected and must outlive the application.
     Application(MessageSink& sink, RoomRepository& rooms, core::RandomSource& random, const Clock& clock,
-                Scheduler& scheduler, Timeouts timeouts = {});
+                Scheduler& scheduler, Timeouts timeouts = {}, Limits limits = {});
 
-    void onConnected(ConnectionId connection) override;
+    void onConnected(ConnectionId connection, SessionToken token) override;
     void onRequest(ConnectionId connection, request::Envelope request) override;
     void onDisconnected(ConnectionId connection) override;
 
@@ -104,6 +111,9 @@ private:
                                                        std::optional<IllegalMoveReason> reason = std::nullopt);
 
     Outcome handle(ConnectionId connection, const request::Hello& request);
+    Outcome handle(ConnectionId connection, const request::TakeOver& request);
+    Outcome handle(ConnectionId connection, const request::BackToLobby& request);
+    Outcome handle(ConnectionId connection, const request::SendChat& request);
     Outcome handle(ConnectionId connection, const request::CreateRoom& request);
     Outcome handle(ConnectionId connection, const request::CreateBotGame& request);
     Outcome handle(ConnectionId connection, const request::JoinRoom& request);
@@ -138,10 +148,17 @@ private:
     // Seats a new bot of `level` in `room`. Shared by the lobby's "add a bot" and the game against bots.
     void addBotTo(Room& room, BotLevel level);
 
+    // Attaches a connection to the session its token names (creating it when the token is new). Without `takeOver`, a
+    // session that another connection holds is not touched: the answer is session.busy.
+    Outcome attach(ConnectionId connection, bool takeOver);
+    // Sends everybody back to the lobby and forgets the match: the host abandoned it, or chose to leave the end screen.
+    void resetToLobby(Room& room);
     // The session behind a connection that said hello, or SESSION_REQUIRED.
     [[nodiscard]] std::expected<Session*, Failure> sessionOf(ConnectionId connection);
     // The room of a session, or NOT_IN_ROOM.
     [[nodiscard]] std::expected<Room*, Failure> roomOf(const Session& session);
+    // The room of a session whose player is its host, in any phase.
+    [[nodiscard]] std::expected<Room*, Failure> hostedRoomOf(const Session& session);
     // The room of a session whose player is its host, in the lobby: what the host's lobby commands need.
     [[nodiscard]] std::expected<Room*, Failure> hostedLobbyOf(const Session& session);
 
@@ -201,11 +218,15 @@ private:
     const Clock* clock_;
     Scheduler* scheduler_;
     Timeouts timeouts_;
+    Limits limits_;
 
     std::unordered_map<std::string, Session> sessions_; // by player id
     std::unordered_map<std::string, std::string> playerOfToken_;
     std::unordered_map<ConnectionId, std::string> playerOfConnection_;
-    std::unordered_map<std::string, std::int64_t> lastReactionAt_; // by player id
+    std::unordered_map<ConnectionId, SessionToken> connectionTokens_; // what each open connection presented
+    std::unordered_map<std::string, std::int64_t> lastReactionAt_;    // by player id
+    std::unordered_map<std::string, std::deque<std::int64_t>>
+        chatTimes_; // by player id: when the last messages were sent
     std::vector<std::pair<ConnectionId, response::Message>> outbox_;
 };
 

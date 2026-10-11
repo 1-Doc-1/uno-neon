@@ -8,6 +8,9 @@
 
 namespace uno::app {
 
+// The avatars a player chooses from (ADR 0037): 0 to kAvatarCount - 1, drawn by the client.
+inline constexpr std::uint8_t kAvatarCount = 12;
+
 // Strong types, like uno_core's PlayerId: a token cannot be passed where a room code is expected.
 
 // Secret that lets a client resume its session. Never logged.

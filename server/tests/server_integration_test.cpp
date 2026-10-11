@@ -71,6 +71,11 @@ struct Deployment {
     }
 
     [[nodiscard]] WsClient client() const { return {server.port(), kOrigin}; }
+    // A browser that comes back with the session cookie it was given.
+    [[nodiscard]] WsClient client(const SessionToken& cookie) const
+    {
+        return {server.port(), kOrigin, "uno_session=" + cookie.value};
+    }
 
     uno::net::CryptoRandomSource random;
     uno::net::SystemClock clock;
@@ -93,13 +98,15 @@ struct Player {
 Player enter(const Deployment& deployment, const std::string& nickname)
 {
     WsClient client = deployment.client();
-    static_cast<void>(client.send(request::Hello{.sessionToken = std::nullopt, .clientVersion = "test"}));
+    static_cast<void>(client.send(request::Hello{.clientVersion = "test"}));
     const auto welcome = require(client.await<response::Welcome>(), "a welcome");
+    // Read before the client moves into the Player
+    auto token = require(client.sessionToken(), "a session cookie");
     return Player{
         .client = std::move(client),
         .nickname = nickname,
         .id = welcome.playerId,
-        .token = welcome.sessionToken,
+        .token = std::move(token),
         .view = std::nullopt,
     };
 }
@@ -292,8 +299,12 @@ TEST_CASE("A player who reconnects with their token gets their room and their ha
     }
     const auto hand = players.at(1).view->game.me.hand;
 
-    WsClient again = deployment.client();
-    static_cast<void>(again.send(request::Hello{.sessionToken = players.at(1).token, .clientVersion = "test"}));
+    // The browser comes back with its cookie
+    WsClient again = deployment.client(players.at(1).token);
+    static_cast<void>(again.send(request::Hello{.clientVersion = "test"}));
+    // The first tab still holds the session: this one is told so, then takes it over
+    REQUIRE(again.await<response::SessionBusy>().has_value());
+    static_cast<void>(again.send(request::TakeOver{}));
 
     const auto welcome = require(again.await<response::Welcome>(), "a welcome");
     REQUIRE(welcome.playerId == players.at(1).id);

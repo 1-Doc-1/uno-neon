@@ -23,7 +23,7 @@
     },
     "SessionToken": {
       "title": "SessionToken",
-      "description": "128 cryptographically random bits, base64url without padding.",
+      "description": "128 cryptographically random bits, base64url without padding. The value of the HttpOnly session cookie: it never travels in a message (ADR 0036).",
       "type": "string",
       "pattern": "^[A-Za-z0-9_-]{22}$"
     },
@@ -38,6 +38,13 @@
       "description": "6 characters, without the ambiguous I, L, O, 0 and 1.",
       "type": "string",
       "pattern": "^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$"
+    },
+    "Avatar": {
+      "title": "Avatar",
+      "description": "One of the 12 predefined avatars (ADR 0037); the client draws it, nothing is uploaded.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 11
     },
     "Nickname": {
       "title": "Nickname",
@@ -335,7 +342,9 @@
         "ILLEGAL_MOVE",
         "UNO_WINDOW_CLOSED",
         "UNO_GRACE_PERIOD",
-        "EFFECT_IN_PROGRESS"
+        "EFFECT_IN_PROGRESS",
+        "SERVER_FULL",
+        "CHAT_INVALID"
       ]
     },
     "IllegalMoveReason": {

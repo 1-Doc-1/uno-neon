@@ -12,6 +12,9 @@ export type Protocol = ClientMessage | ServerMessage;
  */
 export type ClientMessage =
   | HelloMessage
+  | TakeOverMessage
+  | BackToLobbyMessage
+  | SendChatMessage
   | CreateRoomMessage
   | CreateBotGameMessage
   | JoinRoomMessage
@@ -40,13 +43,13 @@ export type ProtocolVersion = 1;
  */
 export type MessageId = string;
 /**
- * 128 cryptographically random bits, base64url without padding.
- */
-export type SessionToken = string;
-/**
  * Raw nickname. The server trims it and checks the rules (2 to 16 letters, digits, space, _ or -), answering NICKNAME_INVALID: only the size is bounded here.
  */
 export type Nickname = string;
+/**
+ * One of the 12 predefined avatars (ADR 0037); the client draws it, nothing is uploaded.
+ */
+export type Avatar = number;
 /**
  * official: SPEC §3. ladder: penalty cards pile up, +2 < +4 < +5, and a +4 cannot be challenged (ADR 0029).
  */
@@ -118,6 +121,8 @@ export type ServerMessage =
   | AckMessage
   | ErrorMessage
   | WelcomeMessage
+  | SessionBusyMessage
+  | ChatMessageMessage
   | RoomUpdateMessage
   | GameUpdateMessage
   | ReactionMessage
@@ -151,7 +156,9 @@ export type ErrorCode =
   | 'ILLEGAL_MOVE'
   | 'UNO_WINDOW_CLOSED'
   | 'UNO_GRACE_PERIOD'
-  | 'EFFECT_IN_PROGRESS';
+  | 'EFFECT_IN_PROGRESS'
+  | 'SERVER_FULL'
+  | 'CHAT_INVALID';
 /**
  * Detail of an ILLEGAL_MOVE error.
  */
@@ -242,7 +249,7 @@ export type GamePhase =
 export type EpochMillis1 = number;
 
 /**
- * First message of every connection. Without a token a new session is created; with a valid token the session (and its room) is resumed.
+ * First message of every connection. The session is the one of the HttpOnly cookie the browser sent with the upgrade request (ADR 0036): a new session, or the one (and its room) that is resumed. The token never travels in a message.
  */
 export interface HelloMessage {
   v: ProtocolVersion;
@@ -251,8 +258,39 @@ export interface HelloMessage {
   payload: HelloPayload;
 }
 export interface HelloPayload {
-  sessionToken?: SessionToken;
   clientVersion: string;
+}
+/**
+ * After session.busy: this tab takes the session over, and the tab that held it is closed (code 4000). ADR 0036.
+ */
+export interface TakeOverMessage {
+  v: ProtocolVersion;
+  id: MessageId;
+  type: 'session.takeOver';
+  payload: TakeOverPayload;
+}
+export interface TakeOverPayload {}
+/**
+ * Host only: sends everybody back to the lobby, abandoning the match if one is running (no score). ADR 0037.
+ */
+export interface BackToLobbyMessage {
+  v: ProtocolVersion;
+  id: MessageId;
+  type: 'room.backToLobby';
+  payload: BackToLobbyPayload;
+}
+export interface BackToLobbyPayload {}
+/**
+ * A line of chat for the room: 1 to 200 visible characters on one line, at most 5 messages in 10 seconds (RATE_LIMITED). ADR 0037.
+ */
+export interface SendChatMessage {
+  v: ProtocolVersion;
+  id: MessageId;
+  type: 'chat.send';
+  payload: SendChatPayload;
+}
+export interface SendChatPayload {
+  text: string;
 }
 /**
  * Creates a room and makes the sender its host. Not allowed while already in a room.
@@ -265,6 +303,7 @@ export interface CreateRoomMessage {
 }
 export interface CreateRoomPayload {
   nickname: Nickname;
+  avatarId?: Avatar;
   settings?: RoomSettingsPatch;
 }
 /**
@@ -300,6 +339,7 @@ export interface CreateBotGameMessage {
 }
 export interface CreateBotGamePayload {
   nickname: Nickname;
+  avatarId?: Avatar;
   botCount: BotCount;
   level: BotLevel;
   settings?: RoomSettingsPatch;
@@ -316,6 +356,7 @@ export interface JoinRoomMessage {
 export interface JoinRoomPayload {
   code: RoomCode;
   nickname: Nickname;
+  avatarId?: Avatar;
 }
 /**
  * Leaves the current room.
@@ -520,7 +561,7 @@ export interface ErrorDetails {
   reason: IllegalMoveReason;
 }
 /**
- * Answer to session.hello. Keep the token in sessionStorage to resume after a reconnection.
+ * Answer to session.hello. The session itself is in an HttpOnly cookie the browser keeps: no token here.
  */
 export interface WelcomeMessage {
   v: ProtocolVersion;
@@ -528,9 +569,29 @@ export interface WelcomeMessage {
   payload: WelcomePayload;
 }
 export interface WelcomePayload {
-  sessionToken: SessionToken;
   playerId: PlayerId;
   resumedRoomCode?: RoomCode;
+}
+/**
+ * Answer to session.hello when the session is already open in another tab: nothing was attached. The client may send session.takeOver (ADR 0036).
+ */
+export interface SessionBusyMessage {
+  v: ProtocolVersion;
+  type: 'session.busy';
+  payload: SessionBusyPayload;
+}
+export interface SessionBusyPayload {}
+/**
+ * A chat line, sent to every human member of the room (the sender included). Plain text: never markup (ADR 0037).
+ */
+export interface ChatMessageMessage {
+  v: ProtocolVersion;
+  type: 'chat.message';
+  payload: ChatMessagePayload;
+}
+export interface ChatMessagePayload {
+  playerId: PlayerId;
+  text: string;
 }
 export interface RoomUpdateMessage {
   v: ProtocolVersion;
@@ -586,6 +647,7 @@ export interface RoomMember {
   isReady: boolean;
   isConnected: boolean;
   isBot: boolean;
+  avatarId: Avatar;
 }
 /**
  * Sent to every player after each accepted action: the events to animate, then the full view to apply. The state version lives in view.stateVersion.
@@ -864,6 +926,7 @@ export interface SeatView {
   isHost: boolean;
   hasCalledUno: boolean;
   isReadyForNextRound: boolean;
+  avatarId: Avatar;
 }
 export interface UnoWindow {
   targetId: PlayerId;

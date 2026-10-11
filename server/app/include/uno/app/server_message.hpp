@@ -36,11 +36,16 @@ struct Error {
 
 // Answer to session.hello.
 struct Welcome {
-    SessionToken sessionToken;
     core::PlayerId playerId;
     std::optional<RoomCode> resumedRoomCode;
 
     bool operator==(const Welcome&) const = default;
+};
+
+// Answer to session.hello when the session is already open in another tab: nothing was attached to this connection
+// (ADR 0036). The client may send session.takeOver.
+struct SessionBusy {
+    bool operator==(const SessionBusy&) const = default;
 };
 
 // lobby: waiting for players; inGame: a match is running; matchOver: waiting for a rematch.
@@ -54,6 +59,7 @@ struct RoomMember {
     bool isReady{};
     bool isConnected{};
     bool isBot{};
+    std::uint8_t avatarId{};
 
     bool operator==(const RoomMember&) const = default;
 };
@@ -82,6 +88,13 @@ struct Reaction {
     bool operator==(const Reaction&) const = default;
 };
 
+struct ChatMessage {
+    core::PlayerId playerId;
+    std::string text;
+
+    bool operator==(const ChatMessage&) const = default;
+};
+
 enum class RoomClosedReason : std::uint8_t { Expired, Kicked, HostClosed };
 
 struct RoomClosed {
@@ -97,6 +110,7 @@ struct SeatInfo {
     bool isBot{};
     bool isHost{};
     bool isReadyForNextRound{};
+    std::uint8_t avatarId{};
 
     bool operator==(const SeatInfo&) const = default;
 };
@@ -136,6 +150,7 @@ struct GameUpdate {
     bool operator==(const GameUpdate&) const = default;
 };
 
-using Message = std::variant<Ack, Error, Welcome, RoomUpdate, GameUpdate, Reaction, RoomClosed>;
+using Message =
+    std::variant<Ack, Error, Welcome, SessionBusy, RoomUpdate, GameUpdate, Reaction, ChatMessage, RoomClosed>;
 
 } // namespace uno::app::response

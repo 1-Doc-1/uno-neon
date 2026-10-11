@@ -30,7 +30,8 @@
           "isHost": true,
           "isReady": true,
           "isConnected": true,
-          "isBot": false
+          "isBot": false,
+          "avatarId": 1
         },
         {
           "playerId": "p_Max8Qw3Zt",
@@ -39,7 +40,8 @@
           "isHost": false,
           "isReady": true,
           "isConnected": true,
-          "isBot": false
+          "isBot": false,
+          "avatarId": 2
         },
         {
           "playerId": "p_Ines7Rt1Y",
@@ -48,7 +50,8 @@
           "isHost": false,
           "isReady": false,
           "isConnected": false,
-          "isBot": false
+          "isBot": false,
+          "avatarId": 3
         }
       ]
     }
