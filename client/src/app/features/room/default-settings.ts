@@ -15,6 +15,7 @@ export const DEFAULT_SETTINGS: RoomSettings = {
   maxPlayers: 6,
   drawRule: 'guided',
   declareUnoToWin: false,
+  animationSpeed: 'normal',
   drawTwoMultiplier: 1,
   wildDrawFourMultiplier: 1,
   wildDrawFiveMultiplier: 1,

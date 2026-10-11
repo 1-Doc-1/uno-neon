@@ -102,6 +102,42 @@
 - [x] S2 Jouer avec des amis par un tunnel (`scripts/play-online.ps1`, Caddy + cloudflared, ADR 0033)
 - [x] S3 Mode d'emploi (`docs/MODE-EMPLOI.md`) et page « Comment jouer »
 
+#### Lots T-U — règles, salon et sécurité, table, mobile (4 PR à la suite : T1, T2, U1, U2)
+> Reprise après interruption : relire cette section, `git status`, `git log --oneline -10`, les PR ouvertes, puis continuer au premier point non coché. Problème bloquant noté ici (cause, essais) ; on fusionne ce qui est vert et on passe à la suite.
+> **En cours : T1 terminée en local, PR à ouvrir (`feat/game-rules-polish`)**
+
+**T1 — Règles et confort de jeu (`feat/game-rules-polish`)**
+- [x] T1.1 +5 « super carte » (ADR 0034 modifie 0028) : plus de réplique, pioche automatique du total ; chaîne close en mode Échelle ; moteur, simulation, protocole, « Comment jouer », E2E
+- [x] T1.2 Tri automatique de la main (fonction pure) + FLIP
+- [x] T1.3 Main réduite au-delà de 16 cartes (échelle selon la largeur)
+- [x] T1.4 Journal : 5 lignes, anciennes en fondu
+- [x] T1.5 Tension musicale dès 1/3 du temps du tour, montée progressive
+- [x] T1.6 Réglage de salon « Vitesse des animations » (Normale / Rapide), animations ET budget/cooldown serveur
+
+**T2 — Salon, sessions et sécurité (`feat/lobby-sessions`)**
+- [ ] T2.1 Fin de partie : Revanche / Retour au salon (hôte), abandon en cours de partie avec confirmation
+- [ ] T2.2 Exclusion par menu du profil + confirmation, salon et partie
+- [ ] T2.3 Cookie de session HttpOnly/Secure/SameSite=Strict (ADR)
+- [ ] T2.4 Un seul onglet actif (« Jouer ici »)
+- [ ] T2.5 Anti-abus : un salon par session, limites par IP (en-tête du tunnel de confiance), plafonds, nettoyage
+- [ ] T2.6 Avatars (12 SVG)
+- [ ] T2.7 Chat (200 car., débit, texte brut, repliable, masquer un joueur)
+- [ ] T2.8 Tests serveur, client, E2E ; 4.3b coché
+
+**U1 — Effets et mise en page de la table (`feat/table-visuals`)**
+- [ ] U1.1 Sièges : avatar + pseudo, cartes de dos en accordéon dessous, sans rotation
+- [ ] U1.2 Bug de taille des sièges selon la parité (cause en 2 lignes + test)
+- [ ] U1.3 Roue de choix de couleur en cercle, sans débordement
+- [ ] U1.4 Impact +2 / +4, sons distincts
+- [ ] U1.5 Cinématique de fin de partie (podium, scores, confettis, son)
+
+**U2 — Toutes tailles d'écran et téléphone (`feat/responsive-mobile`, étape 3.7)**
+- [ ] U2.1 Mise en page 360 → 1920 px, portrait et paysage ; effets sur sièges bornés à l'écran
+- [ ] U2.2 Audio sur téléphone (resume au geste, contournement iOS) + MODE-EMPLOI
+- [ ] U2.3 100dvh, overscroll, touch-action, zéro débordement horizontal (zoom conservé)
+- [ ] U2.4 Jeu au clavier seul de bout en bout
+- [ ] U2.5 E2E émulation iPhone/Android, captures 360/768/1440/1920 ; 3.7 coché
+
 #### Phase 1 (suite)
 - [ ] 1.6 Options maison (politiques injectables)
 
@@ -221,3 +257,4 @@
 - 2026-10-10 — S1 — sons et effets (ADR 0032) : écran « Cliquer pour jouer » (le clic débloque l'audio et lance la cinématique avec un son d'ouverture), directive `ClickSound` (un test échoue si un gabarit a un bouton sans elle), `AudioService` à deux circuits (effets 60 %, musique 30 %), musique générée par `MusicEngine` (boucle de 16 battements, tempo 68 → 132 quand les 5 dernières secondes de mon tour approchent, désactivable), panneau « Réglages audio », malus à plusieurs couches, poussière (`ParticleSystem` pur, `ParticleCanvas` : un canvas, 40 particules, boucle arrêtée à vide, coupée en mouvement réduit) lancée par `EffectsLayer` ; tests client (353), E2E (28, dont axe sur l'écran « Cliquer pour jouer ») — `feat/audio-fx`
 - 2026-10-10 — S2 — jouer par un tunnel (ADR 0033) : `UNO_BIND_ADDRESS` (serveur sur 127.0.0.1 seulement, test), test « logs sans jeton ni adresse IP », `deploy/Caddyfile.tunnel` (CSP par hachages Angular `autoCsp`, en-têtes, cache long, `/health` fermé, adresse du visiteur par `Cf-Connecting-Ip`), `scripts/play-online.ps1` (build release, contrôles de sécurité avant publication, Job Windows contre les orphelins, PC éveillé, presse-papiers) et `setup-online.ps1` ; **bugs trouvés en vrai** : Caddy ne servait que l'hôte `127.0.0.1` (le tunnel envoie le nom du tunnel), Cloudflare répond une page vide tant que le tunnel n'est pas relié, le DNS local mettait en cache l'absence du nom ; une manche complète à deux navigateurs par l'adresse publique sans erreur console ; Lighthouse 100/100/100 (bureau), 98/100/100 (mobile) ; `linux-check.sh` vert — `feat/tunnel-play`
 - 2026-10-10 — S3 — mode d'emploi pour l'hôte (`docs/MODE-EMPLOI.md`, avec captures, lié depuis le README) et page « Comment jouer » `/comment-jouer` (règles, cartes spéciales avec leurs cartes, UNO, chaque option du salon avec un exemple, réglages audio ; lien sur l'accueil ; E2E : navigation, 375 et 1440 px sans défilement horizontal, axe sans violation) ; défaut vu sur la capture à 375 px et corrigé : le panneau « Réglages audio » passait sous le panneau de l'accueil ; bug de test corrigé en route : course entre un clic de l'E2E et le coup que le jeu joue à sa place — `docs/user-guide`
+- 2026-10-11 — T1 — règles et confort de jeu : **+5 « super carte »** (ADR 0034, modifie 0028/0029) : `canStackOn(_, +5)` faux, `forcedAction` toujours l'acceptation, plus de fenêtre ni d'invite côté client, raison `ONLY_PLUS_FIVE_PLAYABLE` supprimée du protocole, E2E et « Comment jouer » mis à jour ; **tri de la main** (`sortHand`, pur, la politique E2E et le chercheur de graines l'utilisent : `fastGame` recalculée) ; **main réduite** au-delà de 16 cartes (`handScale`, `--hand-scale`, marge `--gutter-ratio`, vérifié 375/1024/1440 px sur `/dev/table?scenario=big-hand`) ; **journal** de 5 lignes en fondu (masque) ; **tension** dès le dernier tiers du tour, montée progressive (`tensionOfTurn`) ; **réglage de salon « Vitesse des animations »** (ADR 0035, `Timeouts::atSpeed`, `AnimationDirector.roomSpeed`) ; `linux-check.sh` vert — `feat/game-rules-polish`

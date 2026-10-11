@@ -1,8 +1,12 @@
 // Ma main : tient toujours dans sa largeur (container query), les cartes se chevauchent d'autant plus qu'elles sont nombreuses
 :host {
-  --card-w: 72px;
+  // Taille normale d'une carte ; `--hand-scale` (1 jusqu'à 16 cartes) la réduit au-delà, voir `handScale`
+  --card-base: 72px;
+  --hand-scale: 1;
+  --card-w: calc(var(--card-base) * var(--hand-scale));
   --max-step: calc(var(--card-w) * 0.7);
-  --gutter: calc(var(--card-w) * 0.5);
+  --gutter-ratio: 0.8;
+  --gutter: calc(var(--card-w) * var(--gutter-ratio));
   --fan: 1;
   display: block;
   min-width: 0;
@@ -78,8 +82,8 @@
 
 @media (max-width: 767px) {
   :host {
-    --card-w: 64px;
-    --gutter: 34px;
+    --card-base: 64px;
+    --gutter-ratio: 0.55;
     --fan: 0.5;
   }
 
@@ -90,6 +94,6 @@
 
 @media (min-width: 768px) {
   :host {
-    --card-w: clamp(100px, 14vh, 136px);
+    --card-base: clamp(100px, 14vh, 136px);
   }
 }

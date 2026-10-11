@@ -45,7 +45,6 @@ const ILLEGAL_REASONS: Record<IllegalMoveReason, string> = {
   TARGET_REQUIRED: 'Choisis le joueur que vise ce Joker +5.',
   TARGET_NOT_ALLOWED: 'Seul le Joker +5 vise un joueur.',
   INVALID_TARGET: 'Ce joueur ne peut pas être visé.',
-  ONLY_PLUS_FIVE_PLAYABLE: 'Tu ne peux répliquer qu’avec un Joker +5.',
 };
 
 export function describeError(code: ErrorCode, reason?: IllegalMoveReason): string {

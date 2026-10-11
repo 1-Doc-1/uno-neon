@@ -11,6 +11,7 @@ import {
   untracked,
   viewChild,
 } from '@angular/core';
+import { tensionOfTurn } from '../../audio/music';
 import { AudioService } from '../../audio/audio.service';
 import type { Card, Color, PlayerView } from '../../protocol/generated/protocol';
 import type { EventBatch } from '../../state/game-store';
@@ -18,13 +19,13 @@ import { ChallengeDialog } from './challenge-dialog';
 import { ColorPicker } from './color-picker';
 import { AnimationDirector } from './fx/animation-director';
 import { EffectsLayer } from './fx/effects-layer';
-import { Hand } from './hand';
+import { Hand, type IncomingCard } from './hand';
+import { sortHand } from './sort-hand';
 import { MatchOverDialog } from './match-over-dialog';
 import { MyBadge } from './my-badge';
 import { MAX_FAN_BACKS } from './opponent-fan';
 import { OpponentSeat } from './opponent-seat';
 import { Piles } from './piles';
-import { PlusFivePrompt } from './plus-five-prompt';
 import { SoundControl } from '../../ui/sound-control';
 import { RoundOverDialog } from './round-over-dialog';
 import { opponentsInViewOrder, seatLayout } from './seat-layout';
@@ -38,9 +39,9 @@ const NARROW_QUERY = '(max-width: 639px)';
 /** En portrait étroit : au-delà, les adversaires passent en bande défilante. */
 const MAX_ARC_OPPONENTS = 4;
 const NARROW_MAX_BACKS = 5;
-const JOURNAL_LINES = 2;
-/** Les dernières secondes de mon tour, pendant lesquelles la musique monte en tension. */
-const TENSION_SECONDS = 5;
+const JOURNAL_LINES = 5;
+/** Les animations vont deux fois plus vite quand l'hôte a choisi « Rapide » (le serveur raccourcit ses pauses de même). */
+const FAST_SPEED = 2;
 
 export interface CardPlay {
   readonly cardId: number;
@@ -66,7 +67,6 @@ export interface CardPlay {
     ChallengeDialog,
     ColorPicker,
     TargetPicker,
-    PlusFivePrompt,
     SoundControl,
     RoundOverDialog,
     MatchOverDialog,
@@ -114,16 +114,6 @@ export class TableView {
   /** La cible déjà choisie du Joker +5 qui attend sa couleur. */
   private readonly chosenTarget = signal<string | null>(null);
   /**
-   * Une pénalité sans contestation possible me vise et le serveur ne m'offre pas le paquet pour la prendre : une fenêtre
-   * propose d'accepter, la réplique se fait en cliquant une carte. Avec le cumul en échelle (`canDraw`), il n'y a pas
-   * de fenêtre : le paquet prend tout, les cartes qui s'empilent sont jouables dans la main.
-   */
-  protected readonly plusFiveAnswer = computed(() => {
-    const view = this.view();
-    const options = view.me.penaltyResponse;
-    return options && !options.canChallenge && !view.me.canDraw ? options : null;
-  });
-  /**
    * Une pénalité m'attend : mes cartes empilables sont mises en évidence dès qu'elle arrive, même si le serveur
    * n'accepte ma réponse qu'à `actionsOpenAt` (elles restent alors verrouillées).
    */
@@ -149,13 +139,22 @@ export class TableView {
   /** Ma main telle qu'on la montre : seules les cartes arrivées, celles d'une pioche en cours prennent place à leur tour. */
   protected readonly shownHand = computed(() => {
     const hidden = this.director.hiddenCardIds();
-    return this.view().me.hand.filter((card) => !hidden.has(card.id));
+    return sortHand(this.view().me.hand.filter((card) => !hidden.has(card.id)));
   });
-  protected readonly incomingCardIds = computed(() => {
+  /** Les cartes en vol vers ma main, avec la place que chacune prendra une fois triée parmi celles déjà arrivées. */
+  protected readonly incomingCards = computed<readonly IncomingCard[]>(() => {
     const hidden = this.director.hiddenCardIds();
-    return this.view()
-      .me.hand.filter((card) => hidden.has(card.id))
-      .map((card) => card.id);
+    const hand = this.view().me.hand;
+    const arrived = hand.filter((card) => !hidden.has(card.id));
+    const flying = hand.filter((card) => hidden.has(card.id));
+    return flying.map((card, order) => {
+      const landed = sortHand([...arrived, ...flying.slice(0, order + 1)]);
+      return {
+        id: card.id,
+        index: landed.findIndex((c) => c.id === card.id),
+        count: landed.length,
+      };
+    });
   });
   protected readonly mySeat = computed(() =>
     this.seats().find((p) => p.playerId === this.view().me.playerId),
@@ -231,16 +230,17 @@ export class TableView {
   protected readonly names = computed(() =>
     Object.fromEntries(this.view().players.map((seat) => [seat.playerId, seat.nickname])),
   );
-  /** Mon tour touche à sa fin : l'`AudioService` en fait monter la tension de la musique (si je l'ai permis). */
-  private readonly turnEnding = computed(() => {
-    const seconds = this.turnSeconds();
-    return (
-      this.myTurn() &&
-      this.actionsOpen() &&
-      seconds !== null &&
-      seconds > 0 &&
-      seconds <= TENSION_SECONDS
-    );
+  /**
+   * Mon tour touche à sa fin : dès qu'il n'en reste qu'un tiers, la tension de la musique monte (si je l'ai permis,
+   * `AudioService`).
+   */
+  private readonly turnTension = computed(() => {
+    const deadline = this.view().turnDeadline;
+    if (!this.myTurn() || !this.actionsOpen() || deadline === null) {
+      return 0;
+    }
+    const total = (this.view().settings.turnTimerSeconds ?? 0) * 1000;
+    return tensionOfTurn(deadline - this.serverNow(), total);
   });
   protected readonly currentName = computed(() => this.nameOf(this.view().currentPlayerId));
   protected readonly turnSeconds = computed(() => this.secondsUntil(this.view().turnDeadline));
@@ -273,8 +273,8 @@ export class TableView {
   );
 
   constructor() {
-    effect(() => this.audio.setTension(this.turnEnding()));
-    inject(DestroyRef).onDestroy(() => this.audio.setTension(false));
+    effect(() => this.audio.setTension(this.turnTension()));
+    inject(DestroyRef).onDestroy(() => this.audio.setTension(0));
     // Le lot d'événements pilote les effets ; la couleur d'avant la mise à jour est retenue le temps d'une roue
     effect(() => {
       const batch = this.batch();
@@ -290,6 +290,9 @@ export class TableView {
       }
     });
     effect(() => this.director.speed.set(this.animationSpeed()));
+    effect(() =>
+      this.director.roomSpeed.set(this.view().settings.animationSpeed === 'fast' ? FAST_SPEED : 1),
+    );
     effect((onCleanup) => {
       const element = this.stageElement()?.nativeElement;
       if (!element || typeof ResizeObserver !== 'function') {

@@ -64,6 +64,8 @@
   color: var(--text-dim);
   font-size: var(--fs-xs);
   text-align: right;
+  // Les plus anciennes lignes (en haut) s'effacent en fondu
+  mask-image: linear-gradient(to bottom, transparent, var(--text) 65%);
 
   li:last-child {
     color: var(--text);

@@ -1,5 +1,5 @@
 import { expect, test } from '../support/fixtures.ts';
-import { startMatch } from '../support/flow.ts';
+import { chooseSetting, startMatch } from '../support/flow.ts';
 import { SEEDS } from '../support/seeds.ts';
 
 test.use({ seed: SEEDS.quickGame });
@@ -22,4 +22,14 @@ test('créer un salon, rejoindre par le lien, se déclarer prêt, lancer la part
   await expect(host.cardCountOf('Bob')).toHaveText('7');
   await expect(guest.myTurn).toBeVisible();
   await expect(host.myTurn).toBeHidden();
+});
+
+test('l’hôte règle la vitesse des animations : l’invité voit « animations rapides » (ADR 0035)', async ({
+  lobby,
+}) => {
+  const { host, guest } = lobby;
+
+  await chooseSetting(host, 'Rapide');
+
+  await expect(guest.page.getByText(/animations rapides/)).toBeVisible();
 });

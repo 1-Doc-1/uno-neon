@@ -311,12 +311,15 @@ private:
         requireForcedActionIsAccepted(round);
     }
 
-    // A move the engine calls forced must be one it accepts, and only the guided draw has any. Tried on a copy, with
-    // its own random source, so that the simulation itself is not disturbed.
+    // A move the engine calls forced must be one it accepts, and only the guided draw has any (and the target of a
+    // Wild Draw Five, ADR 0034). Tried on a copy, with its own random source, so that the simulation itself is not
+    // disturbed.
     static void requireForcedActionIsAccepted(const uno::core::Round& round)
     {
         const auto forced = round.forcedAction();
-        REQUIRE((!forced.has_value() || round.drawRule() == DrawRule::Guided));
+        const auto* stack = std::get_if<uno::core::AwaitingStackResponse>(&round.phase());
+        const bool superCard = stack != nullptr && stack->top == uno::core::Rank::WildDrawFive;
+        REQUIRE((!forced.has_value() || round.drawRule() == DrawRule::Guided || superCard));
         // A card held back only by the missing announcement is never a reason to move on for the player (ADR 0019).
         REQUIRE((!round.mustDeclareUno(round.currentPlayer()) || !forced.has_value()));
         if (forced.has_value()) {

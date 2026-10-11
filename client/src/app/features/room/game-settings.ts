@@ -1,5 +1,6 @@
 import { Component, computed, input, output } from '@angular/core';
 import type {
+  AnimationSpeed,
   CardMultiplier,
   DrawAmount,
   DrawRule,
@@ -22,6 +23,11 @@ const TURN_TIMERS: readonly SegmentOption<TurnTimerSeconds>[] = [
   { value: 15, label: '15 s' },
   { value: 30, label: '30 s' },
   { value: 60, label: '60 s' },
+];
+
+const ANIMATION_SPEEDS: readonly SegmentOption<AnimationSpeed>[] = [
+  { value: 'normal', label: 'Normale' },
+  { value: 'fast', label: 'Rapide' },
 ];
 
 const DRAW_RULES: readonly SegmentOption<DrawRule>[] = [
@@ -77,6 +83,7 @@ export class GameSettings {
   protected readonly matchLengths = MATCH_LENGTHS;
   protected readonly turnTimers = TURN_TIMERS;
   protected readonly maxPlayers = MAX_PLAYERS;
+  protected readonly animationSpeeds = ANIMATION_SPEEDS;
   protected readonly drawRules = DRAW_RULES;
   protected readonly drawAmounts = DRAW_AMOUNTS;
   protected readonly lastCardRules = LAST_CARD_RULES;

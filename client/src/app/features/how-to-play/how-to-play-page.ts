@@ -46,7 +46,7 @@ const SPECIAL_CARDS: readonly SpecialCard[] = [
   {
     card: { id: 6, color: null, rank: 'wildDrawFive' },
     name: 'Joker +5 (doré)',
-    text: 'Tu choisis la couleur et un joueur de ton choix, qui pioche 5 cartes. Il peut te répondre avec un autre Joker +5 : le total monte à 10, 15…, jusqu’à ce que quelqu’un accepte.',
+    text: 'Tu choisis la couleur et un joueur de ton choix, qui pioche 5 cartes. C’est la super carte : personne ne peut y répondre, pas même avec un autre +5. Le joueur visé pioche ses 5 cartes tout seul et passe son tour. Sur une pile de +2 ou de +4 (option Échelle), il close la chaîne : le joueur visé pioche le total.',
   },
 ];
 
@@ -60,6 +60,12 @@ const HOUSE_RULES: readonly HouseRule[] = [
     name: 'Minuteur par tour',
     text: 'Le temps dont tu disposes pour jouer ; passé ce délai, le jeu joue à ta place.',
     example: 'Avec 15 s, un joueur qui hésite voit sa première carte jouable posée pour lui.',
+  },
+  {
+    name: 'Vitesse des animations',
+    text: 'Normale : on a le temps de voir chaque effet. Rapide : les animations et les pauses du jeu sont deux fois plus courtes, pour tout le monde. Seul l’hôte la choisit.',
+    example:
+      'Entre amis qui connaissent les cartes, « Rapide » fait gagner plusieurs minutes par manche.',
   },
   {
     name: 'Joueurs maximum',
@@ -95,11 +101,11 @@ const HOUSE_RULES: readonly HouseRule[] = [
     name: 'Cumul des pénalités : Échelle',
     text: 'Un +2, un +4 ou un +5 peut se poser sur une pénalité d’un niveau égal ou plus faible (+2 < +4 < +5), et les cartes à piocher s’additionnent.',
     example:
-      'Un +2 est posé sur toi : tu réponds par un +4, le suivant doit piocher 2 + 4 = 6 cartes (ou répondre par un +4 ou un +5).',
+      'Un +2 est posé sur toi : tu réponds par un +4, le suivant doit piocher 2 + 4 = 6 cartes (ou répondre par un +4 ou un +5, qui clôt la chaîne).',
   },
   {
     name: 'Cumul des pénalités : Sans cumul',
-    text: 'Une pénalité se subit tout de suite ; seul le +5 répond à un +5.',
+    text: 'Une pénalité se subit tout de suite (un +4 peut se contester) ; un +5 ne se contre jamais.',
     example: 'Un +2 sur toi : tu pioches 2 cartes et tu passes ton tour.',
   },
   {

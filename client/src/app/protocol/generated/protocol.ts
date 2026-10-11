@@ -70,6 +70,10 @@ export type MaxPlayers = number;
  */
 export type DrawRule = 'guided' | 'official';
 /**
+ * How long the table takes to show what happened (ADR 0035). fast: animations and server pauses are halved.
+ */
+export type AnimationSpeed = 'normal' | 'fast';
+/**
  * Draw Two in the deck: 8 x this (ADR 0028).
  */
 export type CardMultiplier = 1 | 2 | 3 | 5;
@@ -166,8 +170,7 @@ export type IllegalMoveReason =
   | 'MUST_DECLARE_UNO'
   | 'TARGET_REQUIRED'
   | 'TARGET_NOT_ALLOWED'
-  | 'INVALID_TARGET'
-  | 'ONLY_PLUS_FIVE_PLAYABLE';
+  | 'INVALID_TARGET';
 /**
  * Draw Two in the deck: 8 x this (ADR 0028).
  */
@@ -281,6 +284,7 @@ export interface RoomSettingsPatch {
    * House rule (ADR 0019): the last card cannot be played before UNO is announced.
    */
   declareUnoToWin?: boolean;
+  animationSpeed?: AnimationSpeed;
   drawTwoMultiplier?: CardMultiplier;
   wildDrawFourMultiplier?: CardMultiplier1;
   wildDrawFiveMultiplier?: CardMultiplier2;
@@ -569,6 +573,7 @@ export interface RoomSettings {
    * House rule (ADR 0019): the last card cannot be played before UNO is announced.
    */
   declareUnoToWin: boolean;
+  animationSpeed: AnimationSpeed;
   drawTwoMultiplier: CardMultiplier3;
   wildDrawFourMultiplier: CardMultiplier4;
   wildDrawFiveMultiplier: CardMultiplier5;

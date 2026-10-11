@@ -175,9 +175,10 @@ bool Round::canDraw(const PlayerId& player) const
     if (player != turnOrder_.current()) {
         return false;
     }
-    // Ladder (ADR 0029): there is no window to answer, a click on the draw pile takes what is owed.
-    if (std::holds_alternative<AwaitingStackResponse>(phase_)) {
-        return stacking_ == PenaltyStacking::Ladder;
+    // There is no window to answer (ADR 0029, 0034): a click on the draw pile takes what is owed. With the official
+    // rules only a Wild Draw Five ever lands here, and it cannot be answered.
+    if (const auto* stack = std::get_if<AwaitingStackResponse>(&phase_)) {
+        return stacking_ == PenaltyStacking::Ladder || stack->top == Rank::WildDrawFive;
     }
     if (!std::holds_alternative<AwaitingPlay>(phase_)) {
         return false;
@@ -208,6 +209,11 @@ bool Round::canKeepDrawnCard(const PlayerId& player) const
 
 std::optional<PlayerAction> Round::forcedAction() const
 {
+    // A Wild Draw Five is the super card (ADR 0034): its target draws the total whatever the draw rule says.
+    const auto* stack = std::get_if<AwaitingStackResponse>(&phase_);
+    if (stack != nullptr && stack->top == Rank::WildDrawFive) {
+        return RespondPenalty{.response = PenaltyResponse::Accept};
+    }
     if (drawRule_ != DrawRule::Guided) {
         return std::nullopt;
     }
@@ -295,10 +301,9 @@ std::expected<Card, DomainError> Round::validatePlay(const PlayerId& actor, cons
         return std::unexpected{DomainError::CardNotInHand};
     }
     const Card card = *found;
-    // ADR 0028, 0029: a pending penalty is only answered by a penalty card of the same level or a higher one.
+    // ADR 0029, 0034: a pending penalty is only answered by a penalty card of the same level or a higher one.
     if (stack != nullptr && !canStackOn(card.rank, stack->top)) {
-        return std::unexpected{stack->top == Rank::WildDrawFive ? DomainError::OnlyPlusFivePlayable
-                                                                : DomainError::NotStackable};
+        return std::unexpected{DomainError::NotStackable};
     }
 
     if (isWild(card.rank) != action.chosenColor.has_value()) {

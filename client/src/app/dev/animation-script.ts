@@ -245,32 +245,28 @@ const STEPS: readonly Step[] = [
     },
   },
   {
-    caption: 'Je réponds avec mon Joker +5 : je vise Loïc, le total passe à 10',
+    caption:
+      'Personne ne répond à un Joker +5 : mes 5 cartes arrivent une à une, puis je passe mon tour',
     events: [
-      played(ME, card(30, null, 'wildDrawFive'), 'red'),
-      { kind: 'colorChosen', playerId: ME, color: 'red' },
-      targeted(ME, LOIC, 10),
+      drew(ME, 1, [card(31, 'yellow', '2')]),
+      drew(ME, 1, [card(32, 'blue', '9')]),
+      drew(ME, 1, [card(33, 'green', '1')]),
+      drew(ME, 1, [card(34, 'red', '8')]),
+      drew(ME, 1, [card(35, 'yellow', '6')]),
+      { kind: 'playerSkipped', playerId: ME },
       turn(LOIC),
     ],
     apply: (s) => {
-      s.hand = s.hand.filter((c) => c.id !== 30);
-      s.discardTop = card(30, null, 'wildDrawFive');
-      s.color = 'red';
-      s.pending = 10;
-      s.current = LOIC;
-    },
-  },
-  {
-    caption: 'Loïc accepte : ses 10 cartes arrivent une à une, puis il passe son tour',
-    events: [
-      ...Array.from({ length: 10 }, () => drew(LOIC, 1)),
-      { kind: 'playerSkipped', playerId: LOIC },
-      turn(ZOE),
-    ],
-    apply: (s) => {
-      s.counts[LOIC] += 10;
+      s.hand = [
+        ...s.hand,
+        card(31, 'yellow', '2'),
+        card(32, 'blue', '9'),
+        card(33, 'green', '1'),
+        card(34, 'red', '8'),
+        card(35, 'yellow', '6'),
+      ];
       s.pending = 0;
-      s.current = ZOE;
+      s.current = LOIC;
     },
   },
   {
@@ -347,14 +343,10 @@ export function buildDemoFrames(now: number): readonly DemoFrame[] {
         hand: [...state.hand],
         playableCardIds: state.current === ME ? state.hand.map((c) => c.id) : [],
         canDraw: false,
-        // Un Joker +5 me vise : accepter, ou répondre avec celui de ma main
+        // Un Joker +5 me vise : rien n'y répond, le paquet prend le total
         penaltyResponse:
           state.pending > 0 && state.current === ME
-            ? {
-                amount: state.pending,
-                canChallenge: false,
-                canStack: state.hand.some((c) => c.rank === 'wildDrawFive'),
-              }
+            ? { amount: state.pending, canChallenge: false, canStack: false }
             : null,
       },
     };

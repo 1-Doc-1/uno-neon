@@ -297,3 +297,40 @@ TEST_CASE("Announcing UNO opens no cooldown", "[app][presentation]")
 
     REQUIRE(table->room().actionsOpenAt <= table->harness.clock.nowMillis());
 }
+
+TEST_CASE("With fast animations, the presentation budget and the draw step are halved (ADR 0035)",
+          "[app][presentation]")
+{
+    auto table = tableAboutToPlay(core::Rank::DrawTwo, 3);
+    table->room().settings.animationSpeed = AnimationSpeed::Fast;
+    const auto card = playableOfRank(table->room().match->round(), core::Rank::DrawTwo);
+    const auto playedAt = table->harness.clock.nowMillis();
+    table->clearInboxes();
+
+    table->currentPlayer().send(request::PlayCard{
+        .cardId = card->id,
+        .chosenColor = std::nullopt,
+        .swapTargetId = std::nullopt,
+        .targetId = std::nullopt,
+    });
+
+    REQUIRE(table->room().actionsOpenAt == playedAt + (kDrawTwoBudget / 2).count());
+    const auto view = table->playerWithId(table->room().match->round().currentPlayer()).last<response::GameUpdate>();
+    REQUIRE(view->view.drawStepMs == 500);
+    REQUIRE(view->view.settings.animationSpeed == AnimationSpeed::Fast);
+}
+
+TEST_CASE("Animation speed only halves the pauses of the table, nothing else", "[app][presentation]")
+{
+    const Timeouts normal{};
+    const auto fast = normal.atSpeed(AnimationSpeed::Fast);
+
+    REQUIRE(normal.atSpeed(AnimationSpeed::Normal).playStep == normal.playStep);
+    REQUIRE(fast.playStep == normal.playStep / 2);
+    REQUIRE(fast.effectStep == normal.effectStep / 2);
+    REQUIRE(fast.drawStep == normal.drawStep / 2);
+    REQUIRE(fast.actionCooldown == normal.actionCooldown / 2);
+    REQUIRE(fast.forcedAction == normal.forcedAction / 2);
+    REQUIRE(fast.unoGrace == normal.unoGrace);
+    REQUIRE(fast.reconnectGrace == normal.reconnectGrace);
+}

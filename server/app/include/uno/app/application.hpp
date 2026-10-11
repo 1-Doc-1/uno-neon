@@ -6,6 +6,7 @@
 #include "uno/app/ports.hpp"
 #include "uno/app/room.hpp"
 #include "uno/app/room_repository.hpp"
+#include "uno/app/room_settings.hpp"
 #include "uno/app/server_message.hpp"
 #include "uno/core/client_event.hpp"
 #include "uno/core/domain_event.hpp"
@@ -45,6 +46,24 @@ struct Timeouts {
     // A bot thinks for a random time between these two, once the effect in progress is over (ADR 0030).
     std::chrono::milliseconds botThinkMin{std::chrono::milliseconds(1000)};
     std::chrono::milliseconds botThinkMax{std::chrono::milliseconds(2000)};
+
+    // The same pauses for a room whose host chose `speed` (ADR 0035): the clients' animations are shortened by the same
+    // factor, so what is shown still fits in what the server waits.
+    [[nodiscard]] Timeouts atSpeed(AnimationSpeed speed) const noexcept
+    {
+        if (speed == AnimationSpeed::Normal) {
+            return *this;
+        }
+        Timeouts fast = *this;
+        fast.forcedAction /= kFastDivisor;
+        fast.playStep /= kFastDivisor;
+        fast.effectStep /= kFastDivisor;
+        fast.drawStep /= kFastDivisor;
+        fast.actionCooldown /= kFastDivisor;
+        return fast;
+    }
+
+    static constexpr std::chrono::milliseconds::rep kFastDivisor = 2;
 };
 
 // The use cases of the server: sessions, rooms and (from step 2.4) matches. It reacts to what the
@@ -150,8 +169,11 @@ private:
     // ---- timers (application_lifecycle.cpp) ----
     void scheduleRoomExpiry(Room& room);
     // How long the clients take to show `events` (a card played, the effects, the cards drawn): ADR 0027.
-    [[nodiscard]] std::chrono::milliseconds presentationBudgetOf(std::span<const core::DomainEvent> events,
-                                                                 const core::Round& roundAfter) const;
+    [[nodiscard]] static std::chrono::milliseconds presentationBudgetOf(std::span<const core::DomainEvent> events,
+                                                                        const core::Round& roundAfter,
+                                                                        const Timeouts& pace);
+    // The pauses of this room: `timeouts_`, shortened when the host chose fast animations.
+    [[nodiscard]] Timeouts paceOf(const Room& room) const noexcept;
     // The forced move and the clock of a new turn start at `room.actionsOpenAt`, when the effect in progress is over.
     void armGameTimers(Room& room);
     // Schedules the bots' turn to think, after the effect in progress (ADR 0030).

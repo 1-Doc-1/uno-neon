@@ -16,6 +16,10 @@ namespace uno::app {
 enum class WildDrawFourMode : std::uint8_t { OfficialChallenge, Strict };
 enum class TurnTimerSeconds : std::uint8_t { Off = 0, Fifteen = 15, Thirty = 30, Sixty = 60 };
 
+// ADR 0035: how long the table takes to show what happened. Fast halves the animations and, with them, every pause the
+// server leaves the clients to watch (presentation budget, cooldown, forced moves, drawn cards).
+enum class AnimationSpeed : std::uint8_t { Normal, Fast };
+
 inline constexpr std::uint8_t kMinRoomPlayers = 2;
 inline constexpr std::uint8_t kMaxRoomPlayers = 10;
 
@@ -31,6 +35,7 @@ struct RoomSettings {
     std::uint8_t maxPlayers{6};
     core::DrawRule drawRule{core::DrawRule::Guided}; // ADR 0017
     bool declareUnoToWin{false};                     // ADR 0019: the last card needs an announcement
+    AnimationSpeed animationSpeed{AnimationSpeed::Normal};
     // ADR 0028: how many Draw Two, Wild Draw Four and Wild Draw Five the deck holds (x1, x2, x3 or x5)
     core::CardMultiplier drawTwoMultiplier{core::CardMultiplier::One};
     core::CardMultiplier wildDrawFourMultiplier{core::CardMultiplier::One};
@@ -60,6 +65,7 @@ struct RoomSettingsPatch {
     std::optional<std::uint8_t> maxPlayers;
     std::optional<core::DrawRule> drawRule;
     std::optional<bool> declareUnoToWin;
+    std::optional<AnimationSpeed> animationSpeed;
     std::optional<core::CardMultiplier> drawTwoMultiplier;
     std::optional<core::CardMultiplier> wildDrawFourMultiplier;
     std::optional<core::CardMultiplier> wildDrawFiveMultiplier;

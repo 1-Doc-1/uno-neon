@@ -210,7 +210,7 @@ void Application::scheduleRoomExpiry(Room& room)
 }
 
 std::chrono::milliseconds Application::presentationBudgetOf(std::span<const core::DomainEvent> events,
-                                                            const core::Round& roundAfter) const
+                                                            const core::Round& roundAfter, const Timeouts& pace)
 {
     std::chrono::milliseconds budget{0};
     std::size_t cards = 0;
@@ -221,7 +221,7 @@ std::chrono::milliseconds Application::presentationBudgetOf(std::span<const core
     for (const core::DomainEvent& event : events) {
         std::visit(core::detail::Overloaded{
                        [&](const core::CardPlayed&) {
-                           budget += timeouts_.playStep;
+                           budget += pace.playStep;
                            cardPlayed = true;
                            turnAction = true;
                        },
@@ -234,21 +234,21 @@ std::chrono::milliseconds Application::presentationBudgetOf(std::span<const core
                            penalty = true;
                            turnAction = true;
                        },
-                       [&](const core::PlayerSkipped&) { budget += timeouts_.effectStep; },
-                       [&](const core::DirectionReversed&) { budget += timeouts_.effectStep; },
+                       [&](const core::PlayerSkipped&) { budget += pace.effectStep; },
+                       [&](const core::DirectionReversed&) { budget += pace.effectStep; },
                        [&](const core::ColorChosen&) {
-                           budget += timeouts_.effectStep;
+                           budget += pace.effectStep;
                            turnAction = true;
                        },
                        [&](const core::PlusFiveTargeted&) {
-                           budget += timeouts_.effectStep;
+                           budget += pace.effectStep;
                            plusFiveTargeted = true;
                        },
                        [&](const core::ChallengeResolved&) {
-                           budget += timeouts_.effectStep;
+                           budget += pace.effectStep;
                            turnAction = true;
                        },
-                       [&](const core::UnoCaught&) { budget += timeouts_.effectStep; },
+                       [&](const core::UnoCaught&) { budget += pace.effectStep; },
                        [](const core::RoundStarted&) {},
                        [](const core::DeckReshuffled&) {},
                        [&](const core::TurnPassed&) { turnAction = true; },
@@ -264,11 +264,16 @@ std::chrono::milliseconds Application::presentationBudgetOf(std::span<const core
     const bool stacked = std::holds_alternative<core::AwaitingStackResponse>(roundAfter.phase()) && !plusFiveTargeted;
     if (cardPlayed &&
         (penalty || stacked || std::holds_alternative<core::AwaitingPenaltyResponse>(roundAfter.phase()))) {
-        budget += timeouts_.effectStep;
+        budget += pace.effectStep;
     }
-    budget += timeouts_.drawStep * static_cast<std::chrono::milliseconds::rep>(cards);
+    budget += pace.drawStep * static_cast<std::chrono::milliseconds::rep>(cards);
     // Whatever it showed, a turn action leaves the table the same minimum time to look (announcing UNO does not)
-    return turnAction ? std::max(budget, timeouts_.actionCooldown) : budget;
+    return turnAction ? std::max(budget, pace.actionCooldown) : budget;
+}
+
+Timeouts Application::paceOf(const Room& room) const noexcept
+{
+    return timeouts_.atSpeed(room.settings.animationSpeed);
 }
 
 void Application::armGameTimers(Room& room)
@@ -299,7 +304,7 @@ void Application::armGameTimers(Room& room)
     // A move the engine says nobody can choose is played after a short pause, like the player would have (ADR 0017).
     if (room.match->round().forcedAction().has_value()) {
         room.forcedActionTimer =
-            scheduler_->schedule(untilOpen + timeouts_.forcedAction,
+            scheduler_->schedule(untilOpen + paceOf(room).forcedAction,
                                  [this, code = room.code, version] { onForcedActionDue(code, version); });
     }
     const auto turnLength = std::chrono::seconds(static_cast<int>(room.settings.turnTimer));

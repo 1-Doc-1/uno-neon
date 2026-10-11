@@ -55,6 +55,9 @@ enum class PenaltyStacking : std::uint8_t {
 // Whether a card of rank `candidate` may be played on a pending penalty last raised by a card of rank `pending`.
 [[nodiscard]] constexpr bool canStackOn(Rank candidate, Rank pending) noexcept
 {
+    if (pending == Rank::WildDrawFive) {
+        return false; // ADR 0034: the Wild Draw Five closes a chain, nothing answers it
+    }
     const auto level = penaltyLevel(candidate);
     const auto required = penaltyLevel(pending);
     return level.has_value() && required.has_value() && *level >= *required;

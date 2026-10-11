@@ -4,10 +4,10 @@ export type ScenarioName =
   | 'uno-window'
   | 'two-windows'
   | 'challenge'
-  | 'plus-five-response'
   | 'ladder-stack'
   | 'must-declare'
   | 'full-table'
+  | 'big-hand'
   | 'players-2'
   | 'players-3'
   | 'players-4'
@@ -21,10 +21,10 @@ export const SCENARIOS: readonly ScenarioName[] = [
   'uno-window',
   'two-windows',
   'challenge',
-  'plus-five-response',
   'ladder-stack',
   'must-declare',
   'full-table',
+  'big-hand',
   'players-2',
   'players-3',
   'players-4',
@@ -124,6 +124,7 @@ export function scenarioView(name: ScenarioName, now: number): PlayerView {
       maxPlayers: 6,
       drawRule: 'guided',
       declareUnoToWin: false,
+      animationSpeed: 'normal',
       drawTwoMultiplier: 1,
       wildDrawFourMultiplier: 1,
       wildDrawFiveMultiplier: 1,
@@ -153,21 +154,6 @@ export function scenarioView(name: ScenarioName, now: number): PlayerView {
           canDraw: false,
           playableCardIds: [],
           penaltyResponse: { amount: 4, canChallenge: true, canStack: false },
-        },
-      };
-    case 'plus-five-response':
-      // Un Joker +5 de Loïc me vise : je peux accepter ou répondre avec le mien
-      return {
-        ...base,
-        phase: 'awaitingPenaltyResponse',
-        currentColor: 'green',
-        discardTop: card(52, null, 'wildDrawFive'),
-        pendingDraw: 10,
-        me: {
-          ...base.me,
-          canDraw: false,
-          playableCardIds: [30],
-          penaltyResponse: { amount: 10, canChallenge: false, canStack: true },
         },
       };
     case 'ladder-stack':
@@ -224,6 +210,22 @@ export function scenarioView(name: ScenarioName, now: number): PlayerView {
         currentPlayerId: mine ? 'me' : others[Math.min(1, others.length - 1)].playerId,
         me: mine ? base.me : { ...base.me, canDraw: false, playableCardIds: [] },
         turnDeadline: now + 17_000,
+      };
+    }
+    case 'big-hand': {
+      // Une main de 30 cartes : elle doit tenir dans la largeur, toutes cliquables (ADR 0035)
+      const colors = ['red', 'yellow', 'green', 'blue'] as const;
+      const hand = Array.from({ length: 30 }, (_, index) =>
+        card(100 + index, colors[index % 4], String(index % 10) as Card['rank']),
+      );
+      return {
+        ...base,
+        players: [
+          seat('me', 'Toi', 0, hand.length),
+          seat('a', 'Loïc', 1, 5),
+          seat('b', 'Zoé', 2, 4),
+        ],
+        me: { ...base.me, hand, playableCardIds: hand.map((c) => c.id) },
       };
     }
     case 'full-table':

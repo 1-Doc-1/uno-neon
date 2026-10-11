@@ -49,6 +49,7 @@ Parsed<RoomSettingsPatch> parseSettingsPatch(const Json& value)
     patch.maxPlayers = reader.optional<std::uint8_t>("maxPlayers", parseMaxPlayers);
     patch.drawRule = reader.optional<core::DrawRule>("drawRule", detail::parseEnum<core::DrawRule>);
     patch.declareUnoToWin = reader.optional<bool>("declareUnoToWin", detail::parseBool);
+    patch.animationSpeed = reader.optional<AnimationSpeed>("animationSpeed", detail::parseEnum<AnimationSpeed>);
     patch.drawTwoMultiplier = reader.optional<core::CardMultiplier>("drawTwoMultiplier", detail::parseCardMultiplier);
     patch.wildDrawFourMultiplier =
         reader.optional<core::CardMultiplier>("wildDrawFourMultiplier", detail::parseCardMultiplier);
@@ -314,6 +315,9 @@ Json encodeSettingsPatch(const RoomSettingsPatch& patch)
     }
     if (patch.declareUnoToWin) {
         json.emplace("declareUnoToWin", *patch.declareUnoToWin);
+    }
+    if (patch.animationSpeed) {
+        json.emplace("animationSpeed", detail::toWire(*patch.animationSpeed));
     }
     if (patch.maxPlayers) {
         json.emplace("maxPlayers", *patch.maxPlayers);

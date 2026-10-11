@@ -88,6 +88,11 @@ export class AnimationDirector {
   /** Vrai pendant le projecteur de fin de manche : la modale de fin de manche attend. */
   readonly dialogsHeld = this.dialogsHeldState.asReadonly();
   readonly speed = signal(1);
+  /**
+   * Vitesse choisie par l'hôte pour le salon (2 en « Rapide », ADR 0035). Elle raccourcit les animations ; l'écart entre
+   * deux cartes piochées, lui, vient déjà raccourci du serveur (`drawStepMs`).
+   */
+  readonly roomSpeed = signal(1);
   readonly reduced = signal(false);
 
   constructor() {
@@ -211,7 +216,9 @@ export class AnimationDirector {
     const drawing = spec.kind === 'draw';
     // Une pioche garde le rythme du serveur : seul le vol des cartes suit la vitesse de la démo, jamais l'écart entre elles
     const staggerMs = step.drawStepMs / this.speed();
-    const flightMs = reduced ? REDUCED_MS : MOTION_MS.drawFlight / this.speed();
+    const flightMs = reduced
+      ? REDUCED_MS
+      : MOTION_MS.drawFlight / (this.speed() * this.roomSpeed());
     const visibleMs = drawing ? (spec.count - 1) * staggerMs + flightMs : step.visibleMs * factor;
     const effect: ActiveEffect = {
       id: this.nextId++,
@@ -261,7 +268,7 @@ export class AnimationDirector {
       waiting > CATCH_UP_THRESHOLD
         ? Math.max(CATCH_UP_MIN_FACTOR, CATCH_UP_THRESHOLD / waiting)
         : 1;
-    return catchUp / this.speed();
+    return catchUp / (this.speed() * this.roomSpeed());
   }
 
   private finish(effect: ActiveEffect): void {

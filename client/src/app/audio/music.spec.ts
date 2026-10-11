@@ -6,7 +6,7 @@ import {
   DEFAULT_MUSIC_VOLUME,
   DEFAULT_VOLUME,
 } from './audio.service';
-import { beatNotes, bpmOf, CALM_BPM, TENSE_BPM } from './music';
+import { beatNotes, bpmOf, CALM_BPM, TENSE_BPM, tensionOfTurn } from './music';
 
 /** Un faux AudioContext : il note les oscillateurs, et le volume réglé sur chacun des deux circuits (effets, musique). */
 class FakeAudioContext {
@@ -156,12 +156,12 @@ describe('AudioService music and tension', () => {
     elapse(1);
     expect(audio.musicBpm()).toBe(CALM_BPM);
 
-    audio.setTension(true);
+    audio.setTension(1);
     elapse(3);
     expect(audio.tension()).toBeGreaterThan(0.9);
     expect(audio.musicBpm()).toBeGreaterThan(TENSE_BPM - 5);
 
-    audio.setTension(false);
+    audio.setTension(0);
     elapse(3);
     expect(audio.tension()).toBe(0);
     expect(audio.musicBpm()).toBe(CALM_BPM);
@@ -170,7 +170,7 @@ describe('AudioService music and tension', () => {
   it('keeps the music calm when the player turned the tension off', () => {
     interact();
     audio.setTensionEnabled(false);
-    audio.setTension(true);
+    audio.setTension(1);
     elapse(3);
 
     expect(audio.tension()).toBe(0);
@@ -179,10 +179,29 @@ describe('AudioService music and tension', () => {
 
   it('stops the tension when the music is muted', () => {
     interact();
-    audio.setTension(true);
+    audio.setTension(1);
     elapse(3);
     audio.setEnabled(false);
 
     expect(audio.tension()).toBe(0);
+  });
+});
+
+describe('tensionOfTurn', () => {
+  it('stays calm until a third of the turn is left', () => {
+    expect(tensionOfTurn(30_000, 30_000)).toBe(0);
+    expect(tensionOfTurn(10_001, 30_000)).toBe(0);
+    expect(tensionOfTurn(10_000, 30_000)).toBe(0);
+  });
+
+  it('then rises progressively up to 1 when the time is up', () => {
+    expect(tensionOfTurn(5_000, 30_000)).toBeCloseTo(0.5);
+    expect(tensionOfTurn(2_500, 30_000)).toBeCloseTo(0.75);
+    expect(tensionOfTurn(0, 30_000)).toBe(1);
+    expect(tensionOfTurn(-500, 30_000)).toBe(1);
+  });
+
+  it('is always calm without a turn timer', () => {
+    expect(tensionOfTurn(0, 0)).toBe(0);
   });
 });

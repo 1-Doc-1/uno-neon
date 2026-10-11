@@ -351,6 +351,14 @@ describe('AnimationDirector', () => {
     expect(kinds()).toContain('turn');
   });
 
+  it('halves the animations when the host chose fast animations, but not the pace of the drawn cards', () => {
+    director.roomSpeed.set(2);
+
+    director.enqueue([played('loic', red7), turnTo('zoe')], live);
+
+    expect(director.active()[0].durationMs).toBe(MOTION_MS.playFlight / 2);
+  });
+
   it('speeds up to catch up when more than three steps are waiting', () => {
     const plays = Array.from({ length: 5 }, (_, index) =>
       played('loic', { ...red7, id: 200 + index }),

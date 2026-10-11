@@ -660,9 +660,6 @@ Application::Outcome Application::applyPlayerAction(Room& current, const core::P
         case core::DomainError::InvalidTarget:
             return fail(ErrorCode::IllegalMove, "The target must be another player of the round",
                         IllegalMoveReason::InvalidTarget);
-        case core::DomainError::OnlyPlusFivePlayable:
-            return fail(ErrorCode::IllegalMove, "Only a Wild Draw Five answers a Wild Draw Five",
-                        IllegalMoveReason::OnlyPlusFivePlayable);
         case core::DomainError::NotStackable:
             return fail(ErrorCode::IllegalMove, "This card is weaker than the pending penalty",
                         IllegalMoveReason::CannotStack);
@@ -724,7 +721,7 @@ void Application::broadcastGame(Room& room, std::span<const core::DomainEvent> e
     }
     syncUnoWindows(room);
     const std::int64_t serverTime = clock_->nowMillis();
-    const auto budget = presentationBudgetOf(events, match.round());
+    const auto budget = presentationBudgetOf(events, match.round(), paceOf(room));
     room.actionsOpenAt = std::max(room.actionsOpenAt, serverTime + budget.count());
     armGameTimers(room);
     for (const Member& member : room.members) {
@@ -746,7 +743,7 @@ response::GameView Application::viewOf(const Room& room, const core::Match& matc
     view.turnDeadline = room.turnDeadline;
     view.nextRoundDeadline = room.nextRoundDeadline;
     view.actionsOpenAt = room.actionsOpenAt;
-    view.drawStepMs = static_cast<std::uint32_t>(timeouts_.drawStep.count());
+    view.drawStepMs = static_cast<std::uint32_t>(paceOf(room).drawStep.count());
     for (const UnoWindowTiming& window : room.unoWindows) {
         view.unoWindows.push_back(response::UnoWindowInfo{
             .targetId = window.target,

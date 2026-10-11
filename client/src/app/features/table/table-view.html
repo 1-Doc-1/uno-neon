@@ -100,7 +100,7 @@
       [playableIds]="view().me.playableCardIds"
       [myTurn]="myTurn() && (actionsOpen() || answeringPenalty())"
       [locked]="!actionsOpen()"
-      [incoming]="incomingCardIds()"
+      [incoming]="incomingCards()"
       (played)="play($event)"
     />
   </section>
@@ -120,13 +120,6 @@
     [options]="penalty"
     (accepted)="penaltyAnswered.emit('accept')"
     (challenged)="penaltyAnswered.emit('challenge')"
-  />
-}
-@if (plusFiveAnswer(); as answer) {
-  <app-plus-five-prompt
-    [options]="answer"
-    [waiting]="!actionsOpen()"
-    (accepted)="penaltyAnswered.emit('accept')"
   />
 }
 @if (pendingTarget() !== null) {

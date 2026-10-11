@@ -125,6 +125,14 @@ struct WireNames<core::DrawAmount> {
 };
 
 template <>
+struct WireNames<app::AnimationSpeed> {
+    static constexpr std::array kTable{
+        WireName{.value = app::AnimationSpeed::Normal, .name = "normal"},
+        WireName{.value = app::AnimationSpeed::Fast, .name = "fast"},
+    };
+};
+
+template <>
 struct WireNames<core::DrawRule> {
     static constexpr std::array kTable{
         WireName{.value = core::DrawRule::Guided, .name = "guided"},
@@ -210,7 +218,6 @@ struct WireNames<app::IllegalMoveReason> {
         WireName{.value = app::IllegalMoveReason::TargetRequired, .name = "TARGET_REQUIRED"},
         WireName{.value = app::IllegalMoveReason::TargetNotAllowed, .name = "TARGET_NOT_ALLOWED"},
         WireName{.value = app::IllegalMoveReason::InvalidTarget, .name = "INVALID_TARGET"},
-        WireName{.value = app::IllegalMoveReason::OnlyPlusFivePlayable, .name = "ONLY_PLUS_FIVE_PLAYABLE"},
     };
 };
 
