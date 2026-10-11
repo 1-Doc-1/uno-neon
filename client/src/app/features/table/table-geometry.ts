@@ -1,3 +1,4 @@
+import { BACK_HEIGHT_RATIO, fanWidthRatio, MAX_FAN_BACKS } from './opponent-fan';
 import { seatLayout, SeatPlacement, TableShape } from './seat-layout';
 
 export interface Size {
@@ -48,8 +49,6 @@ export function seatMetrics(viewportHeight: number): { readonly bw: number; read
   };
 }
 
-const FAN_WIDTH_PER_BACK = 3.6;
-const FAN_HEIGHT_PER_BACK = 1.75;
 const SEAT_GAP = 4;
 /** Pastille : marge, écart avatar/texte, bord ; le nom est tronqué à 120 px (84 px en compact). */
 const PILL_EXTRA_WIDTH = 4 + 12 + 16;
@@ -59,22 +58,22 @@ const BADGE_OVERHANG = 10;
 /** Le siège dont c'est le tour grossit de 6 %. */
 const CURRENT_GROWTH = 1.06;
 
-/** La boîte d'un siège (en pixels) : l'éventail de dos au-dessus de la pastille. */
+/** La boîte d'un siège (en pixels) : la pastille du joueur, puis sa main de dos en accordéon dessous. */
 export function seatSize(
-  placement: Pick<SeatPlacement, 'compact' | 'facing'>,
+  placement: Pick<SeatPlacement, 'compact'>,
   viewportHeight: number,
   scale = 1,
 ): Size {
   const { bw, pw } = seatMetrics(viewportHeight);
-  const back = bw * scale * (placement.facing ? 1.1 : placement.compact ? 0.78 : 1);
+  const back = bw * scale * (placement.compact ? 0.78 : 1);
   const portrait = pw * scale * (placement.compact ? 0.8 : 1);
   const nameWidth = placement.compact ? 84 : 120;
-  const fanWidth = back * FAN_WIDTH_PER_BACK;
+  const fanWidth = back * fanWidthRatio(MAX_FAN_BACKS);
   const pillWidth = portrait + PILL_EXTRA_WIDTH + nameWidth;
   return {
     w: Math.max(fanWidth, pillWidth) * CURRENT_GROWTH,
     h:
-      (back * FAN_HEIGHT_PER_BACK + SEAT_GAP + portrait + PILL_EXTRA_HEIGHT) * CURRENT_GROWTH +
+      (back * BACK_HEIGHT_RATIO + SEAT_GAP + portrait + PILL_EXTRA_HEIGHT) * CURRENT_GROWTH +
       BADGE_OVERHANG,
   };
 }
@@ -111,12 +110,19 @@ export interface GeometryInput {
   readonly strip?: boolean;
 }
 
-function seatRects(input: GeometryInput, scale: number): readonly Rect[] {
-  const { stage, viewportHeight, shape } = input;
-  const placements = seatLayout(input.opponents, shape).map((placement) => ({
+function placementsOf(opponents: number, shape: TableShape): readonly SeatPlacement[] {
+  return seatLayout(opponents, shape).map((placement) => ({
     ...placement,
     compact: placement.compact || shape === 'arc',
   }));
+}
+
+function seatRects(
+  input: GeometryInput,
+  scale: number,
+  placements: readonly SeatPlacement[],
+): readonly Rect[] {
+  const { stage, viewportHeight, shape } = input;
   if (input.strip === true) {
     // La bande défilante : tous les sièges sont sur une ligne, au-dessus de la table
     const tallest = Math.max(
@@ -207,9 +213,24 @@ function contains(ellipse: Ellipse, size: Size): boolean {
   return ellipse.rx > 0 && (size.w / 2 / ellipse.rx) ** 2 + (size.h / 2 / ellipse.ry) ** 2 <= 1;
 }
 
-function layOut(input: GeometryInput, seatScale: number): TableGeometry {
-  const seats = seatRects(input, seatScale);
+function layOut(
+  input: GeometryInput,
+  seatScale: number,
+  placements: readonly SeatPlacement[],
+): TableGeometry {
+  const seats = seatRects(input, seatScale, placements);
   return { seats, ellipse: bestEllipse(input, seats), seatScale };
+}
+
+/**
+ * Le nombre d'adversaires d'après lequel on choisit la taille des sièges : toujours impair. Avec un nombre impair, un
+ * siège se trouve en haut au centre, et il gêne la table plus que deux sièges de côté ; avec un nombre pair, rien n'y
+ * est. Si la taille suivait les sièges réels, trois adversaires auraient des sièges bien plus petits que quatre. En
+ * mesurant les pairs comme l'impair qui les suit, la taille ne dépend que de la place et du nombre de sièges, jamais de
+ * la parité ; la table, elle, reste dessinée avec les sièges réels (et prend toute la place qu'ils laissent).
+ */
+export function referenceOpponents(opponents: number): number {
+  return opponents % 2 === 0 ? opponents + 1 : opponents;
 }
 
 /**
@@ -221,12 +242,14 @@ export function tableGeometry(input: GeometryInput): TableGeometry {
   const { stage } = input;
   const pileSize = pilesSize(input.viewportHeight, input.shape === 'arc');
   const minRadius = stage.w * MIN_RADIUS_RATIO;
-  let result = layOut(input, SEAT_SCALES[0]);
-  for (const seatScale of SEAT_SCALES.slice(1)) {
-    if (result.ellipse.rx >= minRadius && contains(result.ellipse, pileSize)) {
+  const reference = placementsOf(referenceOpponents(input.opponents), input.shape);
+  let seatScale: number = SEAT_SCALES[0];
+  for (const candidate of SEAT_SCALES) {
+    seatScale = candidate;
+    const probe = layOut(input, candidate, reference);
+    if (probe.ellipse.rx >= minRadius && contains(probe.ellipse, pileSize)) {
       break;
     }
-    result = layOut(input, seatScale);
   }
-  return result;
+  return layOut(input, seatScale, placementsOf(input.opponents, input.shape));
 }

@@ -16,6 +16,7 @@ import { COLORS } from '../../../ui/color-meta';
 import type { ActiveEffect } from './animation-director';
 import { Anchors, Box, placeEffect, Placed, Tone } from './effect-geometry';
 import { FlightMotion } from './flight-motion';
+import { ImpactBurst } from './impact-burst';
 import { ParticleCanvas } from './particle-canvas';
 import { ReverseArrow } from './reverse-arrow';
 
@@ -45,7 +46,17 @@ const TONE_TOKENS: Record<Tone, string> = {
 };
 
 /** Combien de grains jaillissent : le +5 remplit le plafond de 40, le reste est plus discret. */
-const DUST_COUNT = { gold: 40, bigText: 24, reverse: 18, caught: 22, skip: 12 } as const;
+const DUST_COUNT = {
+  gold: 40,
+  plusTwo: 30,
+  plusFour: 40,
+  reverse: 18,
+  caught: 22,
+  skip: 12,
+} as const;
+
+/** Le nombre d'ondes de choc d'une pénalité : le +4 frappe plus fort que le +2. */
+export const SHOCK_RINGS = { '+2': 2, '+4': 4 } as const;
 
 const SHAKE = [0, -7, 7, -5, 5, -2, 0].map((x) => ({ translate: `${x}px` }));
 const BLINK = [1, 0.35, 1, 0.35, 1].map((opacity) => ({ opacity }));
@@ -57,7 +68,7 @@ const BLINK = [1, 0.35, 1, 0.35, 1].map((opacity) => ({ opacity }));
  */
 @Component({
   selector: 'app-effects-layer',
-  imports: [CardFace, CardBack, FlightMotion, ParticleCanvas, ReverseArrow],
+  imports: [CardFace, CardBack, FlightMotion, ImpactBurst, ParticleCanvas, ReverseArrow],
   templateUrl: './effects-layer.html',
   styleUrl: './effects-layer.scss',
   host: { 'aria-hidden': 'true' },
@@ -77,6 +88,11 @@ export class EffectsLayer {
   protected readonly placed = signal<readonly Placed[]>([]);
   protected readonly star = STAR;
   /** La couleur d'un effet est celle de la carte jouée (blanc pour une carte noire) : toujours un token, jamais une valeur en dur. */
+  /** Le nombre d'ondes de choc d'une pénalité (le +4 en a plus que le +2). */
+  protected ringCount(text: string): number {
+    return text === '+4' ? SHOCK_RINGS['+4'] : SHOCK_RINGS['+2'];
+  }
+
   protected readonly tones: Record<Tone, string> = {
     red: 'var(--game-red)',
     yellow: 'var(--game-yellow)',
@@ -112,6 +128,7 @@ export class EffectsLayer {
         const placed = placeEffect(effect, anchors);
         this.cache.set(effect.id, placed);
         this.hitSeat(effect);
+        this.hitDiscard(placed);
         this.raiseDust(placed);
       }
     }
@@ -129,7 +146,12 @@ export class EffectsLayer {
     switch (placed.kind) {
       case 'bigText':
         ({ at, tone } = placed);
-        count = tone === 'gold' ? DUST_COUNT.gold : DUST_COUNT.bigText;
+        count =
+          tone === 'gold'
+            ? DUST_COUNT.gold
+            : placed.text === '+4'
+              ? DUST_COUNT.plusFour
+              : DUST_COUNT.plusTwo;
         break;
       case 'reverse':
         at = placed.at;
@@ -182,6 +204,30 @@ export class EffectsLayer {
   private anchorElement(anchor: string): HTMLElement | null {
     const root = this.host.parentElement ?? this.host;
     return root.querySelector<HTMLElement>(`[data-anchor="${anchor}"]`);
+  }
+
+  /** Un +2 ou un +4 frappe la défausse : elle se tasse, tremble et rebondit (le +4 plus fort), jamais en mouvement réduit. */
+  private hitDiscard(placed: Placed | null): void {
+    if (!placed || placed.kind !== 'bigText' || placed.reduced || placed.tone === 'gold') {
+      return;
+    }
+    const discard = this.anchorElement('discard');
+    if (discard && typeof discard.animate === 'function') {
+      const power = placed.text === '+4' ? 1 : 0.6;
+      discard.animate(
+        [
+          { transform: 'scale(1)' },
+          { transform: `scale(${1 - 0.1 * power})`, offset: 0.18 },
+          { transform: `scale(${1 + 0.14 * power})`, offset: 0.4 },
+          { transform: 'scale(1)' },
+        ],
+        { duration: 520 },
+      );
+      discard.animate(
+        [0, -9, 9, -7, 7, -4, 0].map((x) => ({ translate: `${x * power}px` })),
+        { duration: 420, delay: 120 },
+      );
+    }
   }
 
   /** Une pioche infligée fait trembler et clignoter le siège visé, une fois les premières cartes en route. */

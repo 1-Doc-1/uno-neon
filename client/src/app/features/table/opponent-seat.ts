@@ -5,8 +5,8 @@ import { ClickSound } from '../../ui/click-sound';
 import { MAX_FAN_BACKS, OpponentFan } from './opponent-fan';
 
 /**
- * Un adversaire : son éventail de dos au-dessus d'une pastille avec l'avatar, le nombre de cartes, le pseudo et l'état
- * de connexion. Quand c'est son tour : lueur et anneau de minuteur autour de l'avatar (SPEC §12.3).
+ * Un adversaire : une pastille avec l'avatar, le nombre de cartes, le pseudo et l'état de connexion, puis sa main de dos
+ * en accordéon juste dessous, sans rotation. Quand c'est son tour : lueur et anneau de minuteur autour de l'avatar (SPEC §12.3).
  */
 @Component({
   selector: 'app-opponent-seat',
@@ -16,7 +16,6 @@ import { MAX_FAN_BACKS, OpponentFan } from './opponent-fan';
       class="seat"
       [class.current]="isCurrent()"
       [class.compact]="compact()"
-      [class.facing]="facing()"
       [class.offline]="!seat().isConnected"
       [class.targetable]="targetable()"
       [attr.role]="targetable() ? 'button' : null"
@@ -26,12 +25,6 @@ import { MAX_FAN_BACKS, OpponentFan } from './opponent-fan';
       (keydown.enter)="onTarget()"
       (keydown.space)="onTarget(); $event.preventDefault()"
     >
-      <app-opponent-fan
-        class="fan"
-        [count]="seat().cardCount"
-        [maxBacks]="maxBacks()"
-        [yaw]="yaw()"
-      />
       <div class="pill" [attr.data-anchor]="'seat:' + seat().playerId">
         <div
           class="portrait"
@@ -69,6 +62,7 @@ import { MAX_FAN_BACKS, OpponentFan } from './opponent-fan';
           <span class="sr-only">C’est son tour</span>
         }
       </div>
+      <app-opponent-fan class="fan" [count]="seat().cardCount" [maxBacks]="maxBacks()" />
     </article>
   `,
   styleUrl: './opponent-seat.scss',
@@ -79,10 +73,6 @@ export class OpponentSeat {
   /** Sa fenêtre de contre-UNO est ouverte : il n'a qu'une carte et n'a pas annoncé UNO. */
   readonly forgotUno = input.required<boolean>();
   readonly compact = input(false);
-  /** Siège en face de moi : une grande main centrée. */
-  readonly facing = input(false);
-  /** Rotation de la main autour de l'axe vertical, vers le centre de la table (degrés). */
-  readonly yaw = input(0);
   readonly maxBacks = input(MAX_FAN_BACKS);
   /** Part du temps de tour qu'il reste (0 à 1) si c'est son tour et qu'il y a un minuteur, sinon `null`. */
   readonly timerFraction = input<number | null>(null);

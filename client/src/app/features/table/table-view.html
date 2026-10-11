@@ -28,8 +28,6 @@
             [isCurrent]="seat.playerId === view().currentPlayerId"
             [forgotUno]="forgotten().has(seat.playerId)"
             [compact]="placements()[index].compact"
-            [facing]="placements()[index].facing"
-            [yaw]="placements()[index].yaw"
             [maxBacks]="maxBacks()"
             [timerFraction]="seat.playerId === view().currentPlayerId ? turnFraction() : null"
             [targetable]="pendingTarget() !== null"
@@ -149,6 +147,7 @@
   <app-match-over-dialog
     [players]="view().players"
     [winnerId]="view().matchWinnerId"
+    [meId]="view().me.playerId"
     [isHost]="mySeat()?.isHost ?? false"
     (rematch)="rematchAsked.emit()"
     (backToLobby)="backToLobbyAsked.emit()"

@@ -173,6 +173,10 @@ test.describe('retour au salon et revanche', () => {
     const finished = () =>
       guest.page.getByRole('heading', { name: /remporte la partie/ }).isVisible();
     await playUntil([guest, host], finished);
+    // La cinématique de fin passe d'un clic ; l'écran des choix vient ensuite
+    for (const player of [host, guest]) {
+      await player.page.getByRole('button', { name: 'Passer' }).click();
+    }
 
     await expect(guest.page.getByText('En attente de l’hôte')).toBeVisible();
     await expect(guest.page.getByRole('button', { name: 'Revanche' })).toHaveCount(0);
@@ -198,11 +202,71 @@ test.describe('retour au salon et revanche', () => {
       guest.page.getByRole('heading', { name: /remporte la partie/ }).isVisible(),
     );
 
+    await host.page.getByRole('button', { name: 'Passer' }).click();
     await host.page.getByRole('button', { name: 'Retour au salon' }).click();
 
     for (const player of [host, guest]) {
       await expect(player.page.getByRole('heading', { name: 'Joueurs (2/6)' })).toBeVisible();
     }
+  });
+});
+
+test.describe('cinématique de fin de partie', () => {
+  test.use({ seed: SEEDS.fastGame });
+
+  test('le podium montre les deux joueurs avec leurs scores, se passe d’un clic puis laisse les choix', async ({
+    lobby,
+  }) => {
+    const { host, guest } = lobby;
+    await chooseSetting(host, 'Manche unique');
+    await startMatch(lobby);
+    await playUntil([guest, host], async () =>
+      guest.page.getByRole('dialog', { name: 'Podium de la partie' }).isVisible(),
+    );
+
+    const podium = guest.page.getByRole('dialog', { name: 'Podium de la partie' });
+    await expect(podium.getByRole('heading', { name: 'Bob remporte la partie !' })).toBeVisible();
+    await expect(podium.locator('.place.rank-1 .name')).toHaveText('Bob');
+    await expect(podium.locator('.place.rank-2 .name')).toHaveText('Alice');
+    await expect(podium.locator('.place app-avatar')).toHaveCount(2);
+    // Le score du gagnant est celui de la manche, une fois le défilement fini
+    await expect(podium.locator('.place.rank-1 .score')).not.toHaveText('0 pts');
+    await podium.getByRole('button', { name: 'Passer' }).click();
+
+    await expect(podium).toBeHidden();
+    await expect(guest.page.getByRole('dialog', { name: 'Fin de la partie' })).toBeVisible();
+  });
+
+  test('sans clic, elle s’efface d’elle-même', async ({ lobby }) => {
+    const { host, guest } = lobby;
+    await chooseSetting(host, 'Manche unique');
+    await startMatch(lobby);
+    await playUntil([guest, host], async () =>
+      guest.page.getByRole('dialog', { name: 'Podium de la partie' }).isVisible(),
+    );
+
+    await expect(guest.page.getByRole('dialog', { name: 'Fin de la partie' })).toBeVisible({
+      timeout: 8000,
+    });
+  });
+
+  test('accessible (axe, WCAG 2.2 AA), le podium puis l’écran des choix', async ({ lobby }) => {
+    const { host, guest } = lobby;
+    await chooseSetting(host, 'Manche unique');
+    await startMatch(lobby);
+    await playUntil([guest, host], async () =>
+      guest.page.getByRole('dialog', { name: 'Podium de la partie' }).isVisible(),
+    );
+    const tags = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
+
+    expect(
+      (await new AxeBuilder({ page: guest.page }).withTags(tags).analyze()).violations,
+    ).toEqual([]);
+    await guest.page.getByRole('button', { name: 'Passer' }).click();
+    await expect(guest.page.getByRole('dialog', { name: 'Fin de la partie' })).toBeVisible();
+    expect(
+      (await new AxeBuilder({ page: guest.page }).withTags(tags).analyze()).violations,
+    ).toEqual([]);
   });
 });
 

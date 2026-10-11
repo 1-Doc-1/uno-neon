@@ -110,9 +110,9 @@ export class Player {
         ),
         turn: text('p.turn'),
         counts: text('.count'),
-        dialogs: [...document.querySelectorAll('dialog[open]')].map((dialog) =>
-          dialog.getAttribute('aria-label'),
-        ),
+        dialogs: [
+          ...document.querySelectorAll('dialog[open], app-color-picker [role="dialog"]'),
+        ].map((dialog) => dialog.getAttribute('aria-label')),
         deck: document.querySelector('button.deck')?.getAttribute('aria-label') ?? '',
       });
     });

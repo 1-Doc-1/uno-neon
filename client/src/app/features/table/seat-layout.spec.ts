@@ -87,19 +87,16 @@ describe('opponentsInViewOrder', () => {
   });
 });
 
-describe('hand orientation', () => {
-  it('puts a single opponent, or the middle one of three, face to face with me', () => {
-    expect(seatLayout(1).map((s) => s.facing)).toEqual([true]);
-    expect(seatLayout(3).map((s) => s.facing)).toEqual([false, true, false]);
-    expect(seatLayout(2).some((s) => s.facing)).toBe(false);
+describe('seat proportions', () => {
+  it('gives every seat the same proportions: only the table decides whether they are compact', () => {
+    for (let count = 1; count <= 9; count++) {
+      const compact = new Set(seatLayout(count).map((seat) => seat.compact));
+
+      expect(compact.size).toBe(1);
+    }
   });
 
-  it('turns the side hands towards the centre of the table, symmetrically, and never beyond a gentle angle', () => {
-    const [left, , right] = seatLayout(3);
-
-    expect(left.yaw).toBeCloseTo(-right.yaw);
-    expect(Math.abs(left.yaw)).toBeGreaterThan(0);
-    expect(seatLayout(9).every((s) => Math.abs(s.yaw) <= 32)).toBe(true);
-    expect(seatLayout(1)[0].yaw).toBeCloseTo(0);
+  it('has no hand orientation left: a seat is a place, not a direction', () => {
+    expect(Object.keys(seatLayout(3)[0]).sort()).toEqual(['angle', 'compact', 'x', 'y']);
   });
 });

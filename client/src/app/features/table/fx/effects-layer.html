@@ -27,6 +27,15 @@
       }
     }
     @case ('bigText') {
+      @if (!item.reduced && item.tone !== 'gold') {
+        <app-impact-burst
+          [rings]="ringCount(item.text)"
+          [style.left.px]="item.at.cx"
+          [style.top.px]="item.at.cy"
+          [style.color]="tones[item.tone]"
+          [style.--dur]="item.durationMs"
+        />
+      }
       <p
         class="big"
         [style.text-shadow]="item.tone === 'gold' ? 'var(--gold-halo)' : null"

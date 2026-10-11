@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { MAX_FAN_BACKS, OpponentFan } from './opponent-fan';
+import { fanStepRatio, fanWidthRatio, MAX_FAN_BACKS, OpponentFan } from './opponent-fan';
 
 function render(count: number, maxBacks = MAX_FAN_BACKS) {
   const fixture = TestBed.createComponent(OpponentFan);
@@ -21,18 +21,28 @@ describe('OpponentFan', () => {
   });
 
   it('spreads the cards less and less as the hand grows, so that it never gets wider than a few cards', () => {
-    const step = (count: number) => parseFloat(render(count).style.getPropertyValue('--step'));
+    const step = (count: number) => parseFloat(render(count).style.getPropertyValue('--ratio'));
 
-    expect(step(2)).toBeLessThanOrEqual(6);
+    expect(step(2)).toBeLessThanOrEqual(0.42);
     expect(step(15)).toBeLessThan(step(4));
+    expect(fanWidthRatio(15)).toBeLessThanOrEqual(3.6 + 1e-9);
+    expect(fanWidthRatio(MAX_FAN_BACKS)).toBeGreaterThan(fanWidthRatio(5));
   });
 
-  it('turns the hand around the vertical axis only, never flat on the table', () => {
+  it('draws the backs side by side, straight: no rotation, no turn around any axis', () => {
     const fixture = TestBed.createComponent(OpponentFan);
     fixture.componentRef.setInput('count', 5);
-    fixture.componentRef.setInput('yaw', -24);
     fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
 
-    expect((fixture.nativeElement as HTMLElement).style.getPropertyValue('--yaw')).toBe('-24deg');
+    expect(host.style.getPropertyValue('--yaw')).toBe('');
+    expect(host.style.getPropertyValue('--step')).toBe('');
+    expect(host.style.getPropertyValue('--ratio')).toBe(String(fanStepRatio(5)));
+    expect(host.querySelectorAll('app-card-back')).toHaveLength(5);
+  });
+
+  it('keeps one card as wide as a single back, whatever the count', () => {
+    expect(fanWidthRatio(1)).toBe(1);
+    expect(fanWidthRatio(0)).toBe(1);
   });
 });

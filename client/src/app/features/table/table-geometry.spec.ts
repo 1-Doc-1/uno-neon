@@ -1,6 +1,7 @@
 import {
   ellipseTouches,
   pilesSize,
+  referenceOpponents,
   Rect,
   SEAT_CLEARANCE,
   Size,
@@ -131,5 +132,42 @@ describe('tableGeometry', () => {
 
   it('draws at most as many backs per hand as the opponent fan allows (so seats never outgrow their model)', () => {
     expect(MAX_FAN_BACKS).toBe(15);
+  });
+});
+
+describe('seat size does not depend on the parity of the opponents (U1)', () => {
+  // Cause du défaut : avec 1, 3 ou 5 adversaires un siège se trouve en haut au centre, ce qui réduisait l'ellipse et
+  // forçait un cran de réduction des sièges ; avec 2 ou 4, rien ne s'y trouve. La taille était donc plus petite à trois
+  // adversaires qu'à quatre. Elle est maintenant choisie d'après un nombre impair (referenceOpponents).
+  it('measures an even count as the odd one after it', () => {
+    expect([1, 2, 3, 4, 5, 6].map(referenceOpponents)).toEqual([1, 3, 3, 5, 5, 7]);
+  });
+
+  for (const viewport of VIEWPORTS) {
+    it(`never makes the seats of an odd count smaller than those of the next even count at ${viewport.w}×${viewport.h}`, () => {
+      // (5 contre 6 change de catégorie : à partir de six adversaires, tous les sièges sont compacts)
+      for (const odd of [1, 3, 7]) {
+        const oddScale = geometryFor(viewport, odd).seatScale;
+        const evenScale = geometryFor(viewport, odd + 1).seatScale;
+
+        expect(oddScale, `${odd} vs ${odd + 1}`).toBeGreaterThanOrEqual(evenScale - 1e-9);
+      }
+    });
+
+    it(`gives the same seat size to an even count and the odd count after it at ${viewport.w}×${viewport.h}`, () => {
+      for (const even of [2, 4, 6, 8]) {
+        expect(geometryFor(viewport, even).seatScale).toBe(
+          geometryFor(viewport, even + 1).seatScale,
+        );
+      }
+    });
+  }
+
+  it('keeps the seats of three opponents as large as those of four at 1280×720 (the reported case)', () => {
+    const viewport = { w: 1280, h: 720 };
+
+    expect(geometryFor(viewport, 3).seatScale).toBeGreaterThanOrEqual(
+      geometryFor(viewport, 4).seatScale,
+    );
   });
 });

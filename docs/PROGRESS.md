@@ -104,7 +104,7 @@
 
 #### Lots T-U — règles, salon et sécurité, table, mobile (4 PR à la suite : T1, T2, U1, U2)
 > Reprise après interruption : relire cette section, `git status`, `git log --oneline -10`, les PR ouvertes, puis continuer au premier point non coché. Problème bloquant noté ici (cause, essais) ; on fusionne ce qui est vert et on passe à la suite.
-> **En cours : T2 terminée en local, PR à ouvrir (`feat/lobby-sessions`)**
+> **En cours : U1 terminée en local (PR à ouvrir), puis U2 — branche `feat/table-visuals` (T1 #42 et T2 #43 fusionnées)**
 
 **T1 — Règles et confort de jeu (`feat/game-rules-polish`)**
 - [x] T1.1 +5 « super carte » (ADR 0034 modifie 0028) : plus de réplique, pioche automatique du total ; chaîne close en mode Échelle ; moteur, simulation, protocole, « Comment jouer », E2E
@@ -125,11 +125,11 @@
 - [x] T2.8 Tests serveur, client, E2E ; 4.3b coché
 
 **U1 — Effets et mise en page de la table (`feat/table-visuals`)**
-- [ ] U1.1 Sièges : avatar + pseudo, cartes de dos en accordéon dessous, sans rotation
-- [ ] U1.2 Bug de taille des sièges selon la parité (cause en 2 lignes + test)
-- [ ] U1.3 Roue de choix de couleur en cercle, sans débordement
-- [ ] U1.4 Impact +2 / +4, sons distincts
-- [ ] U1.5 Cinématique de fin de partie (podium, scores, confettis, son)
+- [x] U1.1 Sièges : avatar + pseudo, cartes de dos en accordéon dessous, sans rotation
+- [x] U1.2 Bug de taille des sièges selon la parité (cause en 2 lignes + test)
+- [x] U1.3 Roue de choix de couleur en cercle, sans débordement
+- [x] U1.4 Impact +2 / +4, sons distincts
+- [x] U1.5 Cinématique de fin de partie (podium, scores, confettis, son)
 
 **U2 — Toutes tailles d'écran et téléphone (`feat/responsive-mobile`, étape 3.7)**
 - [ ] U2.1 Mise en page 360 → 1920 px, portrait et paysage ; effets sur sièges bornés à l'écran
@@ -259,3 +259,4 @@
 - 2026-10-10 — S3 — mode d'emploi pour l'hôte (`docs/MODE-EMPLOI.md`, avec captures, lié depuis le README) et page « Comment jouer » `/comment-jouer` (règles, cartes spéciales avec leurs cartes, UNO, chaque option du salon avec un exemple, réglages audio ; lien sur l'accueil ; E2E : navigation, 375 et 1440 px sans défilement horizontal, axe sans violation) ; défaut vu sur la capture à 375 px et corrigé : le panneau « Réglages audio » passait sous le panneau de l'accueil ; bug de test corrigé en route : course entre un clic de l'E2E et le coup que le jeu joue à sa place — `docs/user-guide`
 - 2026-10-11 — T1 — règles et confort de jeu : **+5 « super carte »** (ADR 0034, modifie 0028/0029) : `canStackOn(_, +5)` faux, `forcedAction` toujours l'acceptation, plus de fenêtre ni d'invite côté client, raison `ONLY_PLUS_FIVE_PLAYABLE` supprimée du protocole, E2E et « Comment jouer » mis à jour ; **tri de la main** (`sortHand`, pur, la politique E2E et le chercheur de graines l'utilisent : `fastGame` recalculée) ; **main réduite** au-delà de 16 cartes (`handScale`, `--hand-scale`, marge `--gutter-ratio`, vérifié 375/1024/1440 px sur `/dev/table?scenario=big-hand`) ; **journal** de 5 lignes en fondu (masque) ; **tension** dès le dernier tiers du tour, montée progressive (`tensionOfTurn`) ; **réglage de salon « Vitesse des animations »** (ADR 0035, `Timeouts::atSpeed`, `AnimationDirector.roomSpeed`) ; `linux-check.sh` vert — `feat/game-rules-polish`
 - 2026-10-11 — T2 — salon, sessions et sécurité : **session en cookie** `uno_session` (HttpOnly, Secure, SameSite=Strict, posé dans la réponse 101 ; le jeton quitte `session.hello` / `session.welcome` ; il vient du générateur cryptographique du transport, jamais du hasard de la partie, ADR 0036), **un seul onglet actif** (`session.busy`, `session.takeOver`, code 4000, écran « Jouer ici »), **anti-abus** (20 connexions par adresse, 1 000 au total, 300 salons, 2 000 sessions, l'adresse du tunnel n'est lue que d'un pair local, chat 5 messages / 10 s), **avatars** (12 SVG originaux, `avatarId`, mémorisés avec le pseudo), **chat** (`chat.send` / `chat.message`, texte brut validé, 200 caractères, panneau repliable avec non-lus, masquer un joueur), **fin de partie sans relance automatique** (`room.backToLobby`, Revanche / Retour au salon pour l'hôte seul, abandon confirmé en cours de partie), **exclusion par le menu du profil** (confirmation nominative, salon et partie) ; serveur : 488 tests (cookie, onglet en double, limites, chat, retour au salon, exclusion), client : 401 tests, E2E : 49 scénarios dont fermeture d'onglet, deux onglets, revanche, exclusion, chat, axe ; **graines E2E recalculées** (le chercheur sait trier par la donne seule : `UNO_FIND_DEAL_ONLY`, `UNO_FIND_SEEDS`, un port par graine) ; pour jouer à deux sur une machine : deux navigateurs — `feat/lobby-sessions`
+- 2026-10-11 — U1 — effets et mise en page de la table (ADR 0038) : **sièges** (pastille puis main de dos en accordéon, droite, mêmes proportions pour tous ; `facing` et `yaw` supprimés), **défaut de parité corrigé** (cause : le siège du haut, présent aux nombres impairs, réduisait l'ellipse et donc la taille des sièges ; la taille suit maintenant `referenceOpponents`, test pour 1 à 9 adversaires), **roue de couleur** (quarts de disque dépliés depuis la défausse, rien ne déborde : mesuré à quatre tailles, clavier, axe), **impact des +2 / +4** (éclair, ondes, défausse qui tremble, poussière, deux sons distincts), **cinématique de fin de partie** (podium, scores qui défilent, pluie de cartes et confettis, son, passable, fondu en mouvement réduit, avant Revanche / Retour au salon) ; 425 tests client, E2E à jour — `feat/table-visuals`

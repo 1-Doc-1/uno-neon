@@ -73,16 +73,21 @@ export const SOUNDS: Readonly<Record<SoundId, readonly Note[]>> = {
   play: [note(0, 0.09, 'triangle', 240, 0.5, 110), note(0, 0.04, 'square', 1200, 0.12, 600)],
   // Une carte qu'on tire : un souffle qui monte
   draw: [note(0, 0.14, 'sine', 420, 0.3, 760)],
-  // +2 : deux coups rauques qui tombent, sous un grondement
+  // +2 : deux impacts sourds, l'un après l'autre (un « boum-boum » grave qui s'enfonce), sous une plainte courte
   plusTwo: [
-    ...run('square', [392, 294], 0.14, 0.16, 0.24),
-    note(0, 0.32, 'sawtooth', 110, 0.22, 70),
+    note(0, 0.26, 'sine', 170, 0.55, 48),
+    note(0, 0.1, 'square', 220, 0.2, 140),
+    note(0.2, 0.3, 'sine', 140, 0.6, 40),
+    note(0.2, 0.12, 'square', 165, 0.2, 100),
+    note(0.1, 0.34, 'sawtooth', 96, 0.14, 64),
   ],
-  // +4 : trois notes menaçantes qui descendent, un tonnerre grave dessous
+  // +4 : quatre coups qui montent, de plus en plus aigus et menaçants, puis un énorme boum et un grondement qui traîne
   plusFour: [
-    ...run('sawtooth', [440, 349, 262], 0.12, 0.16, 0.24),
-    note(0, 0.5, 'sawtooth', 90, 0.28, 45),
-    note(0.36, 0.3, 'square', 131, 0.2),
+    ...run('sawtooth', [233, 294, 370, 466], 0.09, 0.12, 0.26),
+    ...run('square', [117, 147, 185, 233], 0.09, 0.14, 0.2),
+    note(0.4, 0.9, 'sine', 120, 0.7, 28),
+    note(0.4, 0.6, 'sawtooth', 70, 0.3, 36),
+    note(0.46, 0.8, 'square', 55, 0.18, 30),
   ],
   // +5 : le son doré, un arpège cristallin qui scintille, distinct de tous les autres
   plusFive: [
