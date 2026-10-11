@@ -4,6 +4,7 @@
   "type": "room.createBotGame",
   "payload": {
     "nickname": "Léa",
+    "avatarId": 3,
     "botCount": 3,
     "level": "easy",
     "settings": {

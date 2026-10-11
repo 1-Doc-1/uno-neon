@@ -68,14 +68,6 @@ void join(TestPlayer& player, const RoomCode& code, const std::string& nickname)
 
 constexpr std::string_view kCodeAlphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 
-bool isUrlSafe(const std::string& text)
-{
-    return std::ranges::all_of(text, [](char character) {
-        return (character >= 'A' && character <= 'Z') || (character >= 'a' && character <= 'z') ||
-               (character >= '0' && character <= '9') || character == '-' || character == '_';
-    });
-}
-
 } // namespace
 
 TEST_CASE("Hello without a token creates a session and answers with a welcome only", "[app][session]")
@@ -83,13 +75,11 @@ TEST_CASE("Hello without a token creates a session and answers with a welcome on
     AppHarness harness;
     auto player = harness.connect();
 
-    player.send(request::Hello{.sessionToken = std::nullopt, .clientVersion = "1.0.0"});
+    player.send(request::Hello{.clientVersion = "1.0.0"});
     const auto messages = player.received();
 
     REQUIRE(messages.size() == 1);
     const auto& welcome = std::get<response::Welcome>(messages.front());
-    REQUIRE(welcome.sessionToken.value.size() == 22);
-    REQUIRE(isUrlSafe(welcome.sessionToken.value));
     REQUIRE(welcome.playerId.value.starts_with("p_"));
     REQUIRE(welcome.playerId.value.size() >= 8);
     REQUIRE_FALSE(welcome.resumedRoomCode.has_value());
@@ -122,19 +112,26 @@ TEST_CASE("A second hello on the same connection is refused", "[app][session]")
     auto player = harness.helloPlayer();
     static_cast<void>(player.received());
 
-    player.send(request::Hello{.sessionToken = std::nullopt, .clientVersion = "test"});
+    player.send(request::Hello{.clientVersion = "test"});
 
     REQUIRE(refusal(player.received()) == ErrorCode::InvalidPhase);
 }
 
-TEST_CASE("Hello with an unknown token is refused with SESSION_EXPIRED", "[app][session]")
+TEST_CASE("A cookie the server does not know starts a session under that token", "[app][session]")
 {
     AppHarness harness;
     auto player = harness.connect();
 
-    player.send(request::Hello{.sessionToken = SessionToken{"AAAAAAAAAAAAAAAAAAAAAA"}, .clientVersion = "test"});
+    player.hello(SessionToken{"AAAAAAAAAAAAAAAAAAAAAA"});
 
-    REQUIRE(refusal(player.received()) == ErrorCode::SessionExpired);
+    const auto welcome = player.last<response::Welcome>();
+    REQUIRE(welcome.has_value());
+    REQUIRE_FALSE(welcome->resumedRoomCode.has_value());
+    harness.application.onDisconnected(player.connection());
+    // The same cookie, later, finds that session again
+    auto again = harness.connect();
+    again.hello(SessionToken{"AAAAAAAAAAAAAAAAAAAAAA"});
+    REQUIRE(again.last<response::Welcome>()->playerId == welcome->playerId);
 }
 
 TEST_CASE("Hello with a known token resumes the session and its room", "[app][session]")
@@ -143,6 +140,7 @@ TEST_CASE("Hello with a known token resumes the session and its room", "[app][se
     auto host = harness.helloPlayer();
     const auto code = createRoom(host);
     host.send(request::SetReady{.ready = true});
+    harness.application.onDisconnected(host.connection()); // the tab was closed
 
     auto returning = harness.connect();
     returning.hello(host.token());
@@ -153,7 +151,7 @@ TEST_CASE("Hello with a known token resumes the session and its room", "[app][se
     REQUIRE(returning.room().players.size() == 1);
 }
 
-TEST_CASE("The newest connection of a session wins and the old one is closed", "[app][session]")
+TEST_CASE("A second tab on a session that is open gets session.busy, and nothing changes", "[app][session]")
 {
     AppHarness harness;
     auto first = harness.helloPlayer();
@@ -161,14 +159,45 @@ TEST_CASE("The newest connection of a session wins and the old one is closed", "
 
     auto second = harness.connect();
     second.hello(first.token());
+
+    REQUIRE(ofType<response::SessionBusy>(second.received()).size() == 1);
+    REQUIRE(harness.sink.closed.empty());
+    // The second tab is not attached: its requests are refused
+    second.send(request::LeaveRoom{});
+    REQUIRE(refusal(second.received()) == ErrorCode::SessionRequired);
+    REQUIRE(first.room().code == code);
+    REQUIRE(first.room().players.front().isConnected);
+}
+
+TEST_CASE("Taking over closes the other tab and gives its session, room included, to this one", "[app][session]")
+{
+    AppHarness harness;
+    auto first = harness.helloPlayer();
+    const auto code = createRoom(first);
+    auto second = harness.connect();
+    second.hello(first.token());
+
+    second.takeOver();
     harness.application.onDisconnected(first.connection()); // the old socket finally notices it is dead
 
     REQUIRE(harness.sink.closed.size() == 1);
     REQUIRE(harness.sink.closed.front().connection == first.connection());
+    const auto welcome = uno::testing::require(second.last<response::Welcome>());
+    REQUIRE(welcome.playerId == first.id());
+    REQUIRE(welcome.resumedRoomCode == code);
     // The late disconnection of the old socket must not mark the player as gone.
-    const auto member = second.room().players.front();
-    REQUIRE(member.isConnected);
+    REQUIRE(second.room().players.front().isConnected);
     REQUIRE(second.room().code == code);
+}
+
+TEST_CASE("Taking over without a session to take is refused", "[app][session]")
+{
+    AppHarness harness;
+    auto player = harness.connect();
+
+    player.takeOver();
+
+    REQUIRE(refusal(player.received()) == ErrorCode::SessionExpired);
 }
 
 TEST_CASE("Creating a room makes the creator its host and acknowledges before updating", "[app][room]")

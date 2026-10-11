@@ -4,6 +4,7 @@
 #include "uno/app/ports.hpp"
 #include "uno/net/origin_policy.hpp"
 
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -27,13 +28,23 @@ struct RateLimits {
     std::size_t joinsPerMinute = 20;
 };
 
+// What the server accepts at once (ADR 0036), so that one visitor cannot exhaust it.
+struct ConnectionLimits {
+    std::size_t maxConnections = 1000;
+    std::size_t maxConnectionsPerAddress = 20;
+};
+
 struct WebSocketServerConfig {
     std::uint16_t port{}; // 0 lets the system pick a free port (tests)
     // The local address to listen on (UNO_BIND_ADDRESS); empty means every interface.
     std::string bindAddress;
     OriginPolicy originPolicy{{}};
     RateLimits rateLimits;
-    // Whether X-Forwarded-For can be believed to tell the real address of a client (UNO_TRUSTED_PROXY).
+    ConnectionLimits connectionLimits;
+    // How long the browser keeps the session cookie.
+    std::chrono::seconds sessionCookieMaxAge = std::chrono::hours(24);
+    // Whether X-Forwarded-For can be believed to tell the real address of a client (UNO_TRUSTED_PROXY). Even then,
+    // only from a connection that comes from this machine: the proxy (Caddy) runs beside the server.
     bool trustedProxy = false;
     // Number of rooms, for GET /health. Called on the server thread.
     std::function<std::size_t()> roomCount = [] { return std::size_t{0}; };

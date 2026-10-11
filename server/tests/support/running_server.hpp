@@ -83,7 +83,7 @@ class RecordingHandler final : public app::ConnectionHandler {
 public:
     void attach(net::WebSocketServer& server) { server_ = &server; }
 
-    void onConnected(app::ConnectionId /*connection*/) override
+    void onConnected(app::ConnectionId /*connection*/, app::SessionToken /*token*/) override
     {
         const std::scoped_lock lock(mutex_);
         ++connected_;

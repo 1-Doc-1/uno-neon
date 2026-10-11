@@ -1,6 +1,7 @@
 #include "uno/app/application.hpp"
 
 #include "uno/app/bot_strategy.hpp"
+#include "uno/app/chat.hpp"
 #include "uno/app/id_generator.hpp"
 #include "uno/app/nickname.hpp"
 #include "uno/app/room_settings.hpp"
@@ -21,12 +22,28 @@ namespace {
 
 constexpr int kCloseSessionTakenOver = 4000; // application-defined close code (4000-4999)
 constexpr std::int64_t kReactionIntervalMillis = 2000;
+// Chat (ADR 0037): at most this many messages in this window, per player.
+constexpr std::size_t kChatMessagesPerWindow = 5;
+constexpr std::int64_t kChatWindowMillis = 10000;
 
 } // namespace
 
 Application::Application(MessageSink& sink, RoomRepository& rooms, core::RandomSource& random, const Clock& clock,
+                         Scheduler& scheduler)
+    : Application(sink, rooms, random, clock, scheduler, Timeouts(), Limits())
+{
+}
+
+Application::Application(MessageSink& sink, RoomRepository& rooms, core::RandomSource& random, const Clock& clock,
                          Scheduler& scheduler, Timeouts timeouts)
-    : sink_(&sink), rooms_(&rooms), random_(&random), clock_(&clock), scheduler_(&scheduler), timeouts_(timeouts)
+    : Application(sink, rooms, random, clock, scheduler, timeouts, Limits())
+{
+}
+
+Application::Application(MessageSink& sink, RoomRepository& rooms, core::RandomSource& random, const Clock& clock,
+                         Scheduler& scheduler, Timeouts timeouts, Limits limits)
+    : sink_(&sink), rooms_(&rooms), random_(&random), clock_(&clock), scheduler_(&scheduler), timeouts_(timeouts),
+      limits_(limits)
 {
 }
 
@@ -36,9 +53,10 @@ std::unexpected<Application::Failure> Application::fail(ErrorCode code, std::str
     return std::unexpected(Failure{.code = code, .message = std::move(message), .reason = reason});
 }
 
-void Application::onConnected(ConnectionId connection)
+void Application::onConnected(ConnectionId connection, SessionToken token)
 {
     spdlog::debug("connection {} opened", connection.value);
+    connectionTokens_.insert_or_assign(connection, std::move(token));
 }
 
 void Application::onRequest(ConnectionId connection, request::Envelope request)
@@ -65,6 +83,7 @@ void Application::onRequest(ConnectionId connection, request::Envelope request)
 void Application::onDisconnected(ConnectionId connection)
 {
     spdlog::debug("connection {} closed", connection.value);
+    connectionTokens_.erase(connection);
     const auto player = playerOfConnection_.find(connection);
     if (player == playerOfConnection_.end()) {
         return;
@@ -92,46 +111,72 @@ void Application::onDisconnected(ConnectionId connection)
 
 // ---- sessions ----
 
-Application::Outcome Application::handle(ConnectionId connection, const request::Hello& request)
+Application::Outcome Application::handle(ConnectionId connection, const request::Hello& /*request*/)
 {
     if (playerOfConnection_.contains(connection)) {
         return fail(ErrorCode::InvalidPhase, "The session is already established on this connection");
     }
+    return attach(connection, false);
+}
+
+Application::Outcome Application::handle(ConnectionId connection, const request::TakeOver& /*request*/)
+{
+    if (playerOfConnection_.contains(connection)) {
+        return fail(ErrorCode::InvalidPhase, "The session is already established on this connection");
+    }
+    return attach(connection, true);
+}
+
+Application::Outcome Application::attach(ConnectionId connection, bool takeOver)
+{
+    const auto presented = connectionTokens_.find(connection);
+    if (presented == connectionTokens_.end()) {
+        return fail(ErrorCode::SessionRequired, "This connection has no session token");
+    }
+    const SessionToken& token = presented->second;
 
     Session* session = nullptr;
-    if (request.sessionToken) {
-        const auto player = playerOfToken_.find(request.sessionToken->value);
-        if (player == playerOfToken_.end()) {
-            return fail(ErrorCode::SessionExpired, "Unknown or expired session token");
-        }
-        session = &sessions_.at(player->second);
+    const auto known = playerOfToken_.find(token.value);
+    const bool existing = known != playerOfToken_.end();
+    if (existing) {
+        session = &sessions_.at(known->second);
         if (session->connection) {
-            // The same player opened a second tab or reconnected before the old socket was noticed dead:
-            // the newest connection wins. Forgetting the old one first keeps its late close harmless.
+            if (!takeOver) {
+                // Another tab holds the session: touch nothing, let the player decide (ADR 0036).
+                outbox_.emplace_back(connection, response::SessionBusy{});
+                return Reply::None;
+            }
+            // Forgetting the old connection first keeps its late close harmless.
             const ConnectionId previous = *session->connection;
             playerOfConnection_.erase(previous);
             sink_->close(previous, kCloseSessionTakenOver, "Session resumed on another connection");
         }
     } else {
+        if (takeOver) {
+            return fail(ErrorCode::SessionExpired, "There is no session to take over");
+        }
+        if (sessions_.size() >= limits_.maxSessions) {
+            return fail(ErrorCode::ServerFull, "The server has too many players right now");
+        }
         Session created;
-        created.token = generateSessionToken(*random_);
+        created.token = token;
         created.playerId = generatePlayerId(*random_);
         playerOfToken_.emplace(created.token.value, created.playerId.value);
         const std::string playerKey = created.playerId.value;
         session = &sessions_.emplace(playerKey, std::move(created)).first->second;
     }
+    const bool resumed = existing && session->room.has_value();
 
     session->connection = connection;
     scheduler_->cancel(std::exchange(session->idleTimer, TimerHandle{}));
     playerOfConnection_.emplace(connection, session->playerId.value);
     queue(session->playerId, response::Welcome{
-                                 .sessionToken = session->token,
                                  .playerId = session->playerId,
                                  .resumedRoomCode = session->room,
                              });
 
-    if (request.sessionToken && session->room) {
-        if (Room* const room = rooms_->find(*session->room)) {
+    if (const auto& roomCode = session->room; resumed && roomCode) {
+        if (Room* const room = rooms_->find(*roomCode)) {
             if (Member* const member = room->find(session->playerId)) {
                 member->connected = true;
                 scheduler_->cancel(std::exchange(room->graceTimers[session->playerId.value], TimerHandle{}));
@@ -166,7 +211,7 @@ std::expected<Room*, Application::Failure> Application::roomOf(const Session& se
     return fail(ErrorCode::NotInRoom, "You are not in a room");
 }
 
-std::expected<Room*, Application::Failure> Application::hostedLobbyOf(const Session& session)
+std::expected<Room*, Application::Failure> Application::hostedRoomOf(const Session& session)
 {
     const auto room = roomOf(session);
     if (!room) {
@@ -174,6 +219,15 @@ std::expected<Room*, Application::Failure> Application::hostedLobbyOf(const Sess
     }
     if (!(*room)->isHost(session.playerId)) {
         return fail(ErrorCode::NotHost, "Only the host can do this");
+    }
+    return room;
+}
+
+std::expected<Room*, Application::Failure> Application::hostedLobbyOf(const Session& session)
+{
+    const auto room = hostedRoomOf(session);
+    if (!room) {
+        return room;
     }
     if ((*room)->phase != response::RoomPhase::Lobby) {
         return fail(ErrorCode::MatchInProgress, "The match has already started");
@@ -192,6 +246,9 @@ Application::Outcome Application::handle(ConnectionId connection, const request:
     if ((*session)->room) {
         return fail(ErrorCode::AlreadyInRoom, "Leave your current room first");
     }
+    if (rooms_->size() >= limits_.maxRooms) {
+        return fail(ErrorCode::ServerFull, "The server has too many rooms right now");
+    }
     const auto nickname = validateNickname(request.nickname);
     if (!nickname) {
         return fail(ErrorCode::NicknameInvalid, "A nickname has 2 to 16 letters, digits, spaces, _ or -");
@@ -206,7 +263,7 @@ Application::Outcome Application::handle(ConnectionId connection, const request:
 
     const RoomCode code =
         generateRoomCode(*random_, [this](const RoomCode& candidate) { return rooms_->find(candidate) != nullptr; });
-    Room& room = rooms_->add(Room(code, settings, (*session)->playerId, *nickname));
+    Room& room = rooms_->add(Room(code, settings, (*session)->playerId, *nickname, request.avatarId));
     (*session)->room = code;
     spdlog::info("room {} created by player {}", code.value, (*session)->playerId.value);
     broadcastRoom(room);
@@ -221,6 +278,9 @@ Application::Outcome Application::handle(ConnectionId connection, const request:
     }
     if ((*session)->room) {
         return fail(ErrorCode::AlreadyInRoom, "Leave your current room first");
+    }
+    if (rooms_->size() >= limits_.maxRooms) {
+        return fail(ErrorCode::ServerFull, "The server has too many rooms right now");
     }
     const auto nickname = validateNickname(request.nickname);
     if (!nickname) {
@@ -241,7 +301,7 @@ Application::Outcome Application::handle(ConnectionId connection, const request:
 
     const RoomCode code =
         generateRoomCode(*random_, [this](const RoomCode& candidate) { return rooms_->find(candidate) != nullptr; });
-    Room& room = rooms_->add(Room(code, settings, (*session)->playerId, *nickname));
+    Room& room = rooms_->add(Room(code, settings, (*session)->playerId, *nickname, request.avatarId));
     (*session)->room = code;
     for (std::uint8_t bot = 0; bot < request.botCount; ++bot) {
         addBotTo(room, request.level);
@@ -278,7 +338,7 @@ Application::Outcome Application::handle(ConnectionId connection, const request:
         return fail(ErrorCode::NicknameTaken, "Another player already uses this nickname");
     }
 
-    room->add((*session)->playerId, *nickname);
+    room->add((*session)->playerId, *nickname, request.avatarId);
     (*session)->room = room->code;
     spdlog::info("player {} joined room {}", (*session)->playerId.value, room->code.value);
     broadcastRoom(*room);
@@ -345,7 +405,8 @@ Application::Outcome Application::handle(ConnectionId connection, const request:
     if (!session) {
         return std::unexpected(session.error());
     }
-    const auto room = hostedLobbyOf(**session);
+    // In the lobby or in a match: a player kicked from a match leaves it like one who forfeits (ADR 0037)
+    const auto room = hostedRoomOf(**session);
     if (!room) {
         return std::unexpected(room.error());
     }
@@ -402,7 +463,17 @@ std::string Application::botNickname(const Room& room) const
 
 void Application::addBotTo(Room& room, BotLevel level)
 {
-    room.addBot(generatePlayerId(*random_), botNickname(room), level);
+    // A bot takes an avatar nobody wears yet, starting anywhere so that two rooms do not meet the same ones
+    const auto start = random_->uniform(kAvatarCount);
+    auto avatar = static_cast<std::uint8_t>(start);
+    for (std::uint8_t offset = 0; offset < kAvatarCount; ++offset) {
+        const auto candidate = static_cast<std::uint8_t>((start + offset) % kAvatarCount);
+        if (!room.avatarTaken(candidate)) {
+            avatar = candidate;
+            break;
+        }
+    }
+    room.addBot(generatePlayerId(*random_), botNickname(room), level, avatar);
 }
 
 Application::Outcome Application::handle(ConnectionId connection, const request::SendReaction& request)
@@ -424,6 +495,53 @@ Application::Outcome Application::handle(ConnectionId connection, const request:
     for (const Member& member : (*room)->members) {
         queue(member.id, response::Reaction{.playerId = (*session)->playerId, .emote = request.emote});
     }
+    return Reply::Ack;
+}
+
+Application::Outcome Application::handle(ConnectionId connection, const request::SendChat& request)
+{
+    const auto session = sessionOf(connection);
+    if (!session) {
+        return std::unexpected(session.error());
+    }
+    const auto room = roomOf(**session);
+    if (!room) {
+        return std::unexpected(room.error());
+    }
+    const auto text = validateChatMessage(request.text);
+    if (!text) {
+        return fail(ErrorCode::ChatInvalid, "A message has 1 to 200 visible characters on one line");
+    }
+    const std::int64_t now = clock_->nowMillis();
+    auto& sent = chatTimes_[(*session)->playerId.value];
+    while (!sent.empty() && now - sent.front() >= kChatWindowMillis) {
+        sent.pop_front();
+    }
+    if (sent.size() >= kChatMessagesPerWindow) {
+        return fail(ErrorCode::RateLimited, "Too many messages: wait a few seconds");
+    }
+    sent.push_back(now);
+    for (const Member& member : (*room)->members) {
+        queue(member.id, response::ChatMessage{.playerId = (*session)->playerId, .text = *text});
+    }
+    return Reply::Ack;
+}
+
+Application::Outcome Application::handle(ConnectionId connection, const request::BackToLobby& /*request*/)
+{
+    const auto session = sessionOf(connection);
+    if (!session) {
+        return std::unexpected(session.error());
+    }
+    const auto room = hostedRoomOf(**session);
+    if (!room) {
+        return std::unexpected(room.error());
+    }
+    if ((*room)->phase == response::RoomPhase::Lobby) {
+        return fail(ErrorCode::InvalidPhase, "The room is already in the lobby");
+    }
+    spdlog::info("room {}: the host sent everybody back to the lobby", (*room)->code.value);
+    resetToLobby(**room);
     return Reply::Ack;
 }
 
@@ -475,7 +593,7 @@ Application::Outcome Application::startMatch(Room& room)
     room.match = std::move(started->match);
     room.phase = response::RoomPhase::InGame;
     room.readyForNextRound.clear();
-    room.formerNicknames.clear();
+    room.formerMembers.clear();
     spdlog::info("room {}: match started with {} players", room.code.value, room.members.size());
     broadcastRoom(room);
     broadcastGame(room, started->events);
@@ -759,12 +877,15 @@ response::GameView Application::viewOf(const Room& room, const core::Match& matc
     // match ended by forfeit): the view still names it.
     for (const core::SeatView& seat : view.game.players) {
         const Member* const member = room.find(seat.playerId);
-        const auto former = room.formerNicknames.find(seat.playerId.value);
+        const auto former = room.formerMembers.find(seat.playerId.value);
         std::string nickname;
+        std::uint8_t avatar = 0;
         if (member != nullptr) {
             nickname = member->nickname;
-        } else if (former != room.formerNicknames.end()) {
-            nickname = former->second;
+            avatar = member->avatarId;
+        } else if (former != room.formerMembers.end()) {
+            nickname = former->second.nickname;
+            avatar = former->second.avatarId;
         }
         view.seats.push_back(response::SeatInfo{
             .nickname = std::move(nickname),
@@ -772,6 +893,7 @@ response::GameView Application::viewOf(const Room& room, const core::Match& matc
             .isBot = member != nullptr && member->isBot,
             .isHost = room.isHost(seat.playerId),
             .isReadyForNextRound = room.readyForNextRound.contains(seat.playerId),
+            .avatarId = avatar,
         });
     }
     return view;

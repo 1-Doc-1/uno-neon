@@ -184,3 +184,18 @@
     transform: scale(1.08);
   }
 }
+
+// Un bouton invisible couvre la pastille : cliquer sur un profil ouvre son menu
+.profile {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 3px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+}

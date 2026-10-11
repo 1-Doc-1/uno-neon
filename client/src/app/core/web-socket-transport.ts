@@ -13,6 +13,7 @@ const SESSION_TAKEN_OVER = 4000;
 export class WebSocketTransport implements GameTransport {
   private readonly statusState = signal<TransportStatus>('closed');
   private readonly attemptState = signal(0);
+  private readonly takenOverState = signal(false);
   private readonly incoming = new Subject<ServerMessage>();
   private socket: WebSocket | null = null;
   private retryTimer: ReturnType<typeof setTimeout> | null = null;
@@ -20,6 +21,7 @@ export class WebSocketTransport implements GameTransport {
 
   readonly status = this.statusState.asReadonly();
   readonly attempt = this.attemptState.asReadonly();
+  readonly takenOver = this.takenOverState.asReadonly();
   readonly messages: Observable<ServerMessage> = this.incoming.asObservable();
 
   constructor(
@@ -32,6 +34,7 @@ export class WebSocketTransport implements GameTransport {
       return;
     }
     this.wanted = true;
+    this.takenOverState.set(false);
     this.open();
   }
 
@@ -75,6 +78,7 @@ export class WebSocketTransport implements GameTransport {
         this.scheduleReconnect();
       } else {
         this.wanted = false;
+        this.takenOverState.set(event.code === SESSION_TAKEN_OVER);
         this.statusState.set('closed');
       }
     };

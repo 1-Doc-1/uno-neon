@@ -11,6 +11,7 @@ add_library(uno_net STATIC
     src/game_codec.cpp
     src/origin_policy.cpp
     src/rate_limiter.cpp
+    src/session_cookie.cpp
     src/server_codec.cpp
     src/server_message_sink.cpp
     src/system_clock.cpp

@@ -31,14 +31,20 @@ class AppHarness;
 // One connected client: sends requests and reads what the server sent to its connection.
 class TestPlayer {
 public:
-    TestPlayer(AppHarness& harness, app::ConnectionId connection) : harness_(&harness), connection_(connection) {}
+    TestPlayer(AppHarness& harness, app::ConnectionId connection, app::SessionToken token)
+        : harness_(&harness), connection_(connection), token_(std::move(token))
+    {
+    }
 
     [[nodiscard]] app::ConnectionId connection() const noexcept { return connection_; }
     [[nodiscard]] const core::PlayerId& id() const { return playerId_; }
     [[nodiscard]] const app::SessionToken& token() const { return token_; }
 
-    // Sends `session.hello` and remembers the identity from the welcome.
+    // Sends `session.hello` and remembers the identity from the welcome. With a token, the connection presents that
+    // session's cookie (a returning browser); without, the one it was opened with.
     void hello(std::optional<app::SessionToken> token = std::nullopt);
+    // Sends `session.takeOver` (the "play here" button of a second tab).
+    void takeOver();
     // Sends a request and returns the id it was sent with.
     std::string send(app::request::Body body);
 
@@ -66,16 +72,19 @@ private:
 
 class AppHarness {
 public:
-    explicit AppHarness(std::uint64_t seed = 7, app::Timeouts timeouts = withoutPresentationDelay())
-        : random(seed), scheduler(clock), application(sink, rooms, random, clock, scheduler, timeouts)
+    explicit AppHarness(std::uint64_t seed = 7, app::Timeouts timeouts = withoutPresentationDelay(),
+                        app::Limits limits = {})
+        : random(seed), scheduler(clock), application(sink, rooms, random, clock, scheduler, timeouts, limits)
     {
     }
 
+    // A new connection, from a browser that has no session cookie yet: the transport made a token for it.
     TestPlayer connect()
     {
         const app::ConnectionId connection{++lastConnection_};
-        application.onConnected(connection);
-        return {*this, connection};
+        app::SessionToken token = freshToken();
+        application.onConnected(connection, token);
+        return {*this, connection, std::move(token)};
     }
 
     // A client that already said hello.
@@ -94,15 +103,33 @@ public:
     app::Application application;
 
 private:
+    [[nodiscard]] app::SessionToken freshToken()
+    {
+        std::string digits = std::to_string(++lastToken_);
+        return app::SessionToken{"T" + std::string(21 - digits.size(), '0') + digits};
+    }
+
     std::uint64_t lastConnection_ = 0;
+    std::uint64_t lastToken_ = 0;
 };
 
 inline void TestPlayer::hello(std::optional<app::SessionToken> token)
 {
-    send(app::request::Hello{.sessionToken = std::move(token), .clientVersion = "test"});
+    if (token) {
+        token_ = std::move(*token);
+        harness_->application.onConnected(connection_, token_);
+    }
+    send(app::request::Hello{.clientVersion = "test"});
     if (const auto welcome = last<app::response::Welcome>()) {
         playerId_ = welcome->playerId;
-        token_ = welcome->sessionToken;
+    }
+}
+
+inline void TestPlayer::takeOver()
+{
+    send(app::request::TakeOver{});
+    if (const auto welcome = last<app::response::Welcome>()) {
+        playerId_ = welcome->playerId;
     }
 }
 

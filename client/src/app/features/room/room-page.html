@@ -34,6 +34,7 @@
         <span>Ton pseudo</span>
         <input type="text" autocomplete="nickname" [formField]="form.nickname" />
       </label>
+      <app-avatar-picker [selected]="avatar()" (picked)="chooseAvatar($event)" />
       <button appButton kind="primary" (click)="join()" [disabled]="!canJoin()">Rejoindre</button>
       <button appButton kind="ghost" (click)="goHome()">Accueil</button>
     </section>

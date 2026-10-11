@@ -1,6 +1,9 @@
 // Cherche des graines (UNO_TEST_SEED) qui donnent les situations dont les tests E2E ont besoin, en jouant la même
 // politique que les tests (`choosePlay`) directement par le protocole.
 //   Usage : node tools/find-seeds.ts [premièreGraine] [nombre]
+//   Variables : UNO_FIND_DRAW_AMOUNT, UNO_FIND_SETTINGS (JSON), UNO_FIND_DEAL_ONLY=1 (la donne seulement, sans jouer),
+//   UNO_FIND_SEEDS=1,5,9 (rejouer seulement ces graines), UNO_FIND_PARALLEL (nombre de serveurs à la fois),
+//   UNO_FIND_MAX_VERSIONS (abandonner une partie au-delà de cette vue)
 // Les graines retenues sont copiées à la main dans `support/seeds.ts`, avec ce qu'elles garantissent.
 import { type ChildProcess, spawn } from 'node:child_process';
 import { dirname, join, resolve } from 'node:path';
@@ -12,10 +15,15 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const binary =
   process.env['UNO_SERVER_BIN'] ??
   join(root, 'server/build/e2e', process.platform === 'win32' ? 'uno_server.exe' : 'uno_server');
-const MAX_VERSIONS = 90;
+// Au-delà de ce numéro de vue la partie est abandonnée (les scénarios utiles se jouent tôt) : UNO_FIND_MAX_VERSIONS
+const MAX_VERSIONS = Number(process.env['UNO_FIND_MAX_VERSIONS'] ?? 90);
 // Le réglage de pioche du salon : les graines des tests existants sont trouvées avec « one » (voir `lobby` dans fixtures.ts).
 const drawAmount = process.env['UNO_FIND_DRAW_AMOUNT'] ?? 'one';
 // D'autres réglages du salon (JSON), par exemple un paquet riche en Joker +5 : `{"wildDrawFiveMultiplier":5}`
+// Seulement la donne (sans jouer la partie) : bien plus rapide, pour trier une grande plage de graines
+const dealOnly = process.env['UNO_FIND_DEAL_ONLY'] === '1';
+// Rejouer seulement ces graines (liste séparée par des virgules), par exemple les candidats d'un tri par la donne
+const onlySeeds = process.env['UNO_FIND_SEEDS']?.split(',').map(Number);
 const extraSettings = JSON.parse(process.env['UNO_FIND_SETTINGS'] ?? '{}') as Record<
   string,
   unknown
@@ -154,6 +162,12 @@ async function run(seed: number, port: number): Promise<Finding> {
       end: null,
     };
 
+    if (dealOnly) {
+      a.close();
+      b.close();
+      return finding;
+    }
+
     // La partie complète, jouée par la politique
     const bots = { A: a, B: b } as const;
     let scanned = 0;
@@ -239,14 +253,14 @@ async function run(seed: number, port: number): Promise<Finding> {
 
 const firstSeed = Number(process.argv[2] ?? 1);
 const count = Number(process.argv[3] ?? 50);
-const parallel = 6;
-const queue = Array.from({ length: count }, (_, index) => firstSeed + index);
+const parallel = Number(process.env['UNO_FIND_PARALLEL'] ?? 6);
+const queue = onlySeeds ?? Array.from({ length: count }, (_, index) => firstSeed + index);
 const findings: Finding[] = [];
 await Promise.all(
   Array.from({ length: parallel }, async (_, lane) => {
     for (let seed = queue.shift(); seed !== undefined; seed = queue.shift()) {
       try {
-        const finding = await run(seed, 19000 + lane);
+        const finding = await run(seed, 20000 + (seed % 20000));
         findings.push(finding);
         console.log(JSON.stringify(finding));
       } catch (error) {

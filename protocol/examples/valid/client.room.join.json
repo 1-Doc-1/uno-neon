@@ -4,6 +4,7 @@
   "type": "room.join",
   "payload": {
     "code": "K7M4XP",
-    "nickname": "Max"
+    "nickname": "Max",
+    "avatarId": 7
   }
 }

@@ -15,6 +15,7 @@ const seat = (cardCount: number): SeatView => ({
   isHost: false,
   hasCalledUno: false,
   isReadyForNextRound: false,
+  avatarId: 0,
 });
 
 function renderSeat(cardCount: number, forgotUno = false, isBot = false) {

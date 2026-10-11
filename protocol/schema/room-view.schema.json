@@ -31,9 +31,19 @@
         "isHost": { "type": "boolean" },
         "isReady": { "type": "boolean" },
         "isConnected": { "type": "boolean" },
-        "isBot": { "type": "boolean" }
+        "isBot": { "type": "boolean" },
+        "avatarId": { "$ref": "common.schema.json#/$defs/Avatar" }
       },
-      "required": ["playerId", "nickname", "seat", "isHost", "isReady", "isConnected", "isBot"],
+      "required": [
+        "playerId",
+        "nickname",
+        "seat",
+        "isHost",
+        "isReady",
+        "isConnected",
+        "isBot",
+        "avatarId"
+      ],
       "additionalProperties": false
     }
   }

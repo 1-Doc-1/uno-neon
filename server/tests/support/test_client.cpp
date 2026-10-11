@@ -198,7 +198,7 @@ private:
 };
 
 // Reads an HTTP response head (up to the empty line) and returns its status code.
-std::optional<int> readStatus(Connection& connection, Clock::time_point deadline)
+std::optional<int> readStatus(Connection& connection, Clock::time_point deadline, std::string* headOut = nullptr)
 {
     while (!connection.buffer().contains("\r\n\r\n")) {
         if (connection.fill(deadline) != ReadResult::Data) {
@@ -211,6 +211,9 @@ std::optional<int> readStatus(Connection& connection, Clock::time_point deadline
         return std::nullopt;
     }
     const std::string head = connection.take(headEnd + 4);
+    if (headOut != nullptr) {
+        *headOut = head;
+    }
     // "HTTP/1.1 101 Switching Protocols"
     const auto firstSpace = head.find(' ');
     if (firstSpace == std::string::npos) {
@@ -277,6 +280,7 @@ struct TestWebSocket::Impl {
 
     Connection connection;
     std::optional<Closure> closure;
+    std::string setCookie;
 };
 
 TestWebSocket::TestWebSocket(std::unique_ptr<Impl> impl) : impl_(std::move(impl)) {}
@@ -284,7 +288,8 @@ TestWebSocket::TestWebSocket(TestWebSocket&&) noexcept = default;
 TestWebSocket& TestWebSocket::operator=(TestWebSocket&&) noexcept = default;
 TestWebSocket::~TestWebSocket() = default;
 
-std::optional<TestWebSocket> TestWebSocket::connect(std::uint16_t port, std::string_view origin, int& status)
+std::optional<TestWebSocket> TestWebSocket::connect(std::uint16_t port, std::string_view origin, int& status,
+                                                    std::string_view cookie)
 {
     auto connection = Connection::open(port);
     if (!connection) {
@@ -296,16 +301,31 @@ std::optional<TestWebSocket> TestWebSocket::connect(std::uint16_t port, std::str
     if (!origin.empty()) {
         request += "Origin: " + std::string(origin) + "\r\n";
     }
+    if (!cookie.empty()) {
+        request += "Cookie: " + std::string(cookie) + "\r\n";
+    }
     request += "\r\n";
     if (!connection->sendAll(request)) {
         return std::nullopt;
     }
-    const auto answer = readStatus(*connection, Clock::now() + std::chrono::seconds(2));
+    std::string head;
+    const auto answer = readStatus(*connection, Clock::now() + std::chrono::seconds(2), &head);
     if (!answer) {
         return std::nullopt;
     }
     status = *answer;
-    return TestWebSocket(std::make_unique<Impl>(std::move(*connection)));
+    auto socket = TestWebSocket(std::make_unique<Impl>(std::move(*connection)));
+    constexpr std::string_view kHeader = "\r\nSet-Cookie: ";
+    if (const auto found = head.find(kHeader); found != std::string::npos) {
+        const auto start = found + kHeader.size();
+        socket.impl_->setCookie = head.substr(start, head.find("\r\n", start) - start);
+    }
+    return socket;
+}
+
+const std::string& TestWebSocket::setCookie() const
+{
+    return impl_->setCookie;
 }
 
 bool TestWebSocket::send(std::string_view payload, int opcode)

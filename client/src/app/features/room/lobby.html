@@ -27,16 +27,30 @@
       <ul class="list">
         @for (player of room().players; track player.playerId) {
           <li class="player" [class.offline]="!player.isConnected">
-            <app-avatar [playerId]="player.playerId" [nickname]="player.nickname" />
-            <span class="name">
-              {{ player.nickname }}
-              @if (player.playerId === store.playerId()) {
-                <span class="you">toi</span>
-              }
-              @if (!player.isConnected) {
-                <span class="you">déconnecté</span>
-              }
-            </span>
+            @if (player.playerId === store.playerId() || player.isBot) {
+              <app-avatar [avatarId]="player.avatarId" />
+              <span class="name">
+                {{ player.nickname }}
+                @if (player.playerId === store.playerId()) {
+                  <span class="you">toi</span>
+                }
+              </span>
+            } @else {
+              <button
+                type="button"
+                class="profile"
+                [attr.aria-label]="'Options de ' + player.nickname"
+                (click)="menuPlayer.set(player.playerId)"
+              >
+                <app-avatar [avatarId]="player.avatarId" />
+                <span class="name">
+                  {{ player.nickname }}
+                  @if (!player.isConnected) {
+                    <span class="you">déconnecté</span>
+                  }
+                </span>
+              </button>
+            }
             @if (player.isBot) {
               <span class="bot-badge">Bot</span>
             }
@@ -56,27 +70,6 @@
               >
                 Retirer
               </button>
-            } @else if (isHost() && !player.isHost) {
-              @if (kickCandidate() === player.playerId) {
-                <button
-                  appButton
-                  kind="danger"
-                  class="small"
-                  (click)="confirmKick(player.playerId)"
-                >
-                  Confirmer
-                </button>
-              } @else {
-                <button
-                  appButton
-                  kind="danger"
-                  class="small"
-                  [attr.aria-label]="'Exclure ' + player.nickname"
-                  (click)="askKick(player.playerId)"
-                >
-                  Exclure
-                </button>
-              }
             }
           </li>
         }
@@ -146,3 +139,8 @@
     }
   </footer>
 </div>
+
+<app-chat-dock />
+@if (menuPlayer(); as playerId) {
+  <app-player-menu [playerId]="playerId" (closed)="menuPlayer.set(null)" />
+}

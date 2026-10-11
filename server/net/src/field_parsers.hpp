@@ -161,4 +161,13 @@ inline Parsed<std::uint8_t> parseMaxPlayers(const Json& value)
     return static_cast<std::uint8_t>(*count);
 }
 
+inline Parsed<std::uint8_t> parseAvatar(const Json& value)
+{
+    const auto avatar = detail::parseInteger(value, 0, app::kAvatarCount - 1);
+    if (!avatar) {
+        return std::unexpected(avatar.error());
+    }
+    return static_cast<std::uint8_t>(*avatar);
+}
+
 } // namespace uno::net::detail

@@ -98,6 +98,9 @@ export class TableView {
   readonly penaltyAnswered = output<'accept' | 'challenge'>();
   readonly nextRoundAsked = output<void>();
   readonly left = output<void>();
+  readonly profileOpened = output<string>();
+  readonly rematchAsked = output<void>();
+  readonly backToLobbyAsked = output<void>();
 
   protected readonly director = inject(AnimationDirector);
   private readonly audio = inject(AudioService);

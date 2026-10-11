@@ -17,7 +17,9 @@ add_executable(uno_tests
     application_stacking_test.cpp
     application_presentation_test.cpp
     application_rooms_test.cpp
+    application_social_test.cpp
     application_uno_test.cpp
+    chat_test.cpp
     client_event_test.cpp
     codec_test.cpp
     crypto_random_source_test.cpp
@@ -32,6 +34,7 @@ add_executable(uno_tests
     random_test.cpp
     rate_limiter_test.cpp
     scoring_test.cpp
+    session_cookie_test.cpp
     server_integration_test.cpp
     simulation_test.cpp
     match_test.cpp

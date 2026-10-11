@@ -4,6 +4,8 @@ const SERVER_MESSAGE_TYPES: ReadonlySet<string> = new Set([
   'ack',
   'error',
   'session.welcome',
+  'session.busy',
+  'chat.message',
   'room.update',
   'game.update',
   'reaction',

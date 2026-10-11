@@ -8,6 +8,11 @@
       <input type="text" autocomplete="nickname" [formField]="form.nickname" />
     </label>
 
+    <div class="avatar-field">
+      <span class="label">Ton avatar</span>
+      <app-avatar-picker [selected]="avatar()" (picked)="chooseAvatar($event)" />
+    </div>
+
     <div class="choices">
       <button
         type="button"

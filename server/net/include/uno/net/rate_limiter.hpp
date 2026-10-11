@@ -53,8 +53,9 @@ private:
 };
 
 // The address rate limits are counted against. Behind a reverse proxy every connection comes from the proxy, so
-// its `X-Forwarded-For` header is used, but ONLY when the proxy is declared trusted (UNO_TRUSTED_PROXY): from
-// anyone else the header is forgeable. The last entry is the one the trusted proxy appended itself.
+// its `X-Forwarded-For` header is used, but ONLY when the proxy is declared trusted (UNO_TRUSTED_PROXY) AND the
+// connection comes from this very machine (Caddy runs beside the server, ADR 0036): from anyone else the header is
+// forgeable, whatever the configuration says. The last entry is the one the trusted proxy appended itself.
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters): two addresses, but told apart by their names at the call
 [[nodiscard]] std::string clientAddress(std::string_view remoteAddress, std::string_view forwardedFor,
                                         bool trustedProxy);

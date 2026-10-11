@@ -21,7 +21,7 @@ describe('HomePage', () => {
     transport.receive({
       v: 1,
       type: 'session.welcome',
-      payload: { sessionToken: 't', playerId: 'me' },
+      payload: { playerId: 'me' },
     });
     const fixture = TestBed.createComponent(HomePage);
     fixture.detectChanges();

@@ -19,7 +19,9 @@ class ConnectionHandler {
 public:
     virtual ~ConnectionHandler() = default;
 
-    virtual void onConnected(ConnectionId connection) = 0;
+    // `token` is the secret of the session this connection belongs to: read from the session cookie of the upgrade
+    // request, or newly made when the browser had none (ADR 0036). It never travels in a message.
+    virtual void onConnected(ConnectionId connection, SessionToken token) = 0;
     // Only well-formed requests get here: framing, size and syntax were already checked.
     virtual void onRequest(ConnectionId connection, request::Envelope request) = 0;
     virtual void onDisconnected(ConnectionId connection) = 0;

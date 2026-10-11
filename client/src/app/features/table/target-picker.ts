@@ -23,7 +23,7 @@ import { ClickSound } from '../../ui/click-sound';
         @for (seat of targets(); track seat.playerId; let index = $index) {
           <li>
             <button type="button" class="target" (click)="picked.emit(seat.playerId)">
-              <app-avatar [playerId]="seat.playerId" [nickname]="seat.nickname" />
+              <app-avatar [avatarId]="seat.avatarId" />
               <span class="name">{{ seat.nickname }}</span>
               <span class="cards"
                 >{{ seat.cardCount }} carte{{ seat.cardCount > 1 ? 's' : '' }}</span

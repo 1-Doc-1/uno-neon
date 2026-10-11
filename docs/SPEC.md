@@ -144,7 +144,7 @@ Interactions à gérer explicitement (et à tester) :
 - Un 7 posé comme dernière carte : pas d'échange, la manche se termine.
 - Contre-UNO sur un joueur qui s'est déconnecté : autorisé.
 - Deux contre-UNO simultanés : le premier traité gagne, le second reçoit `UNO_WINDOW_CLOSED`. Un contre-UNO pendant la grâce de 2 s reçoit `UNO_GRACE_PERIOD`. Plusieurs joueurs peuvent avoir une fenêtre ouverte en même temps.
-- Revanche : même salon, mêmes joueurs connectés, scores remis à zéro.
+- Revanche : même salon, mêmes joueurs connectés, mêmes réglages, scores remis à zéro ; **l'hôte seul la lance** (« Revanche » ou « Retour au salon » sur l'écran de fin), les autres voient « En attente de l'hôte » (ADR 0037).
 - Un joueur part entre deux manches : les points de la manche terminée restent acquis (ils sont comptés quand elle se termine) ; il emporte sa main et son score ; la manche suivante se joue sans lui (forfait s'ils étaient deux).
 - `declareUnoToWin` : un joueur à 1 carte jouable qui n'a pas annoncé UNO reçoit `MUST_DECLARE_UNO` s'il tente de la poser. Si le minuteur de tour expire dans cet état et qu'il ne peut pas piocher (pioche guidée, carte normale), le serveur annonce UNO puis pose la carte à sa place.
 - **Joker +5** (ADR 0028, tous testés) : **pioche guidée** : la cible n'a aucun choix, quelle que soit la règle de pioche et sa main : le serveur accepte pour elle (coup forcé, après `actionsOpenAt`, ADR 0034), ou elle clique sur le paquet. **UNO** : le poseur qui reste à une carte ouvre une fenêtre de contre-UNO comme après toute pose ; une cible qui reçoit des cartes voit sa fenêtre fermée ; **UNO obligatoire** : poser sa dernière carte, un +5, sans avoir annoncé UNO est refusé (`MUST_DECLARE_UNO`) et `me.mustDeclareUno` le dit. **Pioche épuisée** : la pénalité remélange la défausse (sauf la carte du dessus) et la cible pioche ce qui reste, sans erreur. **Départ** : si la cible part, la pénalité est annulée et le jeu reprend chez le joueur suivant ; si un autre joueur part, la chaîne continue. **Minuteur de tour** : la cible qui laisse expirer son tour accepte. **Sécurité** : le serveur valide la cible (joueur de la manche, différent de l'acteur), la couleur et la phase ; tout le monde voit qui est visé et le total, jamais les cartes piochées.
@@ -239,17 +239,19 @@ Serveur → client : réponses `{ "v": 1, "type": "ack", "replyTo": "c-42" }` ou
 ### 8.3 Messages client → serveur
 | Type | Payload | Conditions |
 |---|---|---|
-| `session.hello` | `{ sessionToken?, clientVersion }` | premier message obligatoire |
-| `room.create` | `{ nickname, settings? }` | pas déjà dans un salon |
-| `room.join` | `{ code, nickname }` | salon existant, non plein, en lobby |
+| `session.hello` | `{ clientVersion }` | premier message obligatoire ; la session est celle du cookie HttpOnly du navigateur (ADR 0036), le jeton ne passe jamais dans un message |
+| `session.takeOver` | `{}` | après `session.busy` : cet onglet reprend la session, l'autre est fermé (code 4000) |
+| `room.create` | `{ nickname, avatarId?, settings? }` | pas déjà dans un salon (une seule salle active par session), serveur non plein |
+| `room.join` | `{ code, nickname, avatarId? }` | salon existant, non plein, en lobby |
 | `room.leave` | `{}` | |
 | `room.updateSettings` | `{ settings }` (partiel) | hôte, en lobby |
 | `room.setReady` | `{ ready }` | en lobby |
-| `room.kick` | `{ playerId }` | hôte, en lobby |
+| `room.kick` | `{ playerId }` | hôte, au salon **ou en partie** (l'exclu quitte la partie comme un forfait, ADR 0037) |
+| `room.backToLobby` | `{}` | hôte, en partie ou à la fin : tout le monde retourne au salon, la partie est abandonnée sans score (ADR 0037) |
 | `room.addBot` | `{ level: "easy" \| "normal" }` | hôte, en lobby, salon non plein ; le bot est toujours prêt ; on le retire avec `room.kick` (ADR 0030) |
-| `room.createBotGame` | `{ nickname, botCount: 1..5, level, settings? }` | pas déjà dans un salon : le serveur crée le salon, y assoit les bots (`maxPlayers` = bots + 1) et **lance la partie aussitôt** (ADR 0030) |
+| `room.createBotGame` | `{ nickname, avatarId?, botCount: 1..5, level, settings? }` | pas déjà dans un salon : le serveur crée le salon, y assoit les bots (`maxPlayers` = bots + 1) et **lance la partie aussitôt** (ADR 0030) |
 | `match.start` | `{}` | hôte, ≥ 2 joueurs, tous prêts |
-| `match.rematch` | `{}` | hôte, partie terminée |
+| `match.rematch` | `{}` | hôte, partie terminée : mêmes joueurs connectés, mêmes réglages ; **jamais automatique** (ADR 0037) |
 | `game.playCard` | `{ cardId, chosenColor?, swapTargetId?, targetId? }` | son tour, ou interception si `jumpIn` |
 | `game.drawCard` | `{}` | son tour, phase `AwaitingPlay`, et si la règle de pioche l'autorise (`me.canDraw`) |
 | `game.pass` | `{}` | phase `AwaitingDrawnCardDecision` (« garder la carte » : interdit en pioche guidée si la carte piochée est normale) |
@@ -258,15 +260,19 @@ Serveur → client : réponses `{ "v": 1, "type": "ack", "replyTo": "c-42" }` ou
 | `game.catchUno` | `{ targetId }` | fenêtre UNO ouverte sur la cible |
 | `reaction.send` | `{ emote: "gg" \| "wow" \| "lol" \| "ouch" \| "think" \| "fire" }` | limité à 1 toutes les 2 s |
 
-Pas de chat libre : uniquement des réactions prédéfinies. *Pourquoi* : aucune modération à gérer, aucun contenu utilisateur arbitraire affiché, surface d'attaque minimale.
+| `chat.send` | `{ text }` | dans un salon (au salon comme en partie) ; 1 à 200 caractères visibles sur une ligne (`CHAT_INVALID`), au plus 5 messages en 10 s (`RATE_LIMITED`) ; texte brut (ADR 0037) |
+
+Le chat est du **texte brut** : le serveur le valide strictement (UTF-8, longueur, aucun caractère de contrôle, invisible ou qui réordonne le texte) et le client l'insère toujours comme du texte, jamais comme du HTML. Les bots n'écrivent pas. Chaque joueur peut masquer un autre joueur, pour lui seul (côté client).
 
 ### 8.4 Messages serveur → client
 | Type | Payload |
 |---|---|
-| `session.welcome` | `{ sessionToken, playerId, resumedRoomCode? }` |
+| `session.welcome` | `{ playerId, resumedRoomCode? }` |
+| `session.busy` | `{}` | la session est déjà ouverte dans un autre onglet : rien n'est attaché à cette connexion, le client peut envoyer `session.takeOver` (ADR 0036) |
 | `room.update` | `{ roomVersion, room: RoomView }` |
 | `game.update` | `{ stateVersion, events: ClientEvent[], view: PlayerView }` |
 | `reaction` | `{ playerId, emote }` |
+| `chat.message` | `{ playerId, text }` | à tous les humains du salon, l'expéditeur compris |
 | `room.closed` | `{ reason: "expired" \| "kicked" \| "hostClosed" }` |
 | `ack` / `error` | voir §8.2 |
 
@@ -319,8 +325,8 @@ Les messages d'erreur sont en anglais technique ; **le client traduit chaque cod
 - Les timers passent par une interface `Scheduler` (`schedule(delay, callback) → TimerHandle`, `cancel`) : `UwsScheduler` en prod, `ManualScheduler` (avance le temps à la main) dans les tests.
 
 ### 9.3 Sessions, salons, reconnexion
-- `session.hello` sans jeton → création d'une session, jeton de 128 bits aléatoires cryptographiques encodé en base64url. Avec jeton valide → reprise de la session et du salon éventuel (`resumedRoomCode`).
-- Côté client, le jeton est stocké en `sessionStorage` (un onglet = un joueur : pratique pour tester à plusieurs sur une seule machine).
+- **La session est un cookie** (ADR 0036) : à l'ouverture du WebSocket, le serveur lit `uno_session` ; sans cookie valide il fabrique un jeton de 128 bits aléatoires cryptographiques (base64url) et le pose avec `Set-Cookie: uno_session=…; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=86400`. Aucun script ne le lit, aucun autre site ne le fait envoyer, il ne figure dans aucun message ni log. `session.hello` ouvre ou reprend la session (et son salon, `resumedRoomCode`) ; un joueur qui ferme son onglet ou son navigateur retrouve donc sa place à la réouverture, tant que la grâce de reconnexion (60 s en partie) n'est pas écoulée.
+- **Un seul onglet actif par session** : si la session est déjà tenue par une connexion, la nouvelle reçoit `session.busy` et ne touche à rien ; `session.takeOver` la prend et ferme l'ancienne (code 4000). **Pour jouer à deux sur une machine, il faut deux navigateurs (ou une fenêtre privée)** : deux onglets du même navigateur sont le même joueur.
 - Code de salon : 6 caractères parmi `ABCDEFGHJKMNPQRSTUVWXYZ23456789` (sans I, L, O, 0, 1 pour éviter les confusions), généré par `CryptoRandomSource`, unicité vérifiée.
 - Pseudo : 2 à 16 caractères après `trim`, lettres Unicode, chiffres, espace, `_`, `-` ; unique dans le salon (insensible à la casse).
 - Expiration : salon en lobby inactif 15 min, salon en fin de partie 5 min, session sans connexion 10 min.
@@ -329,7 +335,8 @@ Les messages d'erreur sont en anglais technique ; **le client traduit chaque cod
 ### 9.4 Protection des entrées
 - Taille max d'un message : 4 Kio (`maxPayloadLength`), `idleTimeout` avec ping/pong.
 - JSON invalide, champ manquant/en trop, type inconnu → `error` typé ; après 10 erreurs de format sur une connexion → fermeture (code 1008).
-- **Rate limiting** par connexion (seau à jetons : capacité 20, recharge 10/s) ; par IP : 5 créations de salon/min, 20 tentatives de `room.join`/min (anti-force brute des codes). Derrière Caddy, l'IP réelle vient de `X-Forwarded-For` **uniquement** si le proxy est déclaré de confiance dans la config.
+- **Rate limiting** par connexion (seau à jetons : capacité 20, recharge 10/s) ; par IP : 5 créations de salon/min, 20 tentatives de `room.join`/min (anti-force brute des codes). Derrière Caddy, l'IP réelle vient de `X-Forwarded-For` **uniquement** si le proxy est déclaré de confiance (`UNO_TRUSTED_PROXY`) **et** que la connexion vient de cette machine (127.0.0.1 / ::1) : de tout autre pair l'en-tête est ignoré, quelle que soit la config (Caddy y met l'IP de `Cf-Connecting-Ip`, ADR 0033).
+- **Plafonds** (ADR 0036) : 20 connexions par adresse et 1 000 au total (`503` au handshake), 300 salons et 2 000 sessions (`SERVER_FULL`), une seule salle active par session (`ALREADY_IN_ROOM`), salons vides détruits (dernier humain parti, grâce expirée), chat limité à 5 messages / 10 s par joueur.
 - **Vérification de l'`Origin`** au handshake contre `UNO_ALLOWED_ORIGINS` (protection contre le détournement de WebSocket depuis un autre site).
 
 ### 9.5 Configuration (variables d'environnement)
@@ -366,7 +373,7 @@ client/src/styles/   tokens.scss, themes.scss, base.scss, typography.scss, backg
 
 ### 10.3 Découplage transport / état (inversion de dépendances)
 - `GameTransport` (interface, **Adapter**) : `connect()`, `send(message)`, `messages$`/signal, `status` (`connecting` | `open` | `reconnecting` | `closed`).
-  - `WebSocketTransport` : vraie connexion, **reconnexion automatique avec backoff exponentiel plafonné et jitter** (0,5 s → 8 s), renvoie `session.hello` avec le jeton à chaque reconnexion.
+  - `WebSocketTransport` : vraie connexion, **reconnexion automatique avec backoff exponentiel plafonné et jitter** (0,5 s → 8 s), renvoie `session.hello` à chaque reconnexion (le cookie fait le reste). Un onglet fermé par `session.takeOver` (code 4000) ne se reconnecte pas seul : il affiche « Partie ouverte dans un autre onglet » et un bouton « Jouer ici ».
   - `FixtureTransport` : rejoue des scénarios écrits à la main (`dev/fixtures/*.ts`) et répond aux intentions de façon scriptée. Sert à la galerie, au développement de l'UI sans serveur et aux tests unitaires du store.
 - Fourni via un `InjectionToken<GameTransport>` : les stores et composants ne savent pas lequel est utilisé.
 - *Pourquoi* : l'équipe UI avance en parallèle de l'équipe serveur, et le vrai `GameStore` est testé (pas un faux store).
@@ -426,7 +433,7 @@ Un seul thème : anthracite / bleu nuit très sombre, panneaux en verre sombre. 
 - **Logo** (`ui/logo`) : wordmark « UNO » en **SVG inline**, une tuile arrondie par lettre de `APP_NAME` (`core/app-name.ts`), aux couleurs du jeu, légèrement penchées. Le nom du jeu vient d'une seule constante.
 - **Icônes** (`ui/icon`) : composant SVG maison (porte, couronne, copier, coche, fermer, flèches de sens, palette), `currentColor`, décoratives (`aria-hidden`), sans `innerHTML` ni dépendance.
 - **Boutons** (`button[appButton]`) : `primary` (vert néon plein), `danger` (contour rouge néon, plein au survol), `uno` (jaune), `neutral`, `ghost`. Un bouton **atténué** pose `aria-disabled` (et non `disabled`) quand son survol ou son focus doit expliquer pourquoi.
-- Autres : `avatar` (initiale dans un disque teinté), `segmented-control`, `modal` (`<dialog>` natif), `toast`, `connection-banner`.
+- Autres : `avatar` (**12 personnages SVG** originaux aux couleurs des tokens, choisis sur l'accueil, mémorisés avec le pseudo, envoyés comme un numéro `avatarId` 0 à 11 : rien n'est téléversé, ADR 0037), `avatar-picker` (groupe radio de 12), `player-menu` (masquer / exclure, avec confirmation), `chat-panel` (panneau repliable avec compteur de non-lus), `segmented-control`, `modal` (`<dialog>` natif), `toast`, `connection-banner`.
 
 ## 12. Écrans et parcours
 

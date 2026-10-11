@@ -9,6 +9,8 @@ export class FakeTransport implements GameTransport {
   readonly status = this.statusState.asReadonly();
   readonly attempt = signal(0);
   readonly incoming = new Subject<ServerMessage>();
+  readonly takenOverState = signal(false);
+  readonly takenOver = this.takenOverState.asReadonly();
   readonly messages = this.incoming.asObservable();
   readonly sent: ClientMessage[] = [];
 

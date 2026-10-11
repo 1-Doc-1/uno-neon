@@ -14,6 +14,12 @@
       "$ref": "#/$defs/WelcomeMessage"
     },
     {
+      "$ref": "#/$defs/SessionBusyMessage"
+    },
+    {
+      "$ref": "#/$defs/ChatMessageMessage"
+    },
+    {
       "$ref": "#/$defs/RoomUpdateMessage"
     },
     {
@@ -97,7 +103,7 @@
     },
     "WelcomeMessage": {
       "title": "WelcomeMessage",
-      "description": "Answer to session.hello. Keep the token in sessionStorage to resume after a reconnection.",
+      "description": "Answer to session.hello. The session itself is in an HttpOnly cookie the browser keeps: no token here.",
       "type": "object",
       "properties": {
         "v": {
@@ -110,9 +116,6 @@
           "title": "WelcomePayload",
           "type": "object",
           "properties": {
-            "sessionToken": {
-              "$ref": "common.schema.json#/$defs/SessionToken"
-            },
             "playerId": {
               "$ref": "common.schema.json#/$defs/PlayerId"
             },
@@ -120,7 +123,59 @@
               "$ref": "common.schema.json#/$defs/RoomCode"
             }
           },
-          "required": ["sessionToken", "playerId"],
+          "required": ["playerId"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["v", "type", "payload"],
+      "additionalProperties": false
+    },
+    "SessionBusyMessage": {
+      "title": "SessionBusyMessage",
+      "description": "Answer to session.hello when the session is already open in another tab: nothing was attached. The client may send session.takeOver (ADR 0036).",
+      "type": "object",
+      "properties": {
+        "v": {
+          "$ref": "common.schema.json#/$defs/ProtocolVersion"
+        },
+        "type": {
+          "const": "session.busy"
+        },
+        "payload": {
+          "title": "SessionBusyPayload",
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        }
+      },
+      "required": ["v", "type", "payload"],
+      "additionalProperties": false
+    },
+    "ChatMessageMessage": {
+      "title": "ChatMessageMessage",
+      "description": "A chat line, sent to every human member of the room (the sender included). Plain text: never markup (ADR 0037).",
+      "type": "object",
+      "properties": {
+        "v": {
+          "$ref": "common.schema.json#/$defs/ProtocolVersion"
+        },
+        "type": {
+          "const": "chat.message"
+        },
+        "payload": {
+          "title": "ChatMessagePayload",
+          "type": "object",
+          "properties": {
+            "playerId": {
+              "$ref": "common.schema.json#/$defs/PlayerId"
+            },
+            "text": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 800
+            }
+          },
+          "required": ["playerId", "text"],
           "additionalProperties": false
         }
       },

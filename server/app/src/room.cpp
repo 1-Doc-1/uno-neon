@@ -10,10 +10,11 @@
 
 namespace uno::app {
 
-Room::Room(RoomCode roomCode, RoomSettings roomSettings, core::PlayerId firstMember, std::string nickname)
+Room::Room(RoomCode roomCode, RoomSettings roomSettings, core::PlayerId firstMember, std::string nickname,
+           std::uint8_t avatar)
     : code(std::move(roomCode)), settings(roomSettings), host(firstMember)
 {
-    members.push_back(Member{.id = std::move(firstMember), .nickname = std::move(nickname)});
+    members.push_back(Member{.id = std::move(firstMember), .nickname = std::move(nickname), .avatarId = avatar});
 }
 
 Member* Room::find(const core::PlayerId& player)
@@ -40,12 +41,17 @@ bool Room::nicknameTaken(const std::string& nickname) const
     return std::ranges::any_of(members, [&key](const Member& member) { return nicknameKey(member.nickname) == key; });
 }
 
-void Room::add(core::PlayerId player, std::string nickname)
+void Room::add(core::PlayerId player, std::string nickname, std::uint8_t avatar)
 {
-    members.push_back(Member{.id = std::move(player), .nickname = std::move(nickname)});
+    members.push_back(Member{.id = std::move(player), .nickname = std::move(nickname), .avatarId = avatar});
 }
 
-void Room::addBot(core::PlayerId player, std::string nickname, BotLevel level)
+bool Room::avatarTaken(std::uint8_t avatar) const
+{
+    return std::ranges::any_of(members, [avatar](const Member& member) { return member.avatarId == avatar; });
+}
+
+void Room::addBot(core::PlayerId player, std::string nickname, BotLevel level, std::uint8_t avatar)
 {
     members.push_back(Member{
         .id = std::move(player),
@@ -54,6 +60,7 @@ void Room::addBot(core::PlayerId player, std::string nickname, BotLevel level)
         .connected = true,
         .isBot = true,
         .botLevel = level,
+        .avatarId = avatar,
     });
 }
 
@@ -106,6 +113,7 @@ response::RoomView Room::view() const
             .isReady = isRoomHost || member.ready,
             .isConnected = member.connected,
             .isBot = member.isBot,
+            .avatarId = member.avatarId,
         });
     }
     return roomView;

@@ -1,13 +1,17 @@
 import { Component, computed, input, output } from '@angular/core';
 import type { SeatView } from '../../protocol/generated/protocol';
+import { Avatar } from '../../ui/avatar';
 import { Modal } from '../../ui/modal';
 import { Button } from '../../ui/button';
 import { ClickSound } from '../../ui/click-sound';
 
-/** Fin de partie : vainqueur et classement. (La revanche viendra après le MVP, étape 4.3b.) */
+/**
+ * Fin de partie : vainqueur et classement. Plus de relance automatique : l'hôte choisit entre une revanche (mêmes
+ * joueurs, mêmes réglages) et le retour au salon ; les autres attendent sa décision (ADR 0037).
+ */
 @Component({
   selector: 'app-match-over-dialog',
-  imports: [ClickSound, Modal, Button],
+  imports: [ClickSound, Avatar, Modal, Button],
   template: `
     <app-modal label="Fin de la partie">
       <div class="body">
@@ -15,12 +19,21 @@ import { ClickSound } from '../../ui/click-sound';
         <ol class="ranking">
           @for (player of ranking(); track player.playerId) {
             <li>
+              <app-avatar [avatarId]="player.avatarId" />
               <span class="name">{{ player.nickname }}</span>
               <span class="score">{{ player.score }} pts</span>
             </li>
           }
         </ol>
-        <button appButton kind="primary" (click)="left.emit()">Quitter</button>
+        @if (isHost()) {
+          <div class="actions">
+            <button appButton kind="primary" (click)="rematch.emit()">Revanche</button>
+            <button appButton kind="neutral" (click)="backToLobby.emit()">Retour au salon</button>
+          </div>
+        } @else {
+          <p class="waiting" role="status">En attente de l’hôte…</p>
+        }
+        <button appButton kind="ghost" (click)="left.emit()">Quitter</button>
       </div>
     </app-modal>
   `,
@@ -41,27 +54,43 @@ import { ClickSound } from '../../ui/click-sound';
       width: 100%;
       margin: 0;
       padding: 0;
-      list-style-position: inside;
+      list-style: none;
       text-align: left;
     }
     li {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
       padding: var(--space-2) var(--space-3);
       background: var(--field);
       border-radius: var(--radius-md);
     }
     .name {
+      flex: 1;
       font-weight: 700;
     }
     .score {
-      float: right;
       font-family: var(--font-display);
       font-weight: 700;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-3);
+      justify-content: center;
+    }
+    .waiting {
+      color: var(--text-dim);
     }
   `,
 })
 export class MatchOverDialog {
   readonly players = input.required<readonly SeatView[]>();
   readonly winnerId = input.required<string | null>();
+  /** Seul l'hôte relance ou ramène au salon. */
+  readonly isHost = input(false);
+  readonly rematch = output<void>();
+  readonly backToLobby = output<void>();
   readonly left = output<void>();
 
   protected readonly ranking = computed(() =>

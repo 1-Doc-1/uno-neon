@@ -7,7 +7,7 @@ const MESSAGES: Record<ErrorCode, string> = {
   MESSAGE_TOO_LARGE: 'Message trop volumineux.',
   RATE_LIMITED: 'Doucement ! Trop d’actions en peu de temps.',
   SESSION_REQUIRED: 'Connexion en cours, réessaie dans un instant.',
-  SESSION_EXPIRED: 'Ta session a expiré : une nouvelle session a été ouverte.',
+  SESSION_EXPIRED: 'Cette session n’existe plus : recharge la page.',
   NICKNAME_INVALID: 'Pseudo invalide : 2 à 16 lettres, chiffres, espaces, _ ou -.',
   NICKNAME_TAKEN: 'Ce pseudo est déjà pris dans ce salon.',
   ALREADY_IN_ROOM: 'Tu es déjà dans un salon.',
@@ -27,6 +27,8 @@ const MESSAGES: Record<ErrorCode, string> = {
   UNO_WINDOW_CLOSED: 'Trop tard : on ne peut plus annoncer UNO ni contrer.',
   UNO_GRACE_PERIOD: 'Trop tôt : ce joueur peut encore annoncer UNO.',
   EFFECT_IN_PROGRESS: 'Patience : l’effet en cours n’est pas terminé.',
+  SERVER_FULL: 'Le serveur est plein pour le moment : réessaie dans quelques minutes.',
+  CHAT_INVALID: 'Message refusé : 1 à 200 caractères, sur une seule ligne.',
 };
 
 const ILLEGAL_REASONS: Record<IllegalMoveReason, string> = {

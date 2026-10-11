@@ -8,6 +8,15 @@
       "$ref": "#/$defs/HelloMessage"
     },
     {
+      "$ref": "#/$defs/TakeOverMessage"
+    },
+    {
+      "$ref": "#/$defs/BackToLobbyMessage"
+    },
+    {
+      "$ref": "#/$defs/SendChatMessage"
+    },
+    {
       "$ref": "#/$defs/CreateRoomMessage"
     },
     {
@@ -68,7 +77,7 @@
   "$defs": {
     "HelloMessage": {
       "title": "HelloMessage",
-      "description": "First message of every connection. Without a token a new session is created; with a valid token the session (and its room) is resumed.",
+      "description": "First message of every connection. The session is the one of the HttpOnly cookie the browser sent with the upgrade request (ADR 0036): a new session, or the one (and its room) that is resumed. The token never travels in a message.",
       "type": "object",
       "properties": {
         "v": {
@@ -84,15 +93,91 @@
           "title": "HelloPayload",
           "type": "object",
           "properties": {
-            "sessionToken": {
-              "$ref": "common.schema.json#/$defs/SessionToken"
-            },
             "clientVersion": {
               "type": "string",
               "pattern": "^[0-9A-Za-z.+-]{1,32}$"
             }
           },
           "required": ["clientVersion"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["v", "id", "type", "payload"],
+      "additionalProperties": false
+    },
+    "TakeOverMessage": {
+      "title": "TakeOverMessage",
+      "description": "After session.busy: this tab takes the session over, and the tab that held it is closed (code 4000). ADR 0036.",
+      "type": "object",
+      "properties": {
+        "v": {
+          "$ref": "common.schema.json#/$defs/ProtocolVersion"
+        },
+        "id": {
+          "$ref": "common.schema.json#/$defs/MessageId"
+        },
+        "type": {
+          "const": "session.takeOver"
+        },
+        "payload": {
+          "title": "TakeOverPayload",
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        }
+      },
+      "required": ["v", "id", "type", "payload"],
+      "additionalProperties": false
+    },
+    "BackToLobbyMessage": {
+      "title": "BackToLobbyMessage",
+      "description": "Host only: sends everybody back to the lobby, abandoning the match if one is running (no score). ADR 0037.",
+      "type": "object",
+      "properties": {
+        "v": {
+          "$ref": "common.schema.json#/$defs/ProtocolVersion"
+        },
+        "id": {
+          "$ref": "common.schema.json#/$defs/MessageId"
+        },
+        "type": {
+          "const": "room.backToLobby"
+        },
+        "payload": {
+          "title": "BackToLobbyPayload",
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        }
+      },
+      "required": ["v", "id", "type", "payload"],
+      "additionalProperties": false
+    },
+    "SendChatMessage": {
+      "title": "SendChatMessage",
+      "description": "A line of chat for the room: 1 to 200 visible characters on one line, at most 5 messages in 10 seconds (RATE_LIMITED). ADR 0037.",
+      "type": "object",
+      "properties": {
+        "v": {
+          "$ref": "common.schema.json#/$defs/ProtocolVersion"
+        },
+        "id": {
+          "$ref": "common.schema.json#/$defs/MessageId"
+        },
+        "type": {
+          "const": "chat.send"
+        },
+        "payload": {
+          "title": "SendChatPayload",
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 800
+            }
+          },
+          "required": ["text"],
           "additionalProperties": false
         }
       },
@@ -119,6 +204,9 @@
           "properties": {
             "nickname": {
               "$ref": "common.schema.json#/$defs/Nickname"
+            },
+            "avatarId": {
+              "$ref": "common.schema.json#/$defs/Avatar"
             },
             "settings": {
               "$ref": "common.schema.json#/$defs/RoomSettingsPatch"
@@ -151,6 +239,9 @@
           "properties": {
             "nickname": {
               "$ref": "common.schema.json#/$defs/Nickname"
+            },
+            "avatarId": {
+              "$ref": "common.schema.json#/$defs/Avatar"
             },
             "botCount": {
               "$ref": "common.schema.json#/$defs/BotCount"
@@ -192,6 +283,9 @@
             },
             "nickname": {
               "$ref": "common.schema.json#/$defs/Nickname"
+            },
+            "avatarId": {
+              "$ref": "common.schema.json#/$defs/Avatar"
             }
           },
           "required": ["code", "nickname"],

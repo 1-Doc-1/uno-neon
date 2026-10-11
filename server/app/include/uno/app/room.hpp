@@ -47,6 +47,13 @@ struct Member {
     // A bot has no session and no connection: it is always ready and always there (ADR 0030).
     bool isBot{false};
     BotLevel botLevel{BotLevel::Normal};
+    std::uint8_t avatarId{0};
+};
+
+// What a seat keeps of a player who left a running match (the engine may still seat them).
+struct FormerMember {
+    std::string nickname;
+    std::uint8_t avatarId{0};
 };
 
 // A room: the people in it, the host's settings and, once started, the match. Seats are the members'
@@ -54,7 +61,8 @@ struct Member {
 // NOLINTNEXTLINE(bugprone-exception-escape): implicit noexcept moves; running out of memory ends the process
 class Room {
 public:
-    Room(RoomCode roomCode, RoomSettings roomSettings, core::PlayerId firstMember, std::string nickname);
+    Room(RoomCode roomCode, RoomSettings roomSettings, core::PlayerId firstMember, std::string nickname,
+         std::uint8_t avatar = 0);
 
     [[nodiscard]] Member* find(const core::PlayerId& player);
     [[nodiscard]] const Member* find(const core::PlayerId& player) const;
@@ -62,8 +70,9 @@ public:
     [[nodiscard]] bool nicknameTaken(const std::string& nickname) const;
     [[nodiscard]] bool isHost(const core::PlayerId& player) const { return player == host; }
 
-    void add(core::PlayerId player, std::string nickname);
-    void addBot(core::PlayerId player, std::string nickname, BotLevel level);
+    void add(core::PlayerId player, std::string nickname, std::uint8_t avatar = 0);
+    void addBot(core::PlayerId player, std::string nickname, BotLevel level, std::uint8_t avatar = 0);
+    [[nodiscard]] bool avatarTaken(std::uint8_t avatar) const;
     [[nodiscard]] std::size_t humanCount() const;
     [[nodiscard]] bool hasBots() const;
     // Removes the member; the host role passes to the next connected member in seat order (SPEC §5).
@@ -82,9 +91,9 @@ public:
     std::uint64_t stateVersion{0}; // bumped by every game.update
     std::set<core::PlayerId> readyForNextRound;
 
-    // Nicknames of players who left a running match: the engine still seats them when two players are left and one
-    // of them leaves (forfeit), and the views still have to name that seat.
-    std::unordered_map<std::string, std::string> formerNicknames;
+    // Nicknames and avatars of players who left a running match: the engine still seats them when two players are left
+    // and one of them leaves (forfeit), and the views still have to name that seat.
+    std::unordered_map<std::string, FormerMember> formerMembers;
 
     // Pending timers (see application_lifecycle.cpp). Cancelled when the room goes away.
     TimerHandle expiryTimer;

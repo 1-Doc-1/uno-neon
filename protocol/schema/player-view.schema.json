@@ -178,7 +178,8 @@
         "isBot": { "type": "boolean" },
         "isHost": { "type": "boolean" },
         "hasCalledUno": { "type": "boolean" },
-        "isReadyForNextRound": { "type": "boolean" }
+        "isReadyForNextRound": { "type": "boolean" },
+        "avatarId": { "$ref": "common.schema.json#/$defs/Avatar" }
       },
       "required": [
         "playerId",
@@ -190,7 +191,8 @@
         "isBot",
         "isHost",
         "hasCalledUno",
-        "isReadyForNextRound"
+        "isReadyForNextRound",
+        "avatarId"
       ],
       "additionalProperties": false
     },

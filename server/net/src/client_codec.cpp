@@ -31,7 +31,6 @@ using detail::parseMessageId;
 using detail::parseNickname;
 using detail::parsePlayerId;
 using detail::parseRoomCode;
-using detail::parseSessionToken;
 using detail::parseTurnTimer;
 using namespace uno::app;
 
@@ -82,7 +81,6 @@ Parsed<request::Body> decodeHello(const Json& payload)
 {
     ObjectReader reader(payload, "payload");
     request::Hello hello;
-    hello.sessionToken = reader.optional<SessionToken>("sessionToken", parseSessionToken);
     hello.clientVersion = reader.required<std::string>("clientVersion", parseClientVersion);
     if (auto finished = reader.finish(); !finished) {
         return std::unexpected(finished.error());
@@ -96,6 +94,7 @@ Parsed<request::Body> decodeCreateRoom(const Json& payload)
     request::CreateRoom create;
     create.nickname = reader.required<std::string>("nickname", parseNickname);
     create.settings = reader.optional<RoomSettingsPatch>("settings", parseSettingsPatch);
+    create.avatarId = reader.optional<std::uint8_t>("avatarId", detail::parseAvatar).value_or(0);
     if (auto finished = reader.finish(); !finished) {
         return std::unexpected(finished.error());
     }
@@ -110,6 +109,7 @@ Parsed<request::Body> decodeCreateBotGame(const Json& payload)
     game.botCount = reader.required<std::uint8_t>("botCount", detail::parseBotCount);
     game.level = reader.required<BotLevel>("level", detail::parseEnum<BotLevel>);
     game.settings = reader.optional<RoomSettingsPatch>("settings", parseSettingsPatch);
+    game.avatarId = reader.optional<std::uint8_t>("avatarId", detail::parseAvatar).value_or(0);
     if (auto finished = reader.finish(); !finished) {
         return std::unexpected(finished.error());
     }
@@ -122,6 +122,7 @@ Parsed<request::Body> decodeJoinRoom(const Json& payload)
     request::JoinRoom join;
     join.code = reader.required<RoomCode>("code", parseRoomCode);
     join.nickname = reader.required<std::string>("nickname", parseNickname);
+    join.avatarId = reader.optional<std::uint8_t>("avatarId", detail::parseAvatar).value_or(0);
     if (auto finished = reader.finish(); !finished) {
         return std::unexpected(finished.error());
     }
@@ -219,6 +220,17 @@ Parsed<request::Body> decodeCatchUno(const Json& payload)
     return target;
 }
 
+Parsed<request::Body> decodeSendChat(const Json& payload)
+{
+    ObjectReader reader(payload, "payload");
+    request::SendChat chat;
+    chat.text = reader.required<std::string>("text", detail::parseString);
+    if (auto finished = reader.finish(); !finished) {
+        return std::unexpected(finished.error());
+    }
+    return chat;
+}
+
 Parsed<request::Body> decodeSendReaction(const Json& payload)
 {
     ObjectReader reader(payload, "payload");
@@ -237,6 +249,9 @@ struct MessageType {
 
 constexpr std::array kMessageTypes{
     MessageType{.name = "session.hello", .decode = decodeHello},
+    MessageType{.name = "session.takeOver", .decode = emptyPayload<request::TakeOver>},
+    MessageType{.name = "room.backToLobby", .decode = emptyPayload<request::BackToLobby>},
+    MessageType{.name = "chat.send", .decode = decodeSendChat},
     MessageType{.name = "room.create", .decode = decodeCreateRoom},
     MessageType{.name = "room.createBotGame", .decode = decodeCreateBotGame},
     MessageType{.name = "room.join", .decode = decodeJoinRoom},
@@ -342,15 +357,12 @@ struct Description {
 Description describe(const request::Hello& body)
 {
     Json payload{{"clientVersion", body.clientVersion}};
-    if (body.sessionToken) {
-        payload.emplace("sessionToken", body.sessionToken->value);
-    }
     return {.type = "session.hello", .payload = std::move(payload)};
 }
 
 Description describe(const request::CreateRoom& body)
 {
-    Json payload{{"nickname", body.nickname}};
+    Json payload{{"nickname", body.nickname}, {"avatarId", body.avatarId}};
     if (body.settings) {
         payload.emplace("settings", encodeSettingsPatch(*body.settings));
     }
@@ -359,7 +371,12 @@ Description describe(const request::CreateRoom& body)
 
 Description describe(const request::JoinRoom& body)
 {
-    return {.type = "room.join", .payload = Json{{"code", body.code.value}, {"nickname", body.nickname}}};
+    Json payload{
+        {"code", body.code.value},
+        {"nickname", body.nickname},
+        {"avatarId", body.avatarId},
+    };
+    return {.type = "room.join", .payload = std::move(payload)};
 }
 
 Description describe(const request::LeaveRoom& /*body*/)
@@ -389,7 +406,12 @@ Description describe(const request::AddBot& body)
 
 Description describe(const request::CreateBotGame& body)
 {
-    Json payload{{"nickname", body.nickname}, {"botCount", body.botCount}, {"level", detail::toWire(body.level)}};
+    Json payload{
+        {"nickname", body.nickname},
+        {"botCount", body.botCount},
+        {"level", detail::toWire(body.level)},
+        {"avatarId", body.avatarId},
+    };
     if (body.settings) {
         payload.emplace("settings", encodeSettingsPatch(*body.settings));
     }
@@ -454,6 +476,21 @@ Description describe(const request::CallUno& /*body*/)
 Description describe(const request::CatchUno& body)
 {
     return {.type = "game.catchUno", .payload = Json{{"targetId", body.targetId.value}}};
+}
+
+Description describe(const request::TakeOver& /*body*/)
+{
+    return {.type = "session.takeOver"};
+}
+
+Description describe(const request::BackToLobby& /*body*/)
+{
+    return {.type = "room.backToLobby"};
+}
+
+Description describe(const request::SendChat& body)
+{
+    return {.type = "chat.send", .payload = Json{{"text", body.text}}};
 }
 
 Description describe(const request::SendReaction& body)

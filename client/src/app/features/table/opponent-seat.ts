@@ -1,6 +1,7 @@
 import { Component, input, output } from '@angular/core';
 import type { SeatView } from '../../protocol/generated/protocol';
 import { Avatar } from '../../ui/avatar';
+import { ClickSound } from '../../ui/click-sound';
 import { MAX_FAN_BACKS, OpponentFan } from './opponent-fan';
 
 /**
@@ -9,7 +10,7 @@ import { MAX_FAN_BACKS, OpponentFan } from './opponent-fan';
  */
 @Component({
   selector: 'app-opponent-seat',
-  imports: [Avatar, OpponentFan],
+  imports: [ClickSound, Avatar, OpponentFan],
   template: `
     <article
       class="seat"
@@ -37,7 +38,7 @@ import { MAX_FAN_BACKS, OpponentFan } from './opponent-fan';
           [class.timed]="timerFraction() !== null"
           [style.--f]="timerFraction() ?? 0"
         >
-          <app-avatar [playerId]="seat().playerId" [nickname]="seat().nickname" />
+          <app-avatar [avatarId]="seat().avatarId" />
           <span class="count" [attr.aria-label]="seat().cardCount + ' cartes'">{{
             seat().cardCount
           }}</span>
@@ -53,6 +54,14 @@ import { MAX_FAN_BACKS, OpponentFan } from './opponent-fan';
             }
           </p>
         </div>
+        @if (!targetable()) {
+          <button
+            type="button"
+            class="profile"
+            [attr.aria-label]="'Options de ' + seat().nickname"
+            (click)="profileOpened.emit(seat().playerId)"
+          ></button>
+        }
         @if (forgotUno()) {
           <span class="forgot">UNO oublié !</span>
         }
@@ -80,6 +89,8 @@ export class OpponentSeat {
   /** Un Joker +5 cherche sa cible : ce siège se vise d'un clic (ou d'Entrée au clavier). */
   readonly targetable = input(false);
   readonly targeted = output<string>();
+  /** Un clic sur le profil : le menu du joueur (masquer, exclure). */
+  readonly profileOpened = output<string>();
 
   protected onTarget(): void {
     if (this.targetable()) {

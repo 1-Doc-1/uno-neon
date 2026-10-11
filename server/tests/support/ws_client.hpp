@@ -6,6 +6,7 @@
 #include "uno/app/client_message.hpp"
 #include "uno/app/server_message.hpp"
 #include "uno/net/codec.hpp"
+#include "uno/net/session_cookie.hpp"
 
 #include "support/require.hpp"
 #include "support/test_client.hpp"
@@ -23,7 +24,17 @@ namespace uno::testing {
 
 class WsClient {
 public:
-    WsClient(std::uint16_t port, const std::string& origin) : socket_(open(port, origin)) {}
+    // `cookie` is the Cookie header a returning browser sends (empty for a first visit).
+    WsClient(std::uint16_t port, const std::string& origin, const std::string& cookie = {})
+        : socket_(open(port, origin, cookie))
+    {
+    }
+
+    // The session token the server put in its Set-Cookie header (what the browser would keep).
+    [[nodiscard]] std::optional<app::SessionToken> sessionToken() const
+    {
+        return net::sessionTokenFromCookie(socket_.setCookie());
+    }
 
     // Sends a request, returns the id it carries.
     std::string send(app::request::Body body)
@@ -106,10 +117,10 @@ public:
     [[nodiscard]] TestWebSocket& socket() noexcept { return socket_; }
 
 private:
-    static TestWebSocket open(std::uint16_t port, const std::string& origin)
+    static TestWebSocket open(std::uint16_t port, const std::string& origin, const std::string& cookie)
     {
         int status = 0;
-        auto socket = TestWebSocket::connect(port, origin, status);
+        auto socket = TestWebSocket::connect(port, origin, status, cookie);
         REQUIRE(status == 101);
         return require(std::move(socket));
     }

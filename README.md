@@ -30,7 +30,7 @@ cd ..
 ./scripts/dev.ps1        # lance le serveur (port 9001) et le client (http://localhost:4200)
 ```
 
-Ouvrir deux onglets sur <http://localhost:4200> : un joueur crée un salon, l'autre le rejoint par le code ou le lien.
+Ouvrir deux navigateurs (ou une fenêtre privée) sur <http://localhost:4200> : un joueur crée un salon, l’autre le rejoint par le code ou le lien. Deux onglets du même navigateur sont le même joueur (la session est un cookie).
 
 Les tests et le lint (serveur, client, E2E) sont listés dans la section « Commandes » de [CLAUDE.md](CLAUDE.md).
 

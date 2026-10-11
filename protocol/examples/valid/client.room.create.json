@@ -4,6 +4,7 @@
   "type": "room.create",
   "payload": {
     "nickname": "Léa",
+    "avatarId": 3,
     "settings": {
       "stacking": "ladder",
       "matchLength": "singleRound"

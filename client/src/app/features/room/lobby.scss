@@ -73,8 +73,9 @@ h2 {
 
 .player {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2) var(--space-3);
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-md);
   background: var(--field);
@@ -85,7 +86,7 @@ h2 {
 }
 
 .name {
-  flex: 1;
+  flex: 1 1 7ch;
   min-width: 0;
   font-weight: 600;
   overflow-wrap: anywhere;
@@ -213,5 +214,31 @@ h2 {
   .tooltip {
     white-space: normal;
     text-align: center;
+  }
+}
+
+// Le profil d'un autre joueur : un bouton qui ouvre son menu
+.profile {
+  flex: 1 1 8ch;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover .name {
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 3px solid var(--focus-ring);
+    outline-offset: 3px;
+    border-radius: var(--radius-md);
   }
 }
