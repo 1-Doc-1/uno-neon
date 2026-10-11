@@ -62,6 +62,12 @@ const HOUSE_RULES: readonly HouseRule[] = [
     example: 'Avec 15 s, un joueur qui hésite voit sa première carte jouable posée pour lui.',
   },
   {
+    name: 'Vitesse des animations',
+    text: 'Normale : on a le temps de voir chaque effet. Rapide : les animations et les pauses du jeu sont deux fois plus courtes, pour tout le monde. Seul l’hôte la choisit.',
+    example:
+      'Entre amis qui connaissent les cartes, « Rapide » fait gagner plusieurs minutes par manche.',
+  },
+  {
     name: 'Joueurs maximum',
     text: 'Le nombre de places du salon (2 à 10).',
     example: 'Mets 4 pour une partie entre quatre amis, sans que personne d’autre n’entre.',

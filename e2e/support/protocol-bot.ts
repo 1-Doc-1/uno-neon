@@ -4,6 +4,7 @@ import type {
   Color,
   PlayerView,
 } from '../../client/src/app/protocol/generated/protocol.ts';
+import { sortHand } from '../../client/src/app/features/table/sort-hand.ts';
 
 interface Reply {
   readonly ok: boolean;
@@ -109,7 +110,7 @@ export const POLICY_COLOR: Color = 'red';
 
 /**
  * La politique de jeu des tests : accepter une pénalité, choisir rouge, sinon jouer la première carte jouable de la
- * main (dans l'ordre d'affichage). Quand rien ne se joue, le serveur pioche de lui-même (pioche guidée) : `null`.
+ * main (dans l'ordre d'affichage : la main triée par couleur puis par valeur, `sortHand`). Quand rien ne se joue, le serveur pioche de lui-même (pioche guidée) : `null`.
  */
 export function choosePlay(view: PlayerView): Move | null {
   const { me } = view;
@@ -122,7 +123,7 @@ export function choosePlay(view: PlayerView): Move | null {
   if (view.currentPlayerId !== me.playerId) {
     return null;
   }
-  const card = me.hand.find((candidate) => me.playableCardIds.includes(candidate.id));
+  const card = sortHand(me.hand).find((candidate) => me.playableCardIds.includes(candidate.id));
   if (!card) {
     return null;
   }

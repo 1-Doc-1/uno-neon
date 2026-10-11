@@ -201,6 +201,7 @@
         "maxPlayers": 6,
         "drawRule": "official",
         "declareUnoToWin": true,
+        "animationSpeed": "fast",
         "drawTwoMultiplier": 1,
         "wildDrawFourMultiplier": 1,
         "wildDrawFiveMultiplier": 1

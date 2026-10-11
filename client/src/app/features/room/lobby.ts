@@ -63,7 +63,7 @@ export class Lobby {
     const s = this.room().settings;
     const timer = s.turnTimerSeconds === 0 ? 'sans minuteur' : `minuteur ${s.turnTimerSeconds} s`;
     return {
-      first: `${MATCH_LENGTH_SUMMARY[s.matchLength]} · ${timer} · ${s.maxPlayers} joueurs max`,
+      first: `${MATCH_LENGTH_SUMMARY[s.matchLength]} · ${timer} · ${s.maxPlayers} joueurs max · animations ${s.animationSpeed === 'fast' ? 'rapides' : 'normales'}`,
       second: `Pioche ${s.drawRule === 'guided' ? 'guidée' : 'officielle'}, ${
         s.drawAmount === 'untilPlayable' ? 'jusqu’à pouvoir jouer' : '1 carte'
       } · ${s.declareUnoToWin ? 'UNO obligatoire pour gagner' : 'dernière carte libre'} · ${

@@ -156,6 +156,12 @@
       "type": "string",
       "enum": ["guided", "official"]
     },
+    "AnimationSpeed": {
+      "title": "AnimationSpeed",
+      "description": "How long the table takes to show what happened (ADR 0035). fast: animations and server pauses are halved.",
+      "type": "string",
+      "enum": ["normal", "fast"]
+    },
     "MatchLength": {
       "title": "MatchLength",
       "description": "singleRound: one round decides the winner; to250 / to500: first player to reach the score.",
@@ -210,6 +216,9 @@
           "description": "House rule (ADR 0019): the last card cannot be played before UNO is announced.",
           "type": "boolean"
         },
+        "animationSpeed": {
+          "$ref": "#/$defs/AnimationSpeed"
+        },
         "drawTwoMultiplier": {
           "description": "Draw Two in the deck: 8 x this (ADR 0028).",
           "$ref": "#/$defs/CardMultiplier"
@@ -234,6 +243,7 @@
         "maxPlayers",
         "drawRule",
         "declareUnoToWin",
+        "animationSpeed",
         "drawTwoMultiplier",
         "wildDrawFourMultiplier",
         "wildDrawFiveMultiplier"
@@ -275,6 +285,9 @@
         "declareUnoToWin": {
           "description": "House rule (ADR 0019): the last card cannot be played before UNO is announced.",
           "type": "boolean"
+        },
+        "animationSpeed": {
+          "$ref": "#/$defs/AnimationSpeed"
         },
         "drawTwoMultiplier": {
           "description": "Draw Two in the deck: 8 x this (ADR 0028).",

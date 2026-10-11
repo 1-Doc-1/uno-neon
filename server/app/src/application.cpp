@@ -721,7 +721,7 @@ void Application::broadcastGame(Room& room, std::span<const core::DomainEvent> e
     }
     syncUnoWindows(room);
     const std::int64_t serverTime = clock_->nowMillis();
-    const auto budget = presentationBudgetOf(events, match.round());
+    const auto budget = presentationBudgetOf(events, match.round(), paceOf(room));
     room.actionsOpenAt = std::max(room.actionsOpenAt, serverTime + budget.count());
     armGameTimers(room);
     for (const Member& member : room.members) {
@@ -743,7 +743,7 @@ response::GameView Application::viewOf(const Room& room, const core::Match& matc
     view.turnDeadline = room.turnDeadline;
     view.nextRoundDeadline = room.nextRoundDeadline;
     view.actionsOpenAt = room.actionsOpenAt;
-    view.drawStepMs = static_cast<std::uint32_t>(timeouts_.drawStep.count());
+    view.drawStepMs = static_cast<std::uint32_t>(paceOf(room).drawStep.count());
     for (const UnoWindowTiming& window : room.unoWindows) {
         view.unoWindows.push_back(response::UnoWindowInfo{
             .targetId = window.target,

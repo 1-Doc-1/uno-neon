@@ -11,10 +11,11 @@ export const SEEDS = {
    */
   quickGame: 39,
   /**
-   * Une partie courte : Bob passe à une carte jouable à la version 12 et gagne la manche unique à la version 14 (Alice n'a
-   * rien à jouer à la version 4). Défausse : 6 bleu. Main de Bob : Passe-tour bleu, 3 rouge, 6 vert, Joker, +2 bleu, 8 rouge, 2 vert.
+   * Une partie courte (la politique joue sur la main triée, `sortHand`) : Bob joue en premier, passe à une carte jouable à la
+   * version 12 et gagne la manche unique à la version 13. Défausse : 1 bleu. Main de Bob : Passe rouge, 4 bleu, 6 bleu, Passe
+   * bleu, Joker +4, 9 rouge, 6 rouge.
    */
-  fastGame: 109,
+  fastGame: 150,
   /** Défausse : 8 jaune. Bob a un Joker en tête de main et 3 cartes jouables. */
   jokerInHand: 9,
   /** Défausse : 7 vert. Bob a un +4 et aussi une carte verte (1 vert) : poser le +4 est un bluff. */

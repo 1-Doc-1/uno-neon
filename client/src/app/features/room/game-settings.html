@@ -16,6 +16,22 @@
     (selected)="changed.emit({ turnTimerSeconds: $event })"
   />
 </div>
+<div class="setting">
+  <span class="setting-label">Vitesse des animations</span>
+  <app-segmented
+    label="Vitesse des animations"
+    [options]="animationSpeeds"
+    [value]="settings().animationSpeed"
+    (selected)="changed.emit({ animationSpeed: $event })"
+  />
+  <p class="hint">
+    @if (settings().animationSpeed === 'fast') {
+      Rapide : les animations et les pauses du jeu sont deux fois plus courtes, pour tout le monde.
+    } @else {
+      Normale : le temps de bien voir ce que chaque carte provoque.
+    }
+  </p>
+</div>
 @if (showMaxPlayers()) {
   <div class="setting">
     <span class="setting-label">Joueurs maximum</span>

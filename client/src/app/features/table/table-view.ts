@@ -40,7 +40,8 @@ const NARROW_QUERY = '(max-width: 639px)';
 const MAX_ARC_OPPONENTS = 4;
 const NARROW_MAX_BACKS = 5;
 const JOURNAL_LINES = 5;
-/** Les dernières secondes de mon tour, pendant lesquelles la musique monte en tension. */
+/** Les animations vont deux fois plus vite quand l'hôte a choisi « Rapide » (le serveur raccourcit ses pauses de même). */
+const FAST_SPEED = 2;
 
 export interface CardPlay {
   readonly cardId: number;
@@ -289,6 +290,9 @@ export class TableView {
       }
     });
     effect(() => this.director.speed.set(this.animationSpeed()));
+    effect(() =>
+      this.director.roomSpeed.set(this.view().settings.animationSpeed === 'fast' ? FAST_SPEED : 1),
+    );
     effect((onCleanup) => {
       const element = this.stageElement()?.nativeElement;
       if (!element || typeof ResizeObserver !== 'function') {

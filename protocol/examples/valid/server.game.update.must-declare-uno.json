@@ -94,6 +94,7 @@
         "maxPlayers": 6,
         "drawRule": "guided",
         "declareUnoToWin": true,
+        "animationSpeed": "normal",
         "drawTwoMultiplier": 1,
         "wildDrawFourMultiplier": 1,
         "wildDrawFiveMultiplier": 1

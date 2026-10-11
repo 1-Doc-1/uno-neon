@@ -125,6 +125,14 @@ struct WireNames<core::DrawAmount> {
 };
 
 template <>
+struct WireNames<app::AnimationSpeed> {
+    static constexpr std::array kTable{
+        WireName{.value = app::AnimationSpeed::Normal, .name = "normal"},
+        WireName{.value = app::AnimationSpeed::Fast, .name = "fast"},
+    };
+};
+
+template <>
 struct WireNames<core::DrawRule> {
     static constexpr std::array kTable{
         WireName{.value = core::DrawRule::Guided, .name = "guided"},

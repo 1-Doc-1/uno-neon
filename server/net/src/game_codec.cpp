@@ -765,6 +765,7 @@ Json encodeSettings(const RoomSettings& settings)
         {"maxPlayers", settings.maxPlayers},
         {"drawRule", toWire(settings.drawRule)},
         {"declareUnoToWin", settings.declareUnoToWin},
+        {"animationSpeed", toWire(settings.animationSpeed)},
         {"drawTwoMultiplier", static_cast<int>(settings.drawTwoMultiplier)},
         {"wildDrawFourMultiplier", static_cast<int>(settings.wildDrawFourMultiplier)},
         {"wildDrawFiveMultiplier", static_cast<int>(settings.wildDrawFiveMultiplier)},
@@ -785,6 +786,7 @@ Parsed<RoomSettings> parseSettings(const Json& value)
     settings.maxPlayers = reader.required<std::uint8_t>("maxPlayers", parseMaxPlayers);
     settings.drawRule = reader.required<core::DrawRule>("drawRule", parseEnum<core::DrawRule>);
     settings.declareUnoToWin = reader.required<bool>("declareUnoToWin", parseBool);
+    settings.animationSpeed = reader.required<AnimationSpeed>("animationSpeed", parseEnum<AnimationSpeed>);
     // Read as codes: a missing or invalid field leaves 0 behind, which finish() reports and nobody uses
     settings.drawTwoMultiplier =
         static_cast<core::CardMultiplier>(reader.required<std::uint8_t>("drawTwoMultiplier", parseCardMultiplierCode));

@@ -112,7 +112,7 @@
 - [x] T1.3 Main réduite au-delà de 16 cartes (échelle selon la largeur)
 - [x] T1.4 Journal : 5 lignes, anciennes en fondu
 - [x] T1.5 Tension musicale dès 1/3 du temps du tour, montée progressive
-- [ ] T1.6 Réglage de salon « Vitesse des animations » (Normale / Rapide), animations ET budget/cooldown serveur
+- [x] T1.6 Réglage de salon « Vitesse des animations » (Normale / Rapide), animations ET budget/cooldown serveur
 
 **T2 — Salon, sessions et sécurité (`feat/lobby-sessions`)**
 - [ ] T2.1 Fin de partie : Revanche / Retour au salon (hôte), abandon en cours de partie avec confirmation
