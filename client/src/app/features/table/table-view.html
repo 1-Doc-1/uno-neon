@@ -147,6 +147,7 @@
   <app-match-over-dialog
     [players]="view().players"
     [winnerId]="view().matchWinnerId"
+    [meId]="view().me.playerId"
     [isHost]="mySeat()?.isHost ?? false"
     (rematch)="rematchAsked.emit()"
     (backToLobby)="backToLobbyAsked.emit()"

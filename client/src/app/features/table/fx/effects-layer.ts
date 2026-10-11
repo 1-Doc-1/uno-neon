@@ -16,6 +16,7 @@ import { COLORS } from '../../../ui/color-meta';
 import type { ActiveEffect } from './animation-director';
 import { Anchors, Box, placeEffect, Placed, Tone } from './effect-geometry';
 import { FlightMotion } from './flight-motion';
+import { ImpactBurst } from './impact-burst';
 import { ParticleCanvas } from './particle-canvas';
 import { ReverseArrow } from './reverse-arrow';
 
@@ -67,7 +68,7 @@ const BLINK = [1, 0.35, 1, 0.35, 1].map((opacity) => ({ opacity }));
  */
 @Component({
   selector: 'app-effects-layer',
-  imports: [CardFace, CardBack, FlightMotion, ParticleCanvas, ReverseArrow],
+  imports: [CardFace, CardBack, FlightMotion, ImpactBurst, ParticleCanvas, ReverseArrow],
   templateUrl: './effects-layer.html',
   styleUrl: './effects-layer.scss',
   host: { 'aria-hidden': 'true' },
@@ -87,10 +88,9 @@ export class EffectsLayer {
   protected readonly placed = signal<readonly Placed[]>([]);
   protected readonly star = STAR;
   /** La couleur d'un effet est celle de la carte jouée (blanc pour une carte noire) : toujours un token, jamais une valeur en dur. */
-  /** Les ondes de choc d'une pénalité, une par rang (le +4 en a plus que le +2). */
-  protected rings(text: string): readonly number[] {
-    const count = text === '+4' ? SHOCK_RINGS['+4'] : SHOCK_RINGS['+2'];
-    return Array.from({ length: count }, (_, index) => index);
+  /** Le nombre d'ondes de choc d'une pénalité (le +4 en a plus que le +2). */
+  protected ringCount(text: string): number {
+    return text === '+4' ? SHOCK_RINGS['+4'] : SHOCK_RINGS['+2'];
   }
 
   protected readonly tones: Record<Tone, string> = {

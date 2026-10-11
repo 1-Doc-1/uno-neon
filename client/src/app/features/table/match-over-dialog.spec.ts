@@ -28,6 +28,7 @@ describe('MatchOverDialog', () => {
     const fixture = TestBed.createComponent(MatchOverDialog);
     fixture.componentRef.setInput('players', [seat('a', 'Léa', 120), seat('b', 'Max', 510)]);
     fixture.componentRef.setInput('winnerId', 'b');
+    fixture.componentRef.setInput('meId', 'a');
     fixture.componentRef.setInput('isHost', isHost);
     const events: string[] = [];
     fixture.componentInstance.rematch.subscribe(() => events.push('rematch'));
@@ -35,6 +36,9 @@ describe('MatchOverDialog', () => {
     fixture.componentInstance.left.subscribe(() => events.push('left'));
     fixture.detectChanges();
     const host = fixture.nativeElement as HTMLElement;
+    // La cinématique passe d'un clic ; l'écran des choix vient après
+    host.querySelector<HTMLButtonElement>('.skip')?.click();
+    fixture.detectChanges();
     const button = (text: string) =>
       [...host.querySelectorAll<HTMLButtonElement>('button')].find((b) =>
         b.textContent?.includes(text),
