@@ -14,11 +14,11 @@ export const SEEDS = {
    * Une partie courte (la politique joue sur la main triÃ©e, `sortHand`) : Bob joue en premier, passe Ã  une carte jouable Ã  la
    * version 9 et gagne la manche unique Ã  la version 11.
    */
-  fastGame: 126,
+  fastGame: 3028,
   /**
    * Pioche guidÃ©e : Bob joue sa premiÃ¨re carte jouable, et Alice n'a rien Ã  rÃ©pondre (le serveur pioche pour elle, version 2).
    */
-  guidedDraw: 12,
+  guidedDraw: 3094,
   /** DÃ©fausse : 2 jaune. Bob a un Joker et plusieurs cartes jouables, Alice de quoi rÃ©pondre au bleu. */
   jokerInHand: 96,
   /** DÃ©fausse : 7 rouge. Bob a un +4 et aussi des cartes rouges (1 rouge, Inversion rouge) : poser le +4 est un bluff. */
@@ -30,7 +30,7 @@ export const SEEDS = {
    * Ã©tant spÃ©ciale : elle doit choisir, l'Ã©cran reste figÃ©. Alice se retrouve avec 9 cartes. (TrouvÃ©e avec
    * UNO_FIND_DRAW_AMOUNT=untilPlayable.)
    */
-  multiDraw: 45,
+  multiDraw: 3064,
   /**
    * DÃ©fausse : 6 bleu. Bob a deux +2 bleus jouables : Ã  deux joueurs, un +2 fait sauter Alice, et Bob rejouerait aussitÃ´t si
    * le serveur n'attendait pas la fin de la distribution (ADR 0027).

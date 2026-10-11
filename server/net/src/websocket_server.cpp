@@ -49,11 +49,6 @@ struct WebSocketServer::Impl {
           createLimiter(config.rateLimits.createsPerMinute, std::chrono::minutes(1)),
           joinLimiter(config.rateLimits.joinsPerMinute, std::chrono::minutes(1))
     {
-        if (!config.newSessionToken) {
-            config.newSessionToken = [random = std::make_shared<CryptoRandomSource>()] {
-                return app::generateSessionToken(*random);
-            };
-        }
     }
 
     void handleOpen(Socket* socket)
@@ -158,7 +153,9 @@ struct WebSocketServer::Impl {
         // The browser keeps its session in a cookie it sends back by itself; a script never sees it (ADR 0036).
         auto token = sessionTokenFromCookie(request->getHeader("cookie"));
         if (!token) {
-            token = config.newSessionToken();
+            // Always the cryptographic generator, never the (possibly seeded) one of the game: a token must be
+            // unpredictable, and the seeded games of the tests must not depend on when browsers connect (ADR 0036)
+            token = app::generateSessionToken(tokenSource);
         }
         // The status line has to be written before the cookie header: the upgrade completes it with its own headers.
         response->writeStatus("101 Switching Protocols")
@@ -197,6 +194,7 @@ struct WebSocketServer::Impl {
     std::chrono::steady_clock::time_point startedAt;
     SlidingWindowLimiter createLimiter;
     SlidingWindowLimiter joinLimiter;
+    CryptoRandomSource tokenSource;
     std::unique_ptr<uWS::App> app;
     us_listen_socket_t* listenSocket = nullptr;
     std::uint16_t boundPort = 0;

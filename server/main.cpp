@@ -1,6 +1,5 @@
 // Composition root: reads the configuration and wires the layers together.
 #include "uno/app/application.hpp"
-#include "uno/app/id_generator.hpp"
 #include "uno/app/room_repository.hpp"
 #include "uno/app/server_config.hpp"
 #include "uno/bootstrap/test_hooks.hpp"
@@ -123,9 +122,6 @@ int run()
     serverConfig.bindAddress = config->bindAddress;
     serverConfig.originPolicy = uno::net::OriginPolicy(config->allowedOrigins);
     serverConfig.trustedProxy = config->trustedProxy;
-    // The session tokens come from the same injected source as everything else that must be unpredictable: the
-    // cryptographic one in production, the seeded one of the end-to-end tests (ADR 0036)
-    serverConfig.newSessionToken = [&random] { return uno::app::generateSessionToken(*random); };
     serverConfig.roomCount = [&rooms] { return rooms.size(); };
     serverConfig.onStop = [&scheduler] { scheduler.cancelAll(); };
     uno::net::WebSocketServer server(std::move(serverConfig), application);

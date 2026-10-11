@@ -2,7 +2,8 @@
 // politique que les tests (`choosePlay`) directement par le protocole.
 //   Usage : node tools/find-seeds.ts [premièreGraine] [nombre]
 //   Variables : UNO_FIND_DRAW_AMOUNT, UNO_FIND_SETTINGS (JSON), UNO_FIND_DEAL_ONLY=1 (la donne seulement, sans jouer),
-//   UNO_FIND_SEEDS=1,5,9 (rejouer seulement ces graines), UNO_FIND_PARALLEL (nombre de serveurs à la fois)
+//   UNO_FIND_SEEDS=1,5,9 (rejouer seulement ces graines), UNO_FIND_PARALLEL (nombre de serveurs à la fois),
+//   UNO_FIND_MAX_VERSIONS (abandonner une partie au-delà de cette vue)
 // Les graines retenues sont copiées à la main dans `support/seeds.ts`, avec ce qu'elles garantissent.
 import { type ChildProcess, spawn } from 'node:child_process';
 import { dirname, join, resolve } from 'node:path';
@@ -14,7 +15,8 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const binary =
   process.env['UNO_SERVER_BIN'] ??
   join(root, 'server/build/e2e', process.platform === 'win32' ? 'uno_server.exe' : 'uno_server');
-const MAX_VERSIONS = 90;
+// Au-delà de ce numéro de vue la partie est abandonnée (les scénarios utiles se jouent tôt) : UNO_FIND_MAX_VERSIONS
+const MAX_VERSIONS = Number(process.env['UNO_FIND_MAX_VERSIONS'] ?? 90);
 // Le réglage de pioche du salon : les graines des tests existants sont trouvées avec « one » (voir `lobby` dans fixtures.ts).
 const drawAmount = process.env['UNO_FIND_DRAW_AMOUNT'] ?? 'one';
 // D'autres réglages du salon (JSON), par exemple un paquet riche en Joker +5 : `{"wildDrawFiveMultiplier":5}`
