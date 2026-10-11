@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { AUDIO_CONTEXT_FACTORY, AudioService, DEFAULT_VOLUME } from './audio.service';
+import { AUDIO_CONTEXT_FACTORY, AudioService, SILENT_WAV, DEFAULT_VOLUME } from './audio.service';
 import { SOUNDS, type SoundId } from './sounds';
 
 /** Un faux AudioContext : il note les oscillateurs créés, avec leur forme et leurs fréquences. */
@@ -59,7 +59,10 @@ describe('AudioService', () => {
   let created: number;
   let audio: AudioService;
 
+  let play: ReturnType<typeof vi.spyOn>;
+
   beforeEach(() => {
+    play = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
     localStorage.clear();
     context = new FakeAudioContext();
     created = 0;
@@ -94,13 +97,16 @@ describe('AudioService', () => {
     expect(audio.unlocked()).toBe(false);
   });
 
-  it.each(['pointerdown', 'keydown', 'touchstart'])('is unlocked by the first %s, once', (type) => {
-    interact(type);
-    interact(type);
+  it.each(['pointerdown', 'keydown', 'touchstart', 'touchend', 'click'])(
+    'is unlocked by the first %s, once',
+    (type) => {
+      interact(type);
+      interact(type);
 
-    expect(created).toBe(1);
-    expect(audio.unlocked()).toBe(true);
-  });
+      expect(created).toBe(1);
+      expect(audio.unlocked()).toBe(true);
+    },
+  );
 
   it('plays the notes of a sound, at the volume of the player, once unlocked', () => {
     interact();
@@ -193,6 +199,39 @@ describe('AudioService', () => {
     audio.play('play');
 
     expect(context.resumed).toBeGreaterThan(1);
+  });
+
+  it('unlocks on the end of a touch and on a click, the only gestures iPhone accepts for audio', () => {
+    interact('touchend');
+
+    expect(audio.unlocked()).toBe(true);
+  });
+
+  it('wakes a suspended context with the next gesture, even when nothing is played', () => {
+    interact();
+    const before = context.resumed;
+    context.state = 'suspended';
+
+    interact('touchend');
+
+    expect(context.resumed).toBe(before + 1);
+    expect(created).toBe(1);
+  });
+
+  it('plays a silent looping track once, so that the ringer switch of iOS does not mute the page', () => {
+    interact('touchend');
+    interact('touchend');
+
+    expect(play).toHaveBeenCalledTimes(1);
+  });
+
+  it('has a silent track with real samples: an empty track looped forever would freeze the page', () => {
+    const bytes = Uint8Array.from(atob(SILENT_WAV.split(',')[1] ?? ''), (c) => c.charCodeAt(0));
+    const dataSize = new DataView(bytes.buffer).getUint32(40, true);
+
+    expect(String.fromCharCode(...bytes.slice(36, 40))).toBe('data');
+    expect(dataSize).toBeGreaterThan(0);
+    expect(bytes.length).toBe(44 + dataSize);
   });
 
   it('reads the choices of the player from the previous visits', () => {
