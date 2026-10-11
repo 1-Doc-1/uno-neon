@@ -83,7 +83,7 @@ class Application final : public ConnectionHandler {
 public:
     // All dependencies are injected and must outlive the application.
     Application(MessageSink& sink, RoomRepository& rooms, core::RandomSource& random, const Clock& clock,
-                Scheduler& scheduler, Timeouts timeouts = {}, Limits limits = {});
+                Scheduler& scheduler, Timeouts timeouts = {}, Limits limits = Limits{});
 
     void onConnected(ConnectionId connection, SessionToken token) override;
     void onRequest(ConnectionId connection, request::Envelope request) override;

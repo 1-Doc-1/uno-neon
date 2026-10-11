@@ -133,10 +133,9 @@ struct WebSocketServer::Impl {
         const ConnectionData& data = *socket->getUserData();
         const app::ConnectionId id = data.id;
         connections.erase(id);
-        if (const auto count = connectionsPerAddress.find(data.address); count != connectionsPerAddress.end()) {
-            if (--count->second == 0) {
-                connectionsPerAddress.erase(count);
-            }
+        if (const auto count = connectionsPerAddress.find(data.address);
+            count != connectionsPerAddress.end() && --count->second == 0) {
+            connectionsPerAddress.erase(count);
         }
         handler->onDisconnected(id);
     }

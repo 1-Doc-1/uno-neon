@@ -372,7 +372,11 @@ Description describe(const request::CreateRoom& body)
 Description describe(const request::JoinRoom& body)
 {
     return {.type = "room.join",
-            .payload = Json{{"code", body.code.value}, {"nickname", body.nickname}, {"avatarId", body.avatarId}}};
+            .payload = Json{
+                {"code", body.code.value},
+                {"nickname", body.nickname},
+                {"avatarId", body.avatarId},
+            }};
 }
 
 Description describe(const request::LeaveRoom& /*body*/)
@@ -402,10 +406,12 @@ Description describe(const request::AddBot& body)
 
 Description describe(const request::CreateBotGame& body)
 {
-    Json payload{{"nickname", body.nickname},
-                 {"botCount", body.botCount},
-                 {"level", detail::toWire(body.level)},
-                 {"avatarId", body.avatarId}};
+    Json payload{
+        {"nickname", body.nickname},
+        {"botCount", body.botCount},
+        {"level", detail::toWire(body.level)},
+        {"avatarId", body.avatarId},
+    };
     if (body.settings) {
         payload.emplace("settings", encodeSettingsPatch(*body.settings));
     }

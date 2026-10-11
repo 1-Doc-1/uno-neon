@@ -163,8 +163,8 @@ Application::Outcome Application::attach(ConnectionId connection, bool takeOver)
                                  .resumedRoomCode = session->room,
                              });
 
-    if (resumed) {
-        if (Room* const room = rooms_->find(*session->room)) {
+    if (const auto& roomCode = session->room; resumed && roomCode) {
+        if (Room* const room = rooms_->find(*roomCode)) {
             if (Member* const member = room->find(session->playerId)) {
                 member->connected = true;
                 scheduler_->cancel(std::exchange(room->graceTimers[session->playerId.value], TimerHandle{}));

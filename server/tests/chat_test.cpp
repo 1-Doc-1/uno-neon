@@ -40,7 +40,7 @@ TEST_CASE("Control characters, line breaks and tabs are refused", "[app][chat]")
     const std::string suffix = "b";
     for (const char* control : {"\n", "\r", "\t", "\x01", "\x7f", "\xC2\x85"}) {
         CAPTURE(control);
-        REQUIRE_FALSE(validateChatMessage(prefix + control + suffix).has_value());
+        REQUIRE_FALSE(validateChatMessage(std::string(prefix).append(control).append(suffix)).has_value());
     }
     REQUIRE_FALSE(validateChatMessage(std::string("a\0b", 3)).has_value());
 }

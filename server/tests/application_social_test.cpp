@@ -135,11 +135,13 @@ TEST_CASE("A chat message that is empty, too long or unreadable is refused", "[a
     }
     SECTION("invisible or direction-changing characters")
     {
+        // NOLINTBEGIN(misc-misleading-bidirectional): the point of the test is to refuse them
         const std::string override = std::string("a") + "\xE2\x80\xAE" + "b"; // right-to-left override
         sender.send(request::SendChat{.text = override});
         REQUIRE(refusal(sender.received()) == ErrorCode::ChatInvalid);
         sender.send(request::SendChat{.text = std::string("a") + "\xE2\x80\x8B" + "b"}); // zero-width space
         REQUIRE(refusal(sender.received()) == ErrorCode::ChatInvalid);
+        // NOLINTEND(misc-misleading-bidirectional)
     }
     SECTION("an emoji and accents are fine")
     {
