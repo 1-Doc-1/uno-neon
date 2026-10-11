@@ -107,7 +107,7 @@
 > **En cours : T1 — branche `feat/game-rules-polish` (pas encore de PR)**
 
 **T1 — Règles et confort de jeu (`feat/game-rules-polish`)**
-- [ ] T1.1 +5 « super carte » (ADR 0034 modifie 0028) : plus de réplique, pioche automatique du total ; chaîne close en mode Échelle ; moteur, simulation, protocole, « Comment jouer », E2E
+- [x] T1.1 +5 « super carte » (ADR 0034 modifie 0028) : plus de réplique, pioche automatique du total ; chaîne close en mode Échelle ; moteur, simulation, protocole, « Comment jouer », E2E
 - [ ] T1.2 Tri automatique de la main (fonction pure) + FLIP
 - [ ] T1.3 Main réduite au-delà de 16 cartes (échelle selon la largeur)
 - [ ] T1.4 Journal : 5 lignes, anciennes en fondu

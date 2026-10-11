@@ -166,8 +166,7 @@ export type IllegalMoveReason =
   | 'MUST_DECLARE_UNO'
   | 'TARGET_REQUIRED'
   | 'TARGET_NOT_ALLOWED'
-  | 'INVALID_TARGET'
-  | 'ONLY_PLUS_FIVE_PLAYABLE';
+  | 'INVALID_TARGET';
 /**
  * Draw Two in the deck: 8 x this (ADR 0028).
  */

@@ -254,10 +254,6 @@ describe('Table', () => {
       const slot = host.querySelector<HTMLButtonElement>('.slot.playable');
       expect(slot).not.toBeNull();
       expect(slot?.disabled).toBe(true);
-      expect(host.querySelector('app-plus-five-prompt')).not.toBeNull();
-      expect(host.querySelector<HTMLButtonElement>('app-plus-five-prompt button')?.disabled).toBe(
-        true,
-      );
 
       fixture.componentRef.setInput(
         'view',
@@ -266,9 +262,6 @@ describe('Table', () => {
       fixture.detectChanges();
 
       expect(host.querySelector<HTMLButtonElement>('.slot.playable')?.disabled).toBe(false);
-      expect(host.querySelector<HTMLButtonElement>('app-plus-five-prompt button')?.disabled).toBe(
-        false,
-      );
     });
 
     it('still lets me announce UNO and catch someone', () => {
@@ -368,37 +361,18 @@ describe('Table', () => {
       expect(transport.sent).toHaveLength(sent);
     });
 
-    it('does not offer to challenge a Wild Draw Five aimed at me: accept, or answer with one', () => {
-      const penalty = { amount: 5, canChallenge: false, canStack: true };
-      const { host } = render(viewWith(myTurn, { ...mineToPlay, penaltyResponse: penalty }));
-
-      expect(host.querySelector('app-challenge-dialog')).toBeNull();
-      expect(host.querySelector('app-plus-five-prompt')?.textContent).toContain('piocher 5');
-
-      click(host, 'app-plus-five-prompt button');
-
-      expect(transport.sent.at(-1)).toMatchObject({
-        type: 'game.respondPenalty',
-        payload: { response: 'accept' },
-      });
-    });
-
-    it('lets me answer a Wild Draw Five with the one in my hand', () => {
-      const penalty = { amount: 5, canChallenge: false, canStack: true };
-      const { host, fixture } = render(
-        viewWith(myTurn, { ...mineToPlay, penaltyResponse: penalty }),
+    it('shows no window for a Wild Draw Five aimed at me: nothing answers it, the pile takes the five', () => {
+      const penalty = { amount: 5, canChallenge: false, canStack: false };
+      const { host, button } = render(
+        viewWith(
+          { ...myTurn, pendingDraw: 5 },
+          { ...mineToPlay, canDraw: true, playableCardIds: [], penaltyResponse: penalty },
+        ),
       );
 
-      click(host, '.slot');
-      fixture.detectChanges();
-      click(host, 'app-target-picker .target', 0);
-      fixture.detectChanges();
-      click(host, 'app-color-picker .tile', 3);
-
-      expect(transport.sent.at(-1)).toMatchObject({
-        type: 'game.playCard',
-        payload: { cardId: 50, chosenColor: 'blue', targetId: 'max' },
-      });
+      expect(host.querySelector('app-challenge-dialog')).toBeNull();
+      expect(host.querySelector('.slot.playable')).toBeNull();
+      expect(button('.deck')?.getAttribute('aria-label')).toBe('Piocher 5 cartes');
     });
 
     it('with the ladder there is no window: the pile takes everything that is owed', () => {
@@ -410,7 +384,6 @@ describe('Table', () => {
         ),
       );
 
-      expect(host.querySelector('app-plus-five-prompt')).toBeNull();
       expect(host.querySelector('app-challenge-dialog')).toBeNull();
       expect(host.querySelector('.slot.playable')).not.toBeNull();
       expect(button('.deck')?.getAttribute('aria-label')).toBe('Piocher 6 cartes');
@@ -425,7 +398,6 @@ describe('Table', () => {
       const { host } = render(viewWith(myTurn, { penaltyResponse: penalty }));
 
       expect(host.querySelector('app-challenge-dialog')).not.toBeNull();
-      expect(host.querySelector('app-plus-five-prompt')).toBeNull();
     });
   });
 

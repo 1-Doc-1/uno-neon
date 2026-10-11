@@ -1,6 +1,5 @@
 import { TestBed } from '@angular/core/testing';
 import type { SeatView } from '../../protocol/generated/protocol';
-import { PlusFivePrompt } from './plus-five-prompt';
 import { TargetPicker } from './target-picker';
 
 const seat = (playerId: string, nickname: string, cardCount: number): SeatView => ({
@@ -73,31 +72,5 @@ describe('TargetPicker', () => {
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
 
     expect(events).toEqual(['picked:max', 'picked:lea', 'cancelled']);
-  });
-});
-
-describe('PlusFivePrompt', () => {
-  function render(canStack: boolean) {
-    const fixture = TestBed.createComponent(PlusFivePrompt);
-    fixture.componentRef.setInput('options', { amount: 10, canChallenge: false, canStack });
-    let accepted = 0;
-    fixture.componentInstance.accepted.subscribe(() => accepted++);
-    fixture.detectChanges();
-    const host = fixture.nativeElement as HTMLElement;
-    return { host, accepted: () => accepted };
-  }
-
-  it('says what is owed and lets the target accept it', () => {
-    const { host, accepted } = render(false);
-
-    expect(host.textContent).toContain('Tu dois piocher 10 cartes');
-    host.querySelector<HTMLButtonElement>('button')?.click();
-
-    expect(accepted()).toBe(1);
-  });
-
-  it('invites to answer with the Wild Draw Five held, only when there is one', () => {
-    expect(render(true).host.textContent).toContain('réponds avec ton Joker +5');
-    expect(render(false).host.textContent).not.toContain('réponds');
   });
 });

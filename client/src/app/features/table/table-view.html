@@ -122,13 +122,6 @@
     (challenged)="penaltyAnswered.emit('challenge')"
   />
 }
-@if (plusFiveAnswer(); as answer) {
-  <app-plus-five-prompt
-    [options]="answer"
-    [waiting]="!actionsOpen()"
-    (accepted)="penaltyAnswered.emit('accept')"
-  />
-}
 @if (pendingTarget() !== null) {
   <app-target-picker
     [targets]="opponents()"

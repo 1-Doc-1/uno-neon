@@ -17,7 +17,7 @@ import { ClickSound } from '../../ui/click-sound';
     <dialog #dialog class="panel" aria-label="Choisir la cible du Joker +5">
       <h2>Qui vises-tu ?</h2>
       <p class="hint">
-        Il pioche 5 cartes, sauf s’il répond avec un Joker +5. Clique aussi sur un siège.
+        Il pioche 5 cartes et passe son tour, sans pouvoir répondre. Clique aussi sur un siège.
       </p>
       <ul>
         @for (seat of targets(); track seat.playerId; let index = $index) {

@@ -4,7 +4,6 @@ export type ScenarioName =
   | 'uno-window'
   | 'two-windows'
   | 'challenge'
-  | 'plus-five-response'
   | 'ladder-stack'
   | 'must-declare'
   | 'full-table'
@@ -21,7 +20,6 @@ export const SCENARIOS: readonly ScenarioName[] = [
   'uno-window',
   'two-windows',
   'challenge',
-  'plus-five-response',
   'ladder-stack',
   'must-declare',
   'full-table',
@@ -153,21 +151,6 @@ export function scenarioView(name: ScenarioName, now: number): PlayerView {
           canDraw: false,
           playableCardIds: [],
           penaltyResponse: { amount: 4, canChallenge: true, canStack: false },
-        },
-      };
-    case 'plus-five-response':
-      // Un Joker +5 de Loïc me vise : je peux accepter ou répondre avec le mien
-      return {
-        ...base,
-        phase: 'awaitingPenaltyResponse',
-        currentColor: 'green',
-        discardTop: card(52, null, 'wildDrawFive'),
-        pendingDraw: 10,
-        me: {
-          ...base.me,
-          canDraw: false,
-          playableCardIds: [30],
-          penaltyResponse: { amount: 10, canChallenge: false, canStack: true },
         },
       };
     case 'ladder-stack':

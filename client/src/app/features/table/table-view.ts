@@ -24,7 +24,6 @@ import { MyBadge } from './my-badge';
 import { MAX_FAN_BACKS } from './opponent-fan';
 import { OpponentSeat } from './opponent-seat';
 import { Piles } from './piles';
-import { PlusFivePrompt } from './plus-five-prompt';
 import { SoundControl } from '../../ui/sound-control';
 import { RoundOverDialog } from './round-over-dialog';
 import { opponentsInViewOrder, seatLayout } from './seat-layout';
@@ -66,7 +65,6 @@ export interface CardPlay {
     ChallengeDialog,
     ColorPicker,
     TargetPicker,
-    PlusFivePrompt,
     SoundControl,
     RoundOverDialog,
     MatchOverDialog,
@@ -113,16 +111,6 @@ export class TableView {
   protected readonly pendingTarget = signal<number | null>(null);
   /** La cible déjà choisie du Joker +5 qui attend sa couleur. */
   private readonly chosenTarget = signal<string | null>(null);
-  /**
-   * Une pénalité sans contestation possible me vise et le serveur ne m'offre pas le paquet pour la prendre : une fenêtre
-   * propose d'accepter, la réplique se fait en cliquant une carte. Avec le cumul en échelle (`canDraw`), il n'y a pas
-   * de fenêtre : le paquet prend tout, les cartes qui s'empilent sont jouables dans la main.
-   */
-  protected readonly plusFiveAnswer = computed(() => {
-    const view = this.view();
-    const options = view.me.penaltyResponse;
-    return options && !options.canChallenge && !view.me.canDraw ? options : null;
-  });
   /**
    * Une pénalité m'attend : mes cartes empilables sont mises en évidence dès qu'elle arrive, même si le serveur
    * n'accepte ma réponse qu'à `actionsOpenAt` (elles restent alors verrouillées).
