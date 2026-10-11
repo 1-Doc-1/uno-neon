@@ -23,7 +23,7 @@ const VIEWPORTS: readonly Viewport[] = [
 ];
 
 /** Max d'adversaires que l'arc d'un portrait étroit accepte : au-delà, une bande défilante (table-view.ts). */
-const MAX_ARC_OPPONENTS = 4;
+const MAX_ARC_OPPONENTS = 3;
 
 /**
  * La zone de jeu qui reste au-dessus de ma main, mesurée dans le vrai navigateur (la hauteur de ma main : cartes,

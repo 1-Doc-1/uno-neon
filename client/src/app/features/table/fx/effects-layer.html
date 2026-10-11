@@ -41,8 +41,9 @@
         [style.text-shadow]="item.tone === 'gold' ? 'var(--gold-halo)' : null"
         [style.color]="tones[item.tone]"
         [class.reduced]="item.reduced"
-        [style.left.px]="item.at.cx"
-        [style.top.px]="item.at.cy"
+        appKeepOnScreen
+        [anchorX]="item.at.cx"
+        [anchorY]="item.at.cy"
         [style.--dur]="item.durationMs"
       >
         {{ item.text }}
@@ -56,8 +57,9 @@
         [class]="'label ' + item.variant"
         [style.color]="item.tone ? tones[item.tone] : null"
         [class.reduced]="item.reduced"
-        [style.left.px]="item.at.cx"
-        [style.top.px]="item.where === 'center' ? item.at.cy : item.at.cy - item.at.h * 0.75"
+        appKeepOnScreen
+        [anchorX]="item.at.cx"
+        [anchorY]="item.where === 'center' ? item.at.cy : item.at.cy - item.at.h * 0.75"
         [style.--dur]="item.durationMs"
       >
         @if (item.variant === 'uno') {
@@ -70,8 +72,9 @@
       <div
         class="skip"
         [class.reduced]="item.reduced"
-        [style.left.px]="item.at.cx"
-        [style.top.px]="item.at.cy"
+        appKeepOnScreen
+        [anchorX]="item.at.cx"
+        [anchorY]="item.at.cy"
         [style.width.px]="item.where === 'center' ? item.at.h * 0.42 : item.at.h * 1.5"
         [style.--dur]="item.durationMs"
       >

@@ -94,6 +94,8 @@
   -webkit-text-stroke: 0.06em var(--card-ink);
   paint-order: stroke fill;
   animation-name: pop;
+  width: max-content;
+  max-width: 92vw;
   text-align: center;
 
   .caption {
@@ -101,7 +103,6 @@
     margin-top: 0.12em;
     font-size: 0.26em;
     -webkit-text-stroke-width: 0.14em;
-    white-space: nowrap;
   }
 }
 

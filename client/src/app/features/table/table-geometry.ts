@@ -78,14 +78,21 @@ export function seatSize(
   };
 }
 
+/** Hauteur d'écran en dessous de laquelle les piles rapetissent (téléphone en paysage) ; la même que dans `piles.scss`. */
+const SHORT_VIEWPORT = 480;
+
 /** Les deux piles (paquet, défausse) côte à côte : ce que l'ellipse doit pouvoir contenir. */
 export function pilesSize(viewportHeight: number, narrow = false): Size {
-  const card = narrow ? 88 : clamp(96, viewportHeight * 0.155, 168);
+  const card = narrow
+    ? 88
+    : viewportHeight <= SHORT_VIEWPORT
+      ? clamp(60, viewportHeight * 0.2, 96)
+      : clamp(96, viewportHeight * 0.155, 168);
   return { w: card * 2.3, h: card * 1.4 + 36 };
 }
 
-/** Zone des sièges en mode large : `inset: 2.5vh 0 0` de la zone de jeu. */
-const SEATS_TOP_RATIO = 0.025;
+/** Zone des sièges en mode large : `inset: 4vh 0 0` de la zone de jeu. */
+const SEATS_TOP_RATIO = 0.04;
 /** Zone des sièges en portrait étroit : `inset: 40px 0 auto`, 170 px de haut ; en bande, 56 px au-dessus et 16 en dessous. */
 const NARROW_SEATS_TOP = 40;
 const NARROW_SEATS_HEIGHT = 170;

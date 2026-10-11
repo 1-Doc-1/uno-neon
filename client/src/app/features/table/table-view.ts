@@ -8,6 +8,7 @@ import {
   input,
   output,
   signal,
+  WritableSignal,
   untracked,
   viewChild,
 } from '@angular/core';
@@ -37,7 +38,9 @@ import { CatchButton, UnoActions } from './uno-actions';
 const CLOCK_TICK_MS = 250;
 const NARROW_QUERY = '(max-width: 639px)';
 /** En portrait étroit : au-delà, les adversaires passent en bande défilante. */
-const MAX_ARC_OPPONENTS = 4;
+const MAX_ARC_OPPONENTS = 3;
+/** Téléphone en paysage : peu de hauteur, les commandes de la table se font plus petites. */
+const SHORT_QUERY = '(max-height: 480px)';
 const NARROW_MAX_BACKS = 5;
 const JOURNAL_LINES = 5;
 /** Les animations vont deux fois plus vite quand l'hôte a choisi « Rapide » (le serveur raccourcit ses pauses de même). */
@@ -129,6 +132,9 @@ export class TableView {
   /** Écran étroit (portrait) : arc compact en haut, ou bande défilante au-delà de quatre adversaires. */
   protected readonly narrow = signal(
     typeof matchMedia === 'function' && matchMedia(NARROW_QUERY).matches,
+  );
+  protected readonly short = signal(
+    typeof matchMedia === 'function' && matchMedia(SHORT_QUERY).matches,
   );
   private readonly serverNow = computed(() => this.now() + this.clockOffset());
 
@@ -327,12 +333,18 @@ export class TableView {
       const timer = setInterval(() => this.now.set(Date.now()), CLOCK_TICK_MS);
       onCleanup(() => clearInterval(timer));
     });
+    this.followMedia(NARROW_QUERY, this.narrow);
+    this.followMedia(SHORT_QUERY, this.short);
+  }
+
+  /** Garde `flag` égal au résultat d'une media query, tant que le composant vit. */
+  private followMedia(media: string, flag: WritableSignal<boolean>): void {
     effect((onCleanup) => {
       if (typeof matchMedia !== 'function') {
         return;
       }
-      const query = matchMedia(NARROW_QUERY);
-      const update = (): void => this.narrow.set(query.matches);
+      const query = matchMedia(media);
+      const update = (): void => flag.set(query.matches);
       query.addEventListener('change', update);
       update();
       onCleanup(() => query.removeEventListener('change', update));

@@ -17,6 +17,7 @@ import type { ActiveEffect } from './animation-director';
 import { Anchors, Box, placeEffect, Placed, Tone } from './effect-geometry';
 import { FlightMotion } from './flight-motion';
 import { ImpactBurst } from './impact-burst';
+import { KeepOnScreen } from './keep-on-screen';
 import { ParticleCanvas } from './particle-canvas';
 import { ReverseArrow } from './reverse-arrow';
 
@@ -68,7 +69,15 @@ const BLINK = [1, 0.35, 1, 0.35, 1].map((opacity) => ({ opacity }));
  */
 @Component({
   selector: 'app-effects-layer',
-  imports: [CardFace, CardBack, FlightMotion, ImpactBurst, ParticleCanvas, ReverseArrow],
+  imports: [
+    CardFace,
+    CardBack,
+    FlightMotion,
+    ImpactBurst,
+    KeepOnScreen,
+    ParticleCanvas,
+    ReverseArrow,
+  ],
   templateUrl: './effects-layer.html',
   styleUrl: './effects-layer.scss',
   host: { 'aria-hidden': 'true' },

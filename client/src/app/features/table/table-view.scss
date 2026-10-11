@@ -1,7 +1,8 @@
 :host {
   display: block;
   width: 100%;
-  overflow-x: clip;
+  height: 100dvh;
+  overflow: clip;
 }
 
 .table {
@@ -20,13 +21,14 @@
 
 .seats {
   position: absolute;
-  inset: 2.5vh 0 0;
+  inset: 4vh 0 0;
 }
 
 .place {
   position: absolute;
   left: var(--x);
-  top: var(--y);
+  // Jamais plus haut que la moitié d'un siège : sur un écran très bas (téléphone en paysage), le siège du haut sortait
+  top: max(var(--y), 3.2rem);
   transform: translate(-50%, -50%);
 }
 
@@ -128,6 +130,10 @@
     grid-template-rows: auto 1fr;
   }
 
+  .place {
+    top: var(--y);
+  }
+
   .seats {
     position: absolute;
     inset: 40px 0 auto 0;
@@ -179,5 +185,48 @@
     position: static;
     margin: 0 auto var(--space-1);
     width: fit-content;
+  }
+}
+
+// Peu de place en haut (portrait étroit ou téléphone en paysage) : le menu prend le coin, le journal se réduit à ses
+// deux dernières lignes entre le menu et le son, sur une seule ligne chacune
+@media (max-width: 639px), (max-height: 480px) {
+  .journal {
+    top: var(--space-2);
+    left: 64px;
+    right: 80px;
+    max-width: none;
+    text-align: left;
+    mask-image: none;
+
+    li {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    li:nth-last-child(n + 3) {
+      display: none;
+    }
+  }
+
+  .sound-corner {
+    top: var(--space-2);
+    left: auto;
+    right: var(--space-2);
+  }
+}
+
+// Téléphone en paysage : plus de place pour le journal ni pour la phrase du tour (le siège et ma pastille montrent
+// déjà de qui c'est le tour) ; les deux restent lus par les lecteurs d'écran
+@media (max-height: 400px) {
+  .journal,
+  .turn {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 }
