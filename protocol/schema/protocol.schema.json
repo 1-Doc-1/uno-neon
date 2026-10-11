@@ -3,8 +3,5 @@
   "$id": "https://uno-neon.invalid/protocol/v1/protocol.schema.json",
   "title": "Protocol",
   "description": "Entry point of protocol v1: a WebSocket text frame is either a client message or a server message.",
-  "anyOf": [
-    { "$ref": "client-message.schema.json" },
-    { "$ref": "server-message.schema.json" }
-  ]
+  "anyOf": [{ "$ref": "client-message.schema.json" }, { "$ref": "server-message.schema.json" }]
 }

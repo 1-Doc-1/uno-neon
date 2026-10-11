@@ -1,48 +1,51 @@
-// Les graines des tests. Chacune a été trouvée avec `npm run seeds` (tools/find-seeds.ts), qui joue la même politique
-// que les tests par le protocole ; ce qu'elle garantit est écrit à côté. Dans une partie à deux, Bob (l'invité) joue
-// toujours le premier (sauf mention contraire) : Alice (l'hôte) est la donneuse. Si le moteur change sa façon de
-// mélanger ou de distribuer, ou la composition du paquet (ADR 0028 : 110 cartes), ces graines ne donneront plus les
-// mêmes parties : relancer le chercheur et les mettre à jour.
+﻿// Les graines des tests. Chacune a Ã©tÃ© trouvÃ©e avec `npm run seeds` (tools/find-seeds.ts), qui joue la mÃªme politique
+// que les tests par le protocole ; ce qu'elle garantit est Ã©crit Ã  cÃ´tÃ©. Dans une partie Ã  deux, Bob (l'invitÃ©) joue
+// toujours le premier (sauf mention contraire) : Alice (l'hÃ´te) est la donneuse. Si le moteur change sa faÃ§on de
+// mÃ©langer ou de distribuer, ou la composition du paquet (ADR 0028 : 110 cartes), ces graines ne donneront plus les
+// mÃªmes parties : relancer le chercheur et les mettre Ã  jour. Une plage se trie vite par la donne seule
+// (UNO_FIND_DEAL_ONLY=1), puis on rejoue les candidats en entier (UNO_FIND_SEEDS=â€¦).
 export const SEEDS = {
   /**
-   * Défausse : 7 jaune. Main de Bob : 8 vert, 1 bleu, Passe-tour vert, 1 jaune, 8 rouge, 0 vert, 5 bleu : seul le 1 jaune
-   * est jouable. Alice n'a ni jaune ni 1 (le serveur pioche pour elle). Avec la politique des tests, Bob passe à une
-   * carte (version 29, jouable) et gagne en manche unique (version 31).
+   * DÃ©fausse : 8 vert. Bob joue en premier et n'a qu'une seule carte jouable : toutes les autres sont dÃ©sactivÃ©es. Sert
+   * aux scÃ©narios qui ne dÃ©pendent que de cela.
    */
-  quickGame: 39,
+  quickGame: 35,
   /**
-   * Une partie courte (la politique joue sur la main triée, `sortHand`) : Bob joue en premier, passe à une carte jouable à la
-   * version 12 et gagne la manche unique à la version 13. Défausse : 1 bleu. Main de Bob : Passe rouge, 4 bleu, 6 bleu, Passe
-   * bleu, Joker +4, 9 rouge, 6 rouge.
+   * Une partie courte (la politique joue sur la main triÃ©e, `sortHand`) : Bob joue en premier, passe Ã  une carte jouable Ã  la
+   * version 9 et gagne la manche unique Ã  la version 11.
    */
-  fastGame: 150,
-  /** Défausse : 8 jaune. Bob a un Joker en tête de main et 3 cartes jouables. */
-  jokerInHand: 9,
-  /** Défausse : 7 vert. Bob a un +4 et aussi une carte verte (1 vert) : poser le +4 est un bluff. */
-  bluffedWildDrawFour: 34,
-  /** Défausse : 8 rouge. Bob a un +4 et aucune carte rouge : poser le +4 est légal. */
-  legalWildDrawFour: 30,
+  fastGame: 126,
   /**
-   * Pioche « jusqu'à pouvoir jouer » (ADR 0024) : défausse 2 rouge, Alice joue en premier. À la version 6, Alice n'a rien
-   * à jouer et pioche 4 cartes d'un coup, la dernière étant spéciale : elle doit choisir, l'écran reste figé.
-   * Alice se retrouve avec 9 cartes. (Trouvée avec UNO_FIND_DRAW_AMOUNT=untilPlayable.)
+   * Pioche guidÃ©e : Bob joue sa premiÃ¨re carte jouable, et Alice n'a rien Ã  rÃ©pondre (le serveur pioche pour elle, version 2).
    */
-  multiDraw: 21,
+  guidedDraw: 12,
+  /** DÃ©fausse : 2 jaune. Bob a un Joker et plusieurs cartes jouables, Alice de quoi rÃ©pondre au bleu. */
+  jokerInHand: 96,
+  /** DÃ©fausse : 7 rouge. Bob a un +4 et aussi des cartes rouges (1 rouge, Inversion rouge) : poser le +4 est un bluff. */
+  bluffedWildDrawFour: 30,
+  /** DÃ©fausse : 6 rouge. Bob a un +4 et aucune carte rouge : poser le +4 est lÃ©gal. */
+  legalWildDrawFour: 27,
   /**
-   * Défausse : 0 bleu. Bob a un +2 bleu jouable : à deux joueurs, un +2 fait sauter Alice, et Bob rejouerait aussitôt si
+   * Pioche Â« jusqu'Ã  pouvoir jouer Â» (ADR 0024) : Alice n'a rien Ã  jouer et pioche plusieurs cartes d'un coup, la derniÃ¨re
+   * Ã©tant spÃ©ciale : elle doit choisir, l'Ã©cran reste figÃ©. Alice se retrouve avec 9 cartes. (TrouvÃ©e avec
+   * UNO_FIND_DRAW_AMOUNT=untilPlayable.)
+   */
+  multiDraw: 45,
+  /**
+   * DÃ©fausse : 6 bleu. Bob a deux +2 bleus jouables : Ã  deux joueurs, un +2 fait sauter Alice, et Bob rejouerait aussitÃ´t si
    * le serveur n'attendait pas la fin de la distribution (ADR 0027).
    */
-  drawTwoFirst: 94,
+  drawTwoFirst: 91,
   /**
-   * Joker +5 (ADR 0028), paquet à ×5 Joker +5 : Bob, qui joue en premier, a un seul Joker +5 (et un Joker +4, un Joker et
-   * un Inversion rouge) ; Alice n'en a aucun. Défausse : 1 bleu. (UNO_FIND_SETTINGS='{"wildDrawFiveMultiplier":5}'.)
+   * Joker +5 (ADR 0028, 0034), paquet Ã  Ã—5 Joker +5 : Bob, qui joue en premier, a un seul Joker +5 ; Alice n'en a aucun.
+   * DÃ©fausse : 4 jaune. (UNO_FIND_SETTINGS='{"wildDrawFiveMultiplier":5}'.)
    */
-  plusFiveSimple: 1,
-  /** Même réglage : Bob et Alice ont chacun exactement un Joker +5. Défausse : 6 rouge. */
-  plusFiveAnswered: 23,
+  plusFiveSimple: 5,
+  /** MÃªme rÃ©glage : Bob et Alice ont chacun un Joker +5, qu'Alice ne peut pourtant pas jouer en rÃ©ponse. DÃ©fausse : 7 jaune. */
+  plusFiveAnswered: 21,
   /**
-   * Cumul à l'échelle (ADR 0029), paquet à ×5 +2 et ×5 +4 (UNO_FIND_SETTINGS='{"stacking":"ladder","drawTwoMultiplier":5,"wildDrawFourMultiplier":5}') :
-   * Bob joue en premier sur un 0 jaune, avec un +2 jaune jouable, un autre +2 rouge et deux +4. Alice a un +2 et ni +4 ni +5.
+   * Cumul Ã  l'Ã©chelle (ADR 0029), paquet Ã  Ã—5 +2 et Ã—5 +4 (UNO_FIND_SETTINGS='{"stacking":"ladder","drawTwoMultiplier":5,"wildDrawFourMultiplier":5}') :
+   * Bob joue en premier sur un 5 jaune, avec un +2 jaune jouable et un +4. Alice a un +2 et ni +4 ni +5.
    */
-  ladderChain: 54,
+  ladderChain: 341,
 } as const;

@@ -41,7 +41,8 @@ struct WebSocketServerConfig {
     OriginPolicy originPolicy{{}};
     RateLimits rateLimits;
     ConnectionLimits connectionLimits;
-    // Makes the token of a session for a browser that has no session cookie yet (cryptographic randomness).
+    // Makes the token of a session for a browser that has no session cookie yet. The server supplies its injected
+    // source of randomness; without one, the connections use the cryptographic generator (tests).
     std::function<app::SessionToken()> newSessionToken;
     // How long the browser keeps the session cookie.
     std::chrono::seconds sessionCookieMaxAge = std::chrono::hours(24);

@@ -104,7 +104,7 @@
 
 #### Lots T-U — règles, salon et sécurité, table, mobile (4 PR à la suite : T1, T2, U1, U2)
 > Reprise après interruption : relire cette section, `git status`, `git log --oneline -10`, les PR ouvertes, puis continuer au premier point non coché. Problème bloquant noté ici (cause, essais) ; on fusionne ce qui est vert et on passe à la suite.
-> **En cours : T2 — branche `feat/lobby-sessions` (T1 fusionnée : PR #42)**
+> **En cours : T2 terminée en local, PR à ouvrir (`feat/lobby-sessions`)**
 
 **T1 — Règles et confort de jeu (`feat/game-rules-polish`)**
 - [x] T1.1 +5 « super carte » (ADR 0034 modifie 0028) : plus de réplique, pioche automatique du total ; chaîne close en mode Échelle ; moteur, simulation, protocole, « Comment jouer », E2E
@@ -115,14 +115,14 @@
 - [x] T1.6 Réglage de salon « Vitesse des animations » (Normale / Rapide), animations ET budget/cooldown serveur
 
 **T2 — Salon, sessions et sécurité (`feat/lobby-sessions`)**
-- [ ] T2.1 Fin de partie : Revanche / Retour au salon (hôte), abandon en cours de partie avec confirmation
-- [ ] T2.2 Exclusion par menu du profil + confirmation, salon et partie
-- [ ] T2.3 Cookie de session HttpOnly/Secure/SameSite=Strict (ADR)
-- [ ] T2.4 Un seul onglet actif (« Jouer ici »)
-- [ ] T2.5 Anti-abus : un salon par session, limites par IP (en-tête du tunnel de confiance), plafonds, nettoyage
-- [ ] T2.6 Avatars (12 SVG)
-- [ ] T2.7 Chat (200 car., débit, texte brut, repliable, masquer un joueur)
-- [ ] T2.8 Tests serveur, client, E2E ; 4.3b coché
+- [x] T2.1 Fin de partie : Revanche / Retour au salon (hôte), abandon en cours de partie avec confirmation
+- [x] T2.2 Exclusion par menu du profil + confirmation, salon et partie
+- [x] T2.3 Cookie de session HttpOnly/Secure/SameSite=Strict (ADR)
+- [x] T2.4 Un seul onglet actif (« Jouer ici »)
+- [x] T2.5 Anti-abus : un salon par session, limites par IP (en-tête du tunnel de confiance), plafonds, nettoyage
+- [x] T2.6 Avatars (12 SVG)
+- [x] T2.7 Chat (200 car., débit, texte brut, repliable, masquer un joueur)
+- [x] T2.8 Tests serveur, client, E2E ; 4.3b coché
 
 **U1 — Effets et mise en page de la table (`feat/table-visuals`)**
 - [ ] U1.1 Sièges : avatar + pseudo, cartes de dos en accordéon dessous, sans rotation
@@ -145,7 +145,7 @@
 - [x] 3.5 Animations et `prefers-reduced-motion` (lot J)
 - [ ] 3.6 Galerie `/dev/gallery` avec tous les états
 - [ ] 3.7 Responsive 360 → 1920 px, accessibilité clavier et lecteur d'écran
-- [ ] 4.3b Revanche
+- [x] 4.3b Revanche (lot T2 : écran de fin avec Revanche / Retour au salon, ADR 0037)
 - [x] 4.4 E2E Playwright : parcours de jeu à 2 joueurs, reconnexion et forfait (lot K ; parties à 4, clavier seul, axe et captures de référence restent à écrire)
 
 #### Phase 5 — Bots, finitions, audits
@@ -258,3 +258,4 @@
 - 2026-10-10 — S2 — jouer par un tunnel (ADR 0033) : `UNO_BIND_ADDRESS` (serveur sur 127.0.0.1 seulement, test), test « logs sans jeton ni adresse IP », `deploy/Caddyfile.tunnel` (CSP par hachages Angular `autoCsp`, en-têtes, cache long, `/health` fermé, adresse du visiteur par `Cf-Connecting-Ip`), `scripts/play-online.ps1` (build release, contrôles de sécurité avant publication, Job Windows contre les orphelins, PC éveillé, presse-papiers) et `setup-online.ps1` ; **bugs trouvés en vrai** : Caddy ne servait que l'hôte `127.0.0.1` (le tunnel envoie le nom du tunnel), Cloudflare répond une page vide tant que le tunnel n'est pas relié, le DNS local mettait en cache l'absence du nom ; une manche complète à deux navigateurs par l'adresse publique sans erreur console ; Lighthouse 100/100/100 (bureau), 98/100/100 (mobile) ; `linux-check.sh` vert — `feat/tunnel-play`
 - 2026-10-10 — S3 — mode d'emploi pour l'hôte (`docs/MODE-EMPLOI.md`, avec captures, lié depuis le README) et page « Comment jouer » `/comment-jouer` (règles, cartes spéciales avec leurs cartes, UNO, chaque option du salon avec un exemple, réglages audio ; lien sur l'accueil ; E2E : navigation, 375 et 1440 px sans défilement horizontal, axe sans violation) ; défaut vu sur la capture à 375 px et corrigé : le panneau « Réglages audio » passait sous le panneau de l'accueil ; bug de test corrigé en route : course entre un clic de l'E2E et le coup que le jeu joue à sa place — `docs/user-guide`
 - 2026-10-11 — T1 — règles et confort de jeu : **+5 « super carte »** (ADR 0034, modifie 0028/0029) : `canStackOn(_, +5)` faux, `forcedAction` toujours l'acceptation, plus de fenêtre ni d'invite côté client, raison `ONLY_PLUS_FIVE_PLAYABLE` supprimée du protocole, E2E et « Comment jouer » mis à jour ; **tri de la main** (`sortHand`, pur, la politique E2E et le chercheur de graines l'utilisent : `fastGame` recalculée) ; **main réduite** au-delà de 16 cartes (`handScale`, `--hand-scale`, marge `--gutter-ratio`, vérifié 375/1024/1440 px sur `/dev/table?scenario=big-hand`) ; **journal** de 5 lignes en fondu (masque) ; **tension** dès le dernier tiers du tour, montée progressive (`tensionOfTurn`) ; **réglage de salon « Vitesse des animations »** (ADR 0035, `Timeouts::atSpeed`, `AnimationDirector.roomSpeed`) ; `linux-check.sh` vert — `feat/game-rules-polish`
+- 2026-10-11 — T2 — salon, sessions et sécurité : **session en cookie** `uno_session` (HttpOnly, Secure, SameSite=Strict, posé dans la réponse 101 ; le jeton quitte `session.hello` / `session.welcome` ; le hasard vient de la source injectée, ADR 0036), **un seul onglet actif** (`session.busy`, `session.takeOver`, code 4000, écran « Jouer ici »), **anti-abus** (20 connexions par adresse, 1 000 au total, 300 salons, 2 000 sessions, l'adresse du tunnel n'est lue que d'un pair local, chat 5 messages / 10 s), **avatars** (12 SVG originaux, `avatarId`, mémorisés avec le pseudo), **chat** (`chat.send` / `chat.message`, texte brut validé, 200 caractères, panneau repliable avec non-lus, masquer un joueur), **fin de partie sans relance automatique** (`room.backToLobby`, Revanche / Retour au salon pour l'hôte seul, abandon confirmé en cours de partie), **exclusion par le menu du profil** (confirmation nominative, salon et partie) ; serveur : 488 tests (cookie, onglet en double, limites, chat, retour au salon, exclusion), client : 401 tests, E2E : 49 scénarios dont fermeture d'onglet, deux onglets, revanche, exclusion, chat, axe ; **graines E2E recalculées** (le chercheur sait trier par la donne seule : `UNO_FIND_DEAL_ONLY`, `UNO_FIND_SEEDS`, un port par graine) ; pour jouer à deux sur une machine : deux navigateurs — `feat/lobby-sessions`

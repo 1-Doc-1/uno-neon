@@ -75,7 +75,7 @@ au lieu de publier.
    permet au navigateur de faire du son).
 
    ![L'écran « Cliquer pour jouer » : un seul bouton, qui débloque le son](img/cliquer-pour-jouer-375.png)
-2. Choisis un pseudo, puis **« Créer un salon »**. Le lien « Comment jouer ? » en bas de l'accueil explique les règles à tes amis.
+2. Choisis un pseudo et un **avatar** (12 personnages, gardés d'une visite à l'autre), puis **« Créer un salon »**. Le lien « Comment jouer ? » en bas de l'accueil explique les règles à tes amis.
 
    ![L'accueil, avec le panneau « Réglages audio » ouvert](img/reglages-audio-375.png)
 3. Dans le salon, deux façons d'inviter :
@@ -85,6 +85,19 @@ au lieu de publier.
 5. Quand tes amis ont cliqué sur **« Prêt »**, clique sur **« Lancer la partie »**.
 
 Tu peux aussi ajouter des **bots** au salon pour compléter la table.
+
+Pendant la soirée :
+
+- **Chat** : le bouton « Chat » (en bas à droite) ouvre une discussion pour toute la table, au salon comme en partie.
+  Un clic sur le **profil** d'un joueur permet de **masquer** ses messages (pour toi seul) et, pour l'hôte, de l'**exclure**
+  (une confirmation est demandée).
+- **Fin de partie** : rien ne repart tout seul. Toi, l'hôte, choisis **« Revanche »** (mêmes joueurs, mêmes réglages) ou
+  **« Retour au salon »**. En cours de partie, le bouton **« Menu »** te permet aussi de revenir au salon (la partie est alors
+  abandonnée, sans score).
+- **Fermer l'onglet par erreur** : rouvre le lien dans le **même navigateur**, tu retrouves ta place (pendant 1 minute en
+  partie). Ton navigateur garde ton identité dans un cookie ; **un navigateur = un joueur** : deux onglets du même navigateur
+  sont le même joueur (le second propose « Jouer ici »). Pour jouer à deux sur ton PC, ouvre un second navigateur ou une
+  fenêtre privée.
 
 > Sur ordinateur, c'est pareil en plus large :
 >

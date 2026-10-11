@@ -10,19 +10,23 @@ test.describe('poser une carte', () => {
     const { host, guest } = lobby;
     await startMatch(lobby);
 
-    await expect(guest.card('1 jaune, jouable')).toBeEnabled();
-    await expect(guest.card('8 vert')).toBeDisabled(); // pas de la couleur active, pas le même chiffre
-    await guest.card('1 jaune, jouable').click();
+    // Un seul coup possible : toutes les autres cartes sont désactivées
+    await expect(guest.playableCards).toHaveCount(1);
+    const label = ((await guest.playableCards.first().getAttribute('aria-label')) ?? '').replace(
+      ', jouable',
+      '',
+    );
+    await guest.playableCards.first().click();
 
     for (const player of [host, guest]) {
       await expect(
-        player.page.locator('[data-anchor="discard"]').getByRole('img', { name: '1 jaune' }),
+        player.page.locator('[data-anchor="discard"]').getByRole('img', { name: label }),
       ).toBeVisible();
       await expect(player.cardCountOf('Bob')).toHaveText('6');
     }
     await expect(host.myTurn).toBeVisible();
     await expect(guest.myTurn).toBeHidden();
-    await expect(guest.card('1 jaune')).toHaveCount(0);
+    await expect(guest.cards).toHaveCount(6);
   });
 });
 
@@ -51,15 +55,14 @@ test.describe('Joker', () => {
 });
 
 test.describe('pioche guidée', () => {
-  test.use({ seed: SEEDS.quickGame });
+  test.use({ seed: SEEDS.guidedDraw });
 
   test('un joueur qui ne peut rien jouer voit le serveur piocher à sa place', async ({ lobby }) => {
     const { host, guest } = lobby;
     await startMatch(lobby);
 
-    // Bob joue son 1 jaune (la politique des tests) : Alice n'a ni jaune ni 1
+    // Bob joue sa seule carte jouable (la politique des tests) : Alice n'a rien à répondre
     await playUntil([guest], async () => host.myTurn.isVisible());
-    await expect(host.page.locator('app-piles .color')).toContainText('Jaune');
 
     // Alice ne clique sur rien : le serveur pioche pour elle après un court instant
     await expect(host.journal).toContainText('Alice pioche 1 carte.');
