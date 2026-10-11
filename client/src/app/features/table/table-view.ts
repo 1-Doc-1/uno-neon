@@ -18,7 +18,8 @@ import { ChallengeDialog } from './challenge-dialog';
 import { ColorPicker } from './color-picker';
 import { AnimationDirector } from './fx/animation-director';
 import { EffectsLayer } from './fx/effects-layer';
-import { Hand } from './hand';
+import { Hand, type IncomingCard } from './hand';
+import { sortHand } from './sort-hand';
 import { MatchOverDialog } from './match-over-dialog';
 import { MyBadge } from './my-badge';
 import { MAX_FAN_BACKS } from './opponent-fan';
@@ -137,13 +138,22 @@ export class TableView {
   /** Ma main telle qu'on la montre : seules les cartes arrivées, celles d'une pioche en cours prennent place à leur tour. */
   protected readonly shownHand = computed(() => {
     const hidden = this.director.hiddenCardIds();
-    return this.view().me.hand.filter((card) => !hidden.has(card.id));
+    return sortHand(this.view().me.hand.filter((card) => !hidden.has(card.id)));
   });
-  protected readonly incomingCardIds = computed(() => {
+  /** Les cartes en vol vers ma main, avec la place que chacune prendra une fois triée parmi celles déjà arrivées. */
+  protected readonly incomingCards = computed<readonly IncomingCard[]>(() => {
     const hidden = this.director.hiddenCardIds();
-    return this.view()
-      .me.hand.filter((card) => hidden.has(card.id))
-      .map((card) => card.id);
+    const hand = this.view().me.hand;
+    const arrived = hand.filter((card) => !hidden.has(card.id));
+    const flying = hand.filter((card) => hidden.has(card.id));
+    return flying.map((card, order) => {
+      const landed = sortHand([...arrived, ...flying.slice(0, order + 1)]);
+      return {
+        id: card.id,
+        index: landed.findIndex((c) => c.id === card.id),
+        count: landed.length,
+      };
+    });
   });
   protected readonly mySeat = computed(() =>
     this.seats().find((p) => p.playerId === this.view().me.playerId),

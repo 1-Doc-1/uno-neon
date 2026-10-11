@@ -83,14 +83,17 @@ describe('Hand', () => {
 
   it('lays out only the cards that have arrived, and re-spreads the fan when one more arrives', () => {
     const { fixture, host, slots } = render(cards(2));
-    fixture.componentRef.setInput('incoming', [2, 3]);
+    fixture.componentRef.setInput('incoming', [
+      { id: 2, index: 2, count: 3 },
+      { id: 3, index: 3, count: 4 },
+    ]);
     fixture.detectChanges();
 
     expect(slots()).toHaveLength(2);
     expect(host.querySelector('[data-anchor="card:2"]')).toBeNull();
 
     fixture.componentRef.setInput('cards', cards(3));
-    fixture.componentRef.setInput('incoming', [3]);
+    fixture.componentRef.setInput('incoming', [{ id: 3, index: 2, count: 3 }]);
     fixture.detectChanges();
 
     expect(slots().map((slot) => slot.style.getPropertyValue('--d'))).toEqual(['-1', '0', '1']);

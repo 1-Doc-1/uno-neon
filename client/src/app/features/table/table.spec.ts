@@ -303,7 +303,7 @@ describe('Table', () => {
     it('asks for a target, then a colour, then plays the card with both', () => {
       const { host, fixture } = render(viewWith(myTurn, mineToPlay));
 
-      click(host, '.slot'); // the Wild Draw Five
+      click(host, '.slot.playable'); // the Wild Draw Five, sorted last
       fixture.detectChanges();
       expect(host.querySelector('app-target-picker')).not.toBeNull();
       expect(host.querySelector('app-color-picker')).toBeNull();
@@ -327,7 +327,7 @@ describe('Table', () => {
       const { host, fixture } = render(viewWith(myTurn, mineToPlay));
       expect(host.querySelector('app-opponent-seat .seat.targetable')).toBeNull();
 
-      click(host, '.slot');
+      click(host, '.slot.playable');
       fixture.detectChanges();
       const seats = host.querySelectorAll<HTMLElement>('app-opponent-seat .seat.targetable');
       expect(seats).toHaveLength(2);
@@ -351,7 +351,7 @@ describe('Table', () => {
       const { host, fixture } = render(viewWith(myTurn, mineToPlay));
       const sent = transport.sent.length;
 
-      click(host, '.slot');
+      click(host, '.slot.playable');
       fixture.detectChanges();
       click(host, 'app-target-picker button[appButton]'); // Annuler
       fixture.detectChanges();

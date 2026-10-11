@@ -12,6 +12,13 @@ import { CardFace } from '../../ui/card';
 import { cardLabel } from '../../ui/color-meta';
 import { ClickSound } from '../../ui/click-sound';
 
+/** Une carte en vol vers la main : sa place (`index`) dans la main triée de `count` cartes une fois arrivée. */
+export interface IncomingCard {
+  readonly id: number;
+  readonly index: number;
+  readonly count: number;
+}
+
 const MAX_ROTATION_STEP_DEGREES = 3.2;
 const TOTAL_FAN_DEGREES = 36;
 const MAX_REMEMBERED = 60;
@@ -75,8 +82,8 @@ export class Hand {
   readonly myTurn = input.required<boolean>();
   /** Les cartes jouables sont montrées mais le serveur ne prend pas encore le coup : rien ne réagit. */
   readonly locked = input(false);
-  /** Les cartes en vol vers ma main, dans l'ordre d'arrivée : absentes de `cards`, elles s'y ajoutent à la fin. */
-  readonly incoming = input<readonly number[]>([]);
+  /** Les cartes en vol vers ma main, dans l'ordre d'arrivée : absentes de `cards`, elles s'y insèrent à leur place triée. */
+  readonly incoming = input<readonly IncomingCard[]>([]);
   readonly played = output<number>();
 
   private readonly host: HTMLElement = inject(ElementRef).nativeElement;
@@ -110,15 +117,15 @@ export class Hand {
       : (this.remembered.get(cardId) ?? this.arrivalRect(cardId));
   }
 
-  /** Où sera la carte en vol `cardId` quand elle arrivera : à la fin d'une main qui compte les cartes arrivées avant elle. */
+  /** Où sera la carte en vol `cardId` quand elle arrivera : à sa place triée dans une main qui compte les cartes arrivées avant elle. */
   private arrivalRect(cardId: number): DOMRect | null {
-    const order = this.incoming().indexOf(cardId);
+    const arrival = this.incoming().find((entry) => entry.id === cardId);
     const list = this.host.querySelector<HTMLElement>('ul.hand');
     const model = this.host.querySelector<HTMLElement>('li[data-anchor]');
-    if (order < 0 || !list || !model) {
+    if (!arrival || !list || !model) {
       return null;
     }
-    const count = this.cards().length + order + 1;
+    const { count, index } = arrival;
     const styles = getComputedStyle(list);
     const hostBox = this.host.getBoundingClientRect();
     const { offsetWidth: width, offsetHeight: height } = model;
@@ -129,7 +136,7 @@ export class Hand {
       parseFloat(styles.getPropertyValue('--gutter')),
       parseFloat(styles.getPropertyValue('--max-step')),
     );
-    const fromCenter = count - 1 - (count - 1) / 2;
+    const fromCenter = index - (count - 1) / 2;
     const tilt =
       (fromCenter *
         Math.min(MAX_ROTATION_STEP_DEGREES, TOTAL_FAN_DEGREES / count) *

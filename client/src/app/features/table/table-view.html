@@ -100,7 +100,7 @@
       [playableIds]="view().me.playableCardIds"
       [myTurn]="myTurn() && (actionsOpen() || answeringPenalty())"
       [locked]="!actionsOpen()"
-      [incoming]="incomingCardIds()"
+      [incoming]="incomingCards()"
       (played)="play($event)"
     />
   </section>
