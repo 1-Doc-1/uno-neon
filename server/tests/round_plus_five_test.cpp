@@ -464,7 +464,8 @@ TEST_CASE("The view of the target shows what is owed and nothing to answer with"
     REQUIRE(target->currentPlayerId == player(1));
     REQUIRE(target->me.canDraw);
     REQUIRE(target->me.playableCardIds.empty()); // even the target's own Wild Draw Five cannot answer
-    REQUIRE(target->me.penaltyResponse == PenaltyResponseOptions{.amount = 5, .canChallenge = false, .canStack = false});
+    REQUIRE(target->me.penaltyResponse ==
+            PenaltyResponseOptions{.amount = 5, .canChallenge = false, .canStack = false});
     // The others see who is targeted and the total, nothing to answer
     REQUIRE(bystander.has_value());
     REQUIRE(bystander->pendingDraw == 5);
@@ -472,4 +473,3 @@ TEST_CASE("The view of the target shows what is owed and nothing to answer with"
     REQUIRE_FALSE(bystander->me.penaltyResponse.has_value());
     REQUIRE(bystander->me.playableCardIds.empty());
 }
-

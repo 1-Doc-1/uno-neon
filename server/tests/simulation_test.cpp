@@ -312,7 +312,8 @@ private:
     }
 
     // A move the engine calls forced must be one it accepts, and only the guided draw has any (and the target of a
-    // Wild Draw Five, ADR 0034). Tried on a copy, with its own random source, so that the simulation itself is not disturbed.
+    // Wild Draw Five, ADR 0034). Tried on a copy, with its own random source, so that the simulation itself is not
+    // disturbed.
     static void requireForcedActionIsAccepted(const uno::core::Round& round)
     {
         const auto forced = round.forcedAction();
