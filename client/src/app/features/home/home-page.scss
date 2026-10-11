@@ -184,3 +184,13 @@
     border-radius: var(--radius-sm);
   }
 }
+
+.avatar-field {
+  display: grid;
+  gap: var(--space-2);
+
+  .label {
+    font-size: var(--fs-sm);
+    color: var(--text-dim);
+  }
+}

@@ -3,6 +3,7 @@ import { form, FormField, pattern, required } from '@angular/forms/signals';
 import { Router, RouterLink } from '@angular/router';
 import { SessionService } from '../../core/session.service';
 import { GameStore } from '../../state/game-store';
+import { AvatarPicker } from '../../ui/avatar-picker';
 import { Button } from '../../ui/button';
 import { Icon } from '../../ui/icon';
 import { Logo } from '../../ui/logo';
@@ -16,7 +17,7 @@ import { ClickSound } from '../../ui/click-sound';
  */
 @Component({
   selector: 'app-home-page',
-  imports: [ClickSound, FormField, Button, Icon, Logo, RouterLink, SoundControl],
+  imports: [ClickSound, AvatarPicker, FormField, Button, Icon, Logo, RouterLink, SoundControl],
   templateUrl: './home-page.html',
   styleUrl: './home-page.scss',
 })
@@ -31,6 +32,7 @@ export class HomePage {
     pattern(path.nickname, NICKNAME_PATTERN);
   });
 
+  protected readonly avatar = signal(this.session.avatar());
   protected readonly busy = signal(false);
   /** Choisir ses bots ne demande pas encore le serveur : seul le pseudo doit être valide. */
   protected readonly canStart = computed(() => this.form.nickname().valid());
@@ -46,6 +48,11 @@ export class HomePage {
         void this.router.navigate(['/r', code]);
       }
     });
+  }
+
+  protected chooseAvatar(avatar: number): void {
+    this.avatar.set(avatar);
+    this.session.saveAvatar(avatar);
   }
 
   protected playAgainstBots(): void {

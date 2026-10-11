@@ -18,6 +18,7 @@ const member = (
   isReady: false,
   isConnected: true,
   isBot: false,
+  avatarId: 0,
   ...extra,
 });
 
@@ -59,7 +60,7 @@ describe('Lobby', () => {
     transport.receive({
       v: 1,
       type: 'session.welcome',
-      payload: { sessionToken: 't', playerId: me },
+      payload: { playerId: me },
     });
     const fixture = TestBed.createComponent(Lobby);
     fixture.componentRef.setInput('room', roomOf(players));
@@ -191,6 +192,7 @@ describe('Lobby', () => {
 
     expect(host.querySelector('[aria-label="Hôte"]')).not.toBeNull();
     expect(host.querySelectorAll('app-segmented').length).toBeGreaterThanOrEqual(5);
-    expect(host.querySelector('[aria-label="Exclure Loïc"]')).not.toBeNull();
+    expect(host.querySelector('[aria-label="Options de Loïc"]')).not.toBeNull();
+    expect(host.querySelector('[aria-label="Options de Léa"]')).toBeNull(); // pas de menu pour soi
   });
 });

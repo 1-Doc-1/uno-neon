@@ -2,6 +2,8 @@ import { Component, computed, inject, input, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import type { BotLevel, MatchLength, RoomView } from '../../protocol/generated/protocol';
 import { GameStore } from '../../state/game-store';
+import { ChatDock } from '../chat/chat-dock';
+import { PlayerMenu } from '../players/player-menu';
 import { Avatar } from '../../ui/avatar';
 import { Button } from '../../ui/button';
 import { Icon } from '../../ui/icon';
@@ -23,7 +25,7 @@ const COPIED_FEEDBACK_MS = 2000;
 /** Salon avant la partie : joueurs à gauche, réglages à droite, un grand bouton en bas (SPEC §12.2). */
 @Component({
   selector: 'app-lobby',
-  imports: [ClickSound, Avatar, Button, GameSettings, Icon, Logo, Segmented],
+  imports: [ClickSound, Avatar, Button, ChatDock, GameSettings, Icon, Logo, PlayerMenu, Segmented],
   templateUrl: './lobby.html',
   styleUrl: './lobby.scss',
 })
@@ -33,8 +35,8 @@ export class Lobby {
 
   readonly room = input.required<RoomView>();
 
-  /** Joueur dont l'exclusion attend une confirmation. */
-  protected readonly kickCandidate = signal<string | null>(null);
+  /** Joueur dont on ouvre le menu (masquer, exclure). */
+  protected readonly menuPlayer = signal<string | null>(null);
   protected readonly copied = signal(false);
   protected readonly hintShown = signal(false);
   protected readonly botLevel = signal<BotLevel>('normal');
@@ -98,15 +100,6 @@ export class Lobby {
       return;
     }
     void this.store.startMatch();
-  }
-
-  protected askKick(playerId: string): void {
-    this.kickCandidate.set(playerId);
-  }
-
-  protected async confirmKick(playerId: string): Promise<void> {
-    this.kickCandidate.set(null);
-    await this.store.kick(playerId);
   }
 
   protected async leave(): Promise<void> {

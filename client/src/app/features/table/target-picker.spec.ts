@@ -13,6 +13,7 @@ const seat = (playerId: string, nickname: string, cardCount: number): SeatView =
   isHost: false,
   hasCalledUno: false,
   isReadyForNextRound: false,
+  avatarId: 0,
 });
 
 describe('TargetPicker', () => {

@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { NICKNAME_PATTERN } from '../../core/validation';
 import { SessionService } from '../../core/session.service';
 import { GameStore } from '../../state/game-store';
+import { AvatarPicker } from '../../ui/avatar-picker';
 import { Button } from '../../ui/button';
 import { Table } from '../table/table';
 import { Lobby } from './lobby';
@@ -12,7 +13,7 @@ import { ClickSound } from '../../ui/click-sound';
 /** Page `/r/:code` : salon (lobby) ou table de jeu selon l'état, et entrée par lien partagé. */
 @Component({
   selector: 'app-room-page',
-  imports: [ClickSound, FormField, Button, Lobby, Table],
+  imports: [ClickSound, AvatarPicker, FormField, Button, Lobby, Table],
   templateUrl: './room-page.html',
   styleUrl: './room-page.scss',
 })
@@ -22,7 +23,9 @@ export class RoomPage {
 
   readonly code = input.required<string>();
 
-  protected readonly model = signal({ nickname: inject(SessionService).nickname() });
+  private readonly session = inject(SessionService);
+  protected readonly avatar = signal(this.session.avatar());
+  protected readonly model = signal({ nickname: this.session.nickname() });
   protected readonly form = form(this.model, (path) => {
     required(path.nickname);
     pattern(path.nickname, NICKNAME_PATTERN);
@@ -39,6 +42,11 @@ export class RoomPage {
         void this.router.navigate(['/r', joined]);
       }
     });
+  }
+
+  protected chooseAvatar(avatar: number): void {
+    this.avatar.set(avatar);
+    this.session.saveAvatar(avatar);
   }
 
   protected join(): Promise<boolean> {

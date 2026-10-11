@@ -13,7 +13,7 @@ import { Avatar } from '../../ui/avatar';
         [class.timed]="timerFraction() !== null"
         [style.--f]="timerFraction() ?? 0"
       >
-        <app-avatar [playerId]="seat().playerId" [nickname]="seat().nickname" />
+        <app-avatar [avatarId]="seat().avatarId" />
         <span class="count" [attr.aria-label]="seat().cardCount + ' cartes'">{{
           seat().cardCount
         }}</span>

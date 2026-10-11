@@ -13,6 +13,8 @@ export interface GameTransport {
   /** Numéro de la tentative de reconnexion en cours (0 quand la connexion est ouverte). */
   readonly attempt: Signal<number>;
   readonly messages: Observable<ServerMessage>;
+  /** Vrai quand le serveur a fermé cette connexion parce qu'un autre onglet a repris la session (ADR 0036). */
+  readonly takenOver: Signal<boolean>;
   connect(): void;
   disconnect(): void;
   /** Renvoie `false` si le message n'a pas pu partir (connexion fermée). */

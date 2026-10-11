@@ -19,6 +19,7 @@ const member = (
   isReady: false,
   isConnected: true,
   isBot: false,
+  avatarId: 0,
   ...extra,
 });
 
@@ -36,7 +37,7 @@ describe('Lobby with bots', () => {
     transport.receive({
       v: 1,
       type: 'session.welcome',
-      payload: { sessionToken: 't', playerId: me },
+      payload: { playerId: me },
     });
     const room: RoomView = {
       code: 'K7M4XP',

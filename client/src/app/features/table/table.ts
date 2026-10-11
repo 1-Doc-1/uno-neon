@@ -2,6 +2,9 @@ import { Component, computed, effect, inject, input, signal } from '@angular/cor
 import { Router } from '@angular/router';
 import type { ClientEvent, Color, PlayerView } from '../../protocol/generated/protocol';
 import { GameStore } from '../../state/game-store';
+import { ChatDock } from '../chat/chat-dock';
+import { PlayerMenu } from '../players/player-menu';
+import { GameMenu } from './game-menu';
 import { describeEvent } from './describe-event';
 import { playedCards } from './fx/discard-pile';
 import { CardPlay, TableView } from './table-view';
@@ -12,7 +15,15 @@ const BANNER_MS = 5000;
 /** Conteneur de la table : relie la vue du serveur au store et traduit les gestes du joueur en intentions. */
 @Component({
   selector: 'app-table',
-  imports: [TableView],
+  styles: `
+    .game-menu {
+      position: fixed;
+      top: calc(var(--space-3) + 56px);
+      left: var(--space-3);
+      z-index: calc(var(--z-table) + 5);
+    }
+  `,
+  imports: [TableView, ChatDock, GameMenu, PlayerMenu],
   template: `
     <app-table-view
       [view]="view()"
@@ -28,8 +39,21 @@ const BANNER_MS = 5000;
       (caught)="store.catchUno($event)"
       (penaltyAnswered)="store.respondPenalty($event)"
       (nextRoundAsked)="store.readyForNextRound()"
+      (profileOpened)="menuPlayer.set($event)"
+      (rematchAsked)="store.rematch()"
+      (backToLobbyAsked)="store.backToLobby()"
       (left)="leave()"
     />
+    <app-game-menu
+      class="game-menu"
+      [isHost]="store.isHost()"
+      (backToLobby)="store.backToLobby()"
+      (left)="leave()"
+    />
+    <app-chat-dock />
+    @if (menuPlayer(); as playerId) {
+      <app-player-menu [playerId]="playerId" (closed)="menuPlayer.set(null)" />
+    }
   `,
 })
 export class Table {
@@ -37,6 +61,9 @@ export class Table {
   private readonly router = inject(Router);
 
   readonly view = input.required<PlayerView>();
+
+  /** Joueur dont on ouvre le menu (masquer, exclure). */
+  protected readonly menuPlayer = signal<string | null>(null);
 
   protected readonly banner = signal<string | null>(null);
   private lastChallenge: ClientEvent | null = null;

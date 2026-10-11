@@ -16,6 +16,7 @@ const seat = (playerId: string, nickname: string, cardCount: number): SeatView =
   isHost: false,
   hasCalledUno: false,
   isReadyForNextRound: false,
+  avatarId: 0,
 });
 
 function viewWith(
@@ -84,7 +85,7 @@ describe('Table', () => {
     transport.receive({
       v: 1,
       type: 'session.welcome',
-      payload: { sessionToken: 'tok', playerId: 'me' },
+      payload: { playerId: 'me' },
     });
     const fixture = TestBed.createComponent(Table);
     fixture.componentRef.setInput('view', view);

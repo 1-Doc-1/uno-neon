@@ -68,6 +68,7 @@ const seat = (
   isHost: index === 0,
   hasCalledUno: false,
   isReadyForNextRound: false,
+  avatarId: (index * 5) % 12,
   ...extra,
 });
 
