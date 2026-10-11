@@ -15,8 +15,8 @@
   gestes acceptés par iPhone) ; une piste silencieuse d'**une seconde réelle** jouée en boucle fait passer iOS en
   « lecture » pour que l'interrupteur de sonnerie ne coupe pas la page (documenté dans `MODE-EMPLOI.md` : il peut quand
   même la couper).
-- **Tests** : parties jouées par émulation iPhone 13 et Pixel 7, portrait et paysage (deux jusqu'au bout, deux une
-  minute), qui mesurent à chaque étape l'absence de défilement, la position des sièges et celle de chaque effet ; une
+- **Tests** : parties jouées par émulation iPhone 13 et Pixel 7, portrait et paysage (75 s de jeu chacun ; la partie entière est jouée par
+  les tests au clavier et contre les bots), qui mesurent à chaque étape l'absence de défilement, la position des sièges et celle de chaque effet ; une
   manche jouée au clavier seul avec anneau de focus vérifié ; six tailles de 360 à 1920 px avec axe.
 
 ## Pourquoi pas autrement

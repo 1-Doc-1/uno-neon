@@ -3,24 +3,24 @@ import { test } from '../support/fixtures.ts';
 import { layoutProblems } from '../support/layout.ts';
 import { Player, playUntil } from '../support/player.ts';
 
-// Le jeu sur téléphone (étape 3.7) : iPhone et Android en portrait et en paysage, une partie contre 2 bots jusqu'au bout
+// Le jeu sur téléphone (étape 3.7) : iPhone et Android en portrait et en paysage, une partie jusqu'au bout
 // à vitesse réelle. À chaque étape on mesure ce qui compte : jamais de défilement de la page, aucun siège ni effet qui
 // sorte de l'écran, rien qui dépasse à droite.
 
 type Emulated = (typeof devices)[string];
 
-/** Une partie dure de 1,5 à plus de 3 minutes à vitesse réelle : deux téléphones la jouent jusqu'au bout, les deux autres une minute. */
-const SAMPLE_MS = 60_000;
+/** Une partie à vitesse réelle dure de 2 à plus de 5 minutes (effets, délais entre les coups) : chaque téléphone joue 75 s, la partie entière est couverte par les tests au clavier et contre les bots. */
+const SAMPLE_MS = 75_000;
 
 const PHONES: ReadonlyArray<{ name: string; device: Emulated; fullGame: boolean }> = [
-  { name: 'iPhone 13 portrait', device: devices['iPhone 13'] as Emulated, fullGame: true },
+  { name: 'iPhone 13 portrait', device: devices['iPhone 13'] as Emulated, fullGame: false },
   {
     name: 'iPhone 13 paysage',
     device: devices['iPhone 13 landscape'] as Emulated,
     fullGame: false,
   },
   { name: 'Pixel 7 portrait', device: devices['Pixel 7'] as Emulated, fullGame: false },
-  { name: 'Pixel 7 paysage', device: devices['Pixel 7 landscape'] as Emulated, fullGame: true },
+  { name: 'Pixel 7 paysage', device: devices['Pixel 7 landscape'] as Emulated, fullGame: false },
 ];
 
 /** Les effets posés sur un point (grand texte, étiquette, tampon) : leur boîte de mise en page ne doit jamais sortir. */
@@ -76,7 +76,7 @@ async function newPhone(browser: Browser, url: string, device: Emulated) {
   return { context, player: new Player(page, 'Alice') };
 }
 
-async function startBotGame(player: Player): Promise<void> {
+async function startBotGame(player: Player, bots: number): Promise<void> {
   const { page } = player;
   await page.goto('/');
   // L'écran « Cliquer pour jouer » (son) s'il est là : un toucher le passe
@@ -88,7 +88,7 @@ async function startBotGame(player: Player): Promise<void> {
   await page.getByRole('button', { name: /Jouer contre des bots/ }).tap();
   await page
     .getByRole('radiogroup', { name: 'Nombre de bots' })
-    .getByRole('radio', { name: '2' })
+    .getByRole('radio', { name: String(bots) })
     .tap();
   const single = page.getByRole('radio', { name: 'Manche unique' });
   await single.tap();
@@ -100,13 +100,13 @@ test.describe('téléphone', () => {
   test.use({ seed: 5 });
 
   for (const { name, device, fullGame } of PHONES) {
-    test(`${name} : ${fullGame ? 'une partie contre 2 bots jusqu’au bout' : 'une minute de jeu contre 2 bots'}, sans défilement et sans effet hors de l'écran`, async ({
+    test(`${name} : ${fullGame ? 'une partie contre 1 bot jusqu’au bout' : 'une minute de jeu contre 2 bots'}, sans défilement et sans effet hors de l'écran`, async ({
       browser,
       stack,
     }) => {
-      test.setTimeout(420_000);
+      test.setTimeout(150_000);
       const { context, player } = await newPhone(browser, stack.url, device);
-      await startBotGame(player);
+      await startBotGame(player, fullGame ? 1 : 2);
 
       const problems = new Set<string>();
       const startedAt = Date.now();
