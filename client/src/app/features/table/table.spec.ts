@@ -1,8 +1,10 @@
+import { vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { GAME_TRANSPORT } from '../../core/game-transport';
 import type { Card, PlayerView, SeatView, UnoWindow } from '../../protocol/generated/protocol';
 import { GameStore } from '../../state/game-store';
 import { FakeTransport } from '../../testing/fake-transport';
+import { CHOSEN_MS } from './color-picker';
 import { Table } from './table';
 
 const seat = (playerId: string, nickname: string, cardCount: number): SeatView => ({
@@ -315,7 +317,10 @@ describe('Table', () => {
       expect(host.querySelector('app-target-picker')).toBeNull();
       expect(host.querySelector('app-color-picker')).not.toBeNull();
 
-      click(host, 'app-color-picker .tile', 2);
+      vi.useFakeTimers();
+      click(host, 'app-color-picker .wedge', 2);
+      vi.advanceTimersByTime(CHOSEN_MS + 1);
+      vi.useRealTimers();
       fixture.detectChanges();
 
       expect(transport.sent.at(-1)).toMatchObject({
@@ -339,7 +344,10 @@ describe('Table', () => {
       fixture.detectChanges();
 
       expect(host.querySelector('app-color-picker')).not.toBeNull();
-      click(host, 'app-color-picker .tile', 0);
+      vi.useFakeTimers();
+      click(host, 'app-color-picker .wedge', 0);
+      vi.advanceTimersByTime(CHOSEN_MS + 1);
+      vi.useRealTimers();
 
       expect(transport.sent.at(-1)).toMatchObject({
         type: 'game.playCard',

@@ -125,9 +125,9 @@
 - [x] T2.8 Tests serveur, client, E2E ; 4.3b coché
 
 **U1 — Effets et mise en page de la table (`feat/table-visuals`)**
-- [ ] U1.1 Sièges : avatar + pseudo, cartes de dos en accordéon dessous, sans rotation
-- [ ] U1.2 Bug de taille des sièges selon la parité (cause en 2 lignes + test)
-- [ ] U1.3 Roue de choix de couleur en cercle, sans débordement
+- [x] U1.1 Sièges : avatar + pseudo, cartes de dos en accordéon dessous, sans rotation
+- [x] U1.2 Bug de taille des sièges selon la parité (cause en 2 lignes + test)
+- [x] U1.3 Roue de choix de couleur en cercle, sans débordement
 - [ ] U1.4 Impact +2 / +4, sons distincts
 - [ ] U1.5 Cinématique de fin de partie (podium, scores, confettis, son)
 
