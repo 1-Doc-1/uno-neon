@@ -104,7 +104,7 @@
 
 #### Lots T-U — règles, salon et sécurité, table, mobile (4 PR à la suite : T1, T2, U1, U2)
 > Reprise après interruption : relire cette section, `git status`, `git log --oneline -10`, les PR ouvertes, puis continuer au premier point non coché. Problème bloquant noté ici (cause, essais) ; on fusionne ce qui est vert et on passe à la suite.
-> **En cours : U1 — branche `feat/table-visuals` (T2 en CI : PR #43)**
+> **En cours : U1 terminée en local (PR à ouvrir), puis U2 — branche `feat/table-visuals` (T1 #42 et T2 #43 fusionnées)**
 
 **T1 — Règles et confort de jeu (`feat/game-rules-polish`)**
 - [x] T1.1 +5 « super carte » (ADR 0034 modifie 0028) : plus de réplique, pioche automatique du total ; chaîne close en mode Échelle ; moteur, simulation, protocole, « Comment jouer », E2E
