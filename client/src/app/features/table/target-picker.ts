@@ -1,11 +1,19 @@
-import { afterNextRender, Component, ElementRef, input, output, viewChild } from '@angular/core';
+import {
+  afterNextRender,
+  Component,
+  computed,
+  ElementRef,
+  input,
+  output,
+  viewChild,
+} from '@angular/core';
 import type { SeatView } from '../../protocol/generated/protocol';
 import { Avatar } from '../../ui/avatar';
 import { Button } from '../../ui/button';
 import { ClickSound } from '../../ui/click-sound';
 
 /**
- * Le choix de la cible d'un Joker +5 : une fenêtre qui liste les adversaires (initiale, pseudo, nombre de cartes).
+ * Le choix d'un adversaire : la cible d'un Joker +5, ou (option 7-0) le joueur dont un 7 prend la main. Une fenêtre qui liste les adversaires (initiale, pseudo, nombre de cartes).
  * Elle n'est pas modale : les sièges de la table restent cliquables, c'est l'autre façon de viser. Au clavier : Tab et
  * Entrée, ou les chiffres 1 à 9 ; Échap annule.
  */
@@ -14,10 +22,14 @@ import { ClickSound } from '../../ui/click-sound';
   imports: [ClickSound, Avatar, Button],
   host: { '(document:keydown)': 'onKey($event)' },
   template: `
-    <dialog #dialog class="panel" aria-label="Choisir la cible du Joker +5">
-      <h2>Qui vises-tu ?</h2>
+    <dialog #dialog class="panel" [attr.aria-label]="label()">
+      <h2>{{ kind() === 'swap' ? 'Avec qui échanges-tu ?' : 'Qui vises-tu ?' }}</h2>
       <p class="hint">
-        Il pioche 5 cartes et passe son tour, sans pouvoir répondre. Clique aussi sur un siège.
+        @if (kind() === 'swap') {
+          Tu prends sa main, il prend la tienne. Clique aussi sur un siège.
+        } @else {
+          Il pioche 5 cartes et passe son tour, sans pouvoir répondre. Clique aussi sur un siège.
+        }
       </p>
       <ul>
         @for (seat of targets(); track seat.playerId; let index = $index) {
@@ -122,6 +134,13 @@ import { ClickSound } from '../../ui/click-sound';
 export class TargetPicker {
   /** Les adversaires qu'on peut viser, dans l'ordre de la table. */
   readonly targets = input.required<readonly SeatView[]>();
+  /** Ce qu'on choisit : la cible d'un Joker +5 (par défaut), ou le joueur avec qui un 7 échange sa main. */
+  readonly kind = input<'plusFive' | 'swap'>('plusFive');
+  protected readonly label = computed(() =>
+    this.kind() === 'swap'
+      ? 'Choisir le joueur avec qui échanger ta main'
+      : 'Choisir la cible du Joker +5',
+  );
   readonly picked = output<string>();
   readonly cancelled = output<void>();
 

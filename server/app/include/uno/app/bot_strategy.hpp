@@ -19,6 +19,8 @@ namespace uno::app {
 struct BotView {
     const core::PlayerView& game; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members): a short-lived view
     std::span<const core::PlayerId> catchable;
+    // The 7-0 house rule is on (ADR 0041): a 7 needs the player to swap hands with. The rules of the room are public.
+    bool sevenZero{false};
 };
 
 // Strategy pattern (SPEC §7.3): a bot is a function from what it sees to what it does. The actions are the ones a human

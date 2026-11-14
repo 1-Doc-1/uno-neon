@@ -104,7 +104,7 @@ export class Table {
   }
 
   protected play(play: CardPlay): void {
-    void this.store.playCard(play.cardId, play.color, play.targetId);
+    void this.store.playCard(play.cardId, play.color, play.targetId, play.swapTargetId);
   }
 
   protected chooseColor(color: Color): void {

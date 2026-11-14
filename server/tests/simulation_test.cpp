@@ -5,13 +5,13 @@
 #include "uno/core/draw_amount.hpp"
 #include "uno/core/match.hpp"
 #include "uno/core/penalty_stacking.hpp"
-#include "uno/core/wild_draw_four_mode.hpp"
 #include "uno/core/playability.hpp"
 #include "uno/core/player_action.hpp"
 #include "uno/core/player_id.hpp"
 #include "uno/core/player_view.hpp"
 #include "uno/core/scoring.hpp"
 #include "uno/core/turn_phase.hpp"
+#include "uno/core/wild_draw_four_mode.hpp"
 #include "uno/testing/environment.hpp"
 #include "uno/testing/fixtures.hpp"
 #include "uno/testing/legal_actions.hpp"
@@ -125,6 +125,12 @@ constexpr std::uint32_t kColorCount = 4;
     return (seed / 11) % 2 == 1 ? uno::core::WildDrawFourMode::Strict : uno::core::WildDrawFourMode::OfficialChallenge;
 }
 
+// The 7-0 rule (ADR 0041) is on for a third of the matches: a 7 swaps two hands, a 0 moves them all.
+[[nodiscard]] bool sevenZeroFor(std::uint64_t seed)
+{
+    return (seed / 13) % 3 == 0;
+}
+
 // A random composition of the deck (ADR 0028): each special card is multiplied by one of the four allowed factors,
 // independently, so that decks from 110 to 166 cards are played, with one Wild Draw Five pair as often as ten.
 [[nodiscard]] uno::core::DeckSettings deckFor(std::uint64_t seed)
@@ -146,6 +152,7 @@ constexpr std::uint32_t kColorCount = 4;
                                     .deck = deckFor(seed),
                                     .stacking = stackingFor(seed),
                                     .wildDrawFourMode = wildDrawFourModeFor(seed),
+                                    .sevenZero = sevenZeroFor(seed),
                                 },
                                 random);
     REQUIRE(started.has_value());

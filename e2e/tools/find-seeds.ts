@@ -45,6 +45,8 @@ interface Finding {
    * Bob +4 dessus, Alice (sans rien pour empiler) pioche huit cartes.
    */
   ladderChain: boolean;
+  /** Option 7-0 : le premier joueur a un 7 (ou un 0) jouable dès son premier tour. */
+  sevenZero: { seven: boolean; zero: boolean };
   /** Le premier joueur a un +4 : bluff (il a la couleur active) ou légal ? */
   wildDrawFour: 'none' | 'bluff' | 'legal';
   /** Version de la vue où quelqu'un n'a plus qu'une carte pour la première fois, et qui. */
@@ -149,6 +151,14 @@ async function run(seed: number, port: number): Promise<Finding> {
             !other.some((card) => card.rank === 'wildDrawFour' || card.rank === 'wildDrawFive')
           );
         })(),
+      sevenZero: {
+        seven: hand.some(
+          (card) => card.rank === '7' && firstView.me.playableCardIds.includes(card.id),
+        ),
+        zero: hand.some(
+          (card) => card.rank === '0' && firstView.me.playableCardIds.includes(card.id),
+        ),
+      },
       wildDrawFour: !wd4 ? 'none' : hasActiveColor ? 'bluff' : 'legal',
       plusFive: {
         first: hand.filter((card) => card.rank === 'wildDrawFive').length,

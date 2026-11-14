@@ -160,9 +160,11 @@ TEST_CASE("Strict with the ladder: a Wild Draw Four on a pending penalty ignores
 {
     SeededRandomSource random{kSeed};
     // Seat 0 plays a blue Draw Two; seat 1 holds a Wild Draw Four AND a blue card (illegal as a fresh play)
-    auto round = table({{coloredCard(0, Color::Blue, Rank::DrawTwo)}, {wildCard(2000, Rank::WildDrawFour), coloredCard(2001, Color::Blue, Rank::Nine)}},
-                       random, WildDrawFourMode::Strict, PenaltyStacking::Ladder);
-    const auto first = round.apply(player(0), PlayCard{.cardId = CardId{0}, .chosenColor = std::nullopt, .target = std::nullopt}, random);
+    const std::vector<Card> poserHand{coloredCard(0, Color::Blue, Rank::DrawTwo)};
+    const std::vector<Card> targetHand{wildCard(2000, Rank::WildDrawFour), coloredCard(2001, Color::Blue, Rank::Nine)};
+    auto round = table({poserHand, targetHand}, random, WildDrawFourMode::Strict, PenaltyStacking::Ladder);
+    const auto first = round.apply(
+        player(0), PlayCard{.cardId = CardId{0}, .chosenColor = std::nullopt, .target = std::nullopt}, random);
     REQUIRE(first.has_value());
     REQUIRE(std::holds_alternative<AwaitingStackResponse>(round.phase()));
 

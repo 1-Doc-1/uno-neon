@@ -119,6 +119,23 @@
   </p>
 </div>
 <div class="setting">
+  <span class="setting-label">Échange de mains</span>
+  <app-segmented
+    label="Échange de mains"
+    [options]="sevenZeroOptions"
+    [value]="sevenZeroRule()"
+    (selected)="setSevenZeroRule($event)"
+  />
+  <p class="hint">
+    @if (settings().sevenZero) {
+      Un 7 échange ta main avec celle d’un joueur de ton choix ; un 0 fait passer toutes les mains
+      au joueur suivant, dans le sens du jeu.
+    } @else {
+      Un 7 et un 0 sont des cartes ordinaires.
+    }
+  </p>
+</div>
+<div class="setting">
   <span class="setting-label">Cartes +2 dans le paquet</span>
   <app-segmented
     label="Nombre de cartes +2"

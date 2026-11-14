@@ -50,10 +50,10 @@ using uno::testing::Table;
             continue;
         }
         const auto hand = round.hand(round.currentPlayer()).value_or(std::span<const core::Card>{});
-        const bool holdsWildDrawFour = std::ranges::any_of(
-            hand, [](const core::Card& card) { return card.rank == core::Rank::WildDrawFour; });
-        const bool holdsCurrentColor = std::ranges::any_of(
-            hand, [&](const core::Card& card) { return card.color == round.currentColor(); });
+        const bool holdsWildDrawFour =
+            std::ranges::any_of(hand, [](const core::Card& card) { return card.rank == core::Rank::WildDrawFour; });
+        const bool holdsCurrentColor =
+            std::ranges::any_of(hand, [&](const core::Card& card) { return card.color == round.currentColor(); });
         if (holdsWildDrawFour && holdsCurrentColor) {
             table->clearInboxes();
             return table;
@@ -79,15 +79,14 @@ TEST_CASE("The host chooses the strict Wild Draw Four, and the match is played t
     REQUIRE(table.room().match->round().wildDrawFourMode() == core::WildDrawFourMode::Strict);
 }
 
-TEST_CASE("Strict: an illegal Wild Draw Four is refused with its reason and changes nothing",
-          "[app][strict][illegal]")
+TEST_CASE("Strict: an illegal Wild Draw Four is refused with its reason and changes nothing", "[app][strict][illegal]")
 {
     const auto table = tableWithIllegalWildDrawFour();
     const auto& round = table->room().match->round();
     auto& player = table->playerWithId(round.currentPlayer());
     const auto hand = round.hand(round.currentPlayer()).value_or(std::span<const core::Card>{});
-    const auto wildDrawFour = *std::ranges::find_if(
-        hand, [](const core::Card& card) { return card.rank == core::Rank::WildDrawFour; });
+    const auto wildDrawFour =
+        *std::ranges::find_if(hand, [](const core::Card& card) { return card.rank == core::Rank::WildDrawFour; });
     const core::Round before = round;
 
     player.send(request::PlayCard{
@@ -109,8 +108,8 @@ TEST_CASE("Strict: the view never offers an illegal Wild Draw Four", "[app][stri
     const auto& round = table->room().match->round();
     const auto actor = round.currentPlayer();
     const auto hand = round.hand(actor).value_or(std::span<const core::Card>{});
-    const auto wildDrawFour = *std::ranges::find_if(
-        hand, [](const core::Card& card) { return card.rank == core::Rank::WildDrawFour; });
+    const auto wildDrawFour =
+        *std::ranges::find_if(hand, [](const core::Card& card) { return card.rank == core::Rank::WildDrawFour; });
 
     const auto view = core::project(*table->room().match, actor);
 

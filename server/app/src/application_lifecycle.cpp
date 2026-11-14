@@ -272,6 +272,8 @@ std::chrono::milliseconds Application::presentationBudgetOf(std::span<const core
                            turnAction = true;
                        },
                        [&](const core::UnoCaught&) { budget += pace.effectStep; },
+                       [&](const core::HandsSwapped&) { budget += pace.effectStep; },
+                       [&](const core::HandsRotated&) { budget += pace.effectStep; },
                        [](const core::RoundStarted&) {},
                        [](const core::DeckReshuffled&) {},
                        [&](const core::TurnPassed&) { turnAction = true; },
@@ -421,7 +423,8 @@ bool Application::playBot(Room& room, const Member& bot)
         }
     }
     const auto actions =
-        makeBotStrategy(bot.botLevel)->decide(BotView{.game = *view, .catchable = catchable}, *random_);
+        makeBotStrategy(bot.botLevel)
+            ->decide(BotView{.game = *view, .catchable = catchable, .sevenZero = room.settings.sevenZero}, *random_);
     if (actions.empty()) {
         return false;
     }

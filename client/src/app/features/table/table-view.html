@@ -31,7 +31,7 @@
             [reaction]="reactions().get(seat.playerId) ?? null"
             [maxBacks]="maxBacks()"
             [timerFraction]="seat.playerId === view().currentPlayerId ? turnFraction() : null"
-            [targetable]="pendingTarget() !== null"
+            [targetable]="pendingTarget() !== null || pendingSwap() !== null"
             (targeted)="chooseTarget($event)"
             (profileOpened)="profileOpened.emit($event)"
           />
@@ -125,6 +125,14 @@
 }
 @if (pendingTarget() !== null) {
   <app-target-picker
+    [targets]="opponents()"
+    (picked)="chooseTarget($event)"
+    (cancelled)="cancelPlay()"
+  />
+}
+@if (pendingSwap() !== null) {
+  <app-target-picker
+    kind="swap"
     [targets]="opponents()"
     (picked)="chooseTarget($event)"
     (cancelled)="cancelPlay()"

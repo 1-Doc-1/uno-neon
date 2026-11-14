@@ -40,7 +40,8 @@ namespace {
 }
 
 // Cards the viewer may play right now: only on their own turn, and only the drawn card after a draw.
-[[nodiscard]] std::vector<CardId> playableCardIds(const Round& round, const PlayerId& viewer, std::span<const Card> hand)
+[[nodiscard]] std::vector<CardId> playableCardIds(const Round& round, const PlayerId& viewer,
+                                                  std::span<const Card> hand)
 {
     std::vector<CardId> ids;
     if (std::holds_alternative<AwaitingPlay>(round.phase())) {

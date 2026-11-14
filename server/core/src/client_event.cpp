@@ -113,6 +113,12 @@ std::vector<ClientEvent> project(std::span<const DomainEvent> events, const Play
                         .total = targeted.total,
                     });
                 },
+                [&](const HandsSwapped& swapped) {
+                    projected.emplace_back(HandsSwappedEvent{.playerId = swapped.player, .targetId = swapped.target});
+                },
+                [&](const HandsRotated& rotated) {
+                    projected.emplace_back(HandsRotatedEvent{.direction = rotated.direction});
+                },
                 [&](const UnoCalled& called) { projected.emplace_back(UnoCalledEvent{.playerId = called.player}); },
                 [&](const UnoCaught& caught) {
                     projected.emplace_back(UnoCaughtEvent{

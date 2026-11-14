@@ -153,7 +153,7 @@ struct Move {
 
 // Builds the action of a move. `chooseColor` and `chooseTarget` are where the two strategies differ.
 template <typename ColorChooser, typename TargetChooser>
-[[nodiscard]] PlayerAction actionOf(const Move& move, const PlayerView& view, ColorChooser chooseColor,
+[[nodiscard]] PlayerAction actionOf(const Move& move, const BotView& botView, ColorChooser chooseColor,
                                     TargetChooser chooseTarget)
 {
     switch (move.kind) {
@@ -170,12 +170,18 @@ template <typename ColorChooser, typename TargetChooser>
     case Move::Kind::Play:
         break;
     }
+    const PlayerView& view = botView.game;
     const Card* const card = cardOf(view, move.card);
     core::PlayCard play{.cardId = move.card, .chosenColor = std::nullopt, .target = std::nullopt};
     if (card != nullptr && core::isWild(card->rank)) {
         play.chosenColor = chooseColor(move.card);
     }
     if (card != nullptr && card->rank == Rank::WildDrawFive) {
+        play.target = chooseTarget();
+    }
+    // A 7 swaps hands with a player of its choice, unless it is the last card or only one player is left to swap with
+    if (card != nullptr && botView.sevenZero && card->rank == Rank::Seven && view.me.hand.size() > 1 &&
+        view.players.size() > 2) {
         play.target = chooseTarget();
     }
     return play;
@@ -196,7 +202,7 @@ public:
         if (!moves.empty()) {
             const Move& chosen = moves.at(random.uniform(static_cast<std::uint32_t>(moves.size())));
             actions.push_back(actionOf(
-                chosen, game, [&random](std::optional<CardId> /*except*/) { return randomColor(random); },
+                chosen, view, [&random](std::optional<CardId> /*except*/) { return randomColor(random); },
                 [&game, &random] { return randomOpponent(game, random); }));
         }
         return actions;
@@ -220,9 +226,9 @@ public:
             actions.emplace_back(core::CallUno{});
         }
         const auto moves = legalMoves(game);
-        if (const auto chosen = choose(game, moves, random)) {
+        if (const auto chosen = choose(game, moves, random, view.sevenZero)) {
             actions.push_back(actionOf(
-                *chosen, game,
+                *chosen, view,
                 [&game, &random](std::optional<CardId> except) { return mostHeldColor(game, except, random); },
                 [&game] { return fewestCardsOpponent(game); }));
         }
@@ -231,7 +237,7 @@ public:
 
 private:
     [[nodiscard]] static std::optional<Move> choose(const PlayerView& game, const std::vector<Move>& moves,
-                                                    core::RandomSource& random)
+                                                    core::RandomSource& random, bool sevenZero)
     {
         if (moves.empty()) {
             return std::nullopt;
@@ -246,7 +252,7 @@ private:
             return answerPenalty(game, moves, random);
         }
         if (!plays.empty()) {
-            return bestPlay(game, plays);
+            return bestPlay(game, plays, sevenZero);
         }
         for (const Move::Kind kind : {Move::Kind::ChooseColor, Move::Kind::Draw, Move::Kind::Pass}) {
             if (has(kind)) {
@@ -284,9 +290,10 @@ private:
         std::size_t handSize{};
         std::size_t fewestOpponentCards{};
         bool nextIsClose{};
+        bool sevenZero{};
     };
 
-    [[nodiscard]] static Move bestPlay(const PlayerView& game, const std::vector<Move>& plays)
+    [[nodiscard]] static Move bestPlay(const PlayerView& game, const std::vector<Move>& plays, bool sevenZero)
     {
         const auto opponents = opponentsOf(game);
         const auto leader =
@@ -295,6 +302,7 @@ private:
             .handSize = game.me.hand.size(),
             .fewestOpponentCards = (*leader)->cardCount,
             .nextIsClose = nextPlayerAfterMe(game).cardCount <= 2,
+            .sevenZero = sevenZero,
         };
 
         std::optional<Move> best;
@@ -329,6 +337,10 @@ private:
             return score;
         }
         int score = static_cast<int>(core::cardPoints(card.rank));
+        // A 7 swaps with the player holding the fewest cards: worth it for a big hand, a loss for a small one
+        if (situation.sevenZero && card.rank == Rank::Seven) {
+            score += 15 * (static_cast<int>(situation.handSize) - static_cast<int>(situation.fewestOpponentCards));
+        }
         if (situation.nextIsClose) {
             switch (card.rank) {
             case Rank::DrawTwo:

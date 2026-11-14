@@ -28,6 +28,18 @@ void addPlaysOf(const core::Round& round, const core::Card& card, std::vector<co
                 }
             }
         }
+    } else if (round.sevenZero() && card.rank == core::Rank::Seven) {
+        // A player to swap hands with; none is needed with two players or for the last card (ADR 0041)
+        for (const auto& seated : round.seats()) {
+            if (seated != round.currentPlayer()) {
+                actions.emplace_back(core::PlayCard{.cardId = card.id, .chosenColor = std::nullopt, .target = seated});
+            }
+        }
+        const auto hand = round.hand(round.currentPlayer());
+        if (round.seats().size() == 2 || (hand.has_value() && hand->size() == 1)) {
+            actions.emplace_back(
+                core::PlayCard{.cardId = card.id, .chosenColor = std::nullopt, .target = std::nullopt});
+        }
     } else if (core::isWild(card.rank)) {
         for (const auto color : core::kColors) {
             actions.emplace_back(core::PlayCard{.cardId = card.id, .chosenColor = color, .target = std::nullopt});

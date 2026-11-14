@@ -585,6 +585,7 @@ Application::Outcome Application::startMatch(Room& room)
                                           .deck = room.settings.deck(),
                                           .stacking = room.settings.stacking,
                                           .wildDrawFourMode = room.settings.wildDrawFourMode,
+                                          .sevenZero = room.settings.sevenZero,
                                       },
                                       *random_);
     if (!started) {
@@ -659,12 +660,16 @@ Application::Outcome Application::handle(ConnectionId connection, const request:
 
 Application::Outcome Application::handle(ConnectionId connection, const request::PlayCard& request)
 {
-    if (request.swapTargetId) {
-        return fail(ErrorCode::IllegalMove, "Swapping hands is not available", IllegalMoveReason::SwapTargetInvalid);
+    // A card has at most one target: the player a Wild Draw Five aims at (`targetId`) or the one a 7 swaps with
+    // (`swapTargetId`); the engine looks at the card to say which it was, and refuses a target the card has no use for.
+    if (request.swapTargetId && request.targetId) {
+        return fail(ErrorCode::IllegalMove, "A card has one target", IllegalMoveReason::TargetNotAllowed);
     }
-    return play(
-        connection,
-        core::PlayCard{.cardId = request.cardId, .chosenColor = request.chosenColor, .target = request.targetId});
+    return play(connection, core::PlayCard{
+                                .cardId = request.cardId,
+                                .chosenColor = request.chosenColor,
+                                .target = request.swapTargetId ? request.swapTargetId : request.targetId,
+                            });
 }
 
 Application::Outcome Application::handle(ConnectionId connection, const request::DrawCard& /*request*/)
@@ -782,6 +787,12 @@ Application::Outcome Application::applyPlayerAction(Room& current, const core::P
         case core::DomainError::NotStackable:
             return fail(ErrorCode::IllegalMove, "This card is weaker than the pending penalty",
                         IllegalMoveReason::CannotStack);
+        case core::DomainError::SwapTargetRequired:
+            return fail(ErrorCode::IllegalMove, "A 7 needs the player to swap hands with",
+                        IllegalMoveReason::SwapTargetRequired);
+        case core::DomainError::SwapTargetInvalid:
+            return fail(ErrorCode::IllegalMove, "The player to swap with must be another player of the round",
+                        IllegalMoveReason::SwapTargetInvalid);
         case core::DomainError::WildDrawFourIllegal:
             return fail(ErrorCode::IllegalMove, "A Wild Draw Four needs a hand without a card of the current color",
                         IllegalMoveReason::WildDrawFourIllegal);

@@ -14,6 +14,7 @@ add_executable(uno_tests
     application_match_test.cpp
     application_plus_five_test.cpp
     application_bots_test.cpp
+    application_seven_zero_test.cpp
     application_stacking_test.cpp
     application_strict_wild_draw_four_test.cpp
     application_presentation_test.cpp
@@ -46,6 +47,7 @@ add_executable(uno_tests
     round_effects_test.cpp
     round_end_test.cpp
     round_removal_test.cpp
+    round_seven_zero_test.cpp
     round_test.cpp
     round_uno_test.cpp
     round_plus_five_test.cpp

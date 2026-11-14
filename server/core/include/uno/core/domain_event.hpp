@@ -2,6 +2,7 @@
 
 #include "uno/core/card.hpp"
 #include "uno/core/player_id.hpp"
+#include "uno/core/turn_order.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -108,6 +109,21 @@ struct PlusFiveTargeted {
     bool operator==(const PlusFiveTargeted&) const = default;
 };
 
+// sevenZero (ADR 0041): a 7 was played, and `player` and `target` swapped hands. Public: nobody learns a card by it.
+struct HandsSwapped {
+    PlayerId player;
+    PlayerId target;
+
+    bool operator==(const HandsSwapped&) const = default;
+};
+
+// sevenZero (ADR 0041): a 0 was played, and every hand moved one seat in `direction`, the direction of play.
+struct HandsRotated {
+    Direction direction{};
+
+    bool operator==(const HandsRotated&) const = default;
+};
+
 // A player announced UNO, in time (before playing their second-to-last card, or in the UNO window).
 struct UnoCalled {
     PlayerId player;
@@ -140,8 +156,9 @@ struct MatchEnded {
     bool operator==(const MatchEnded&) const = default;
 };
 
-using DomainEvent = std::variant<RoundStarted, CardPlayed, CardsDrawn, PenaltyCardsDrawn, DeckReshuffled, TurnPassed,
-                                 PlayerSkipped, DirectionReversed, ColorChosen, TurnChanged, ChallengeResolved,
-                                 PlusFiveTargeted, UnoCalled, UnoCaught, RoundEnded, MatchEnded>;
+using DomainEvent =
+    std::variant<RoundStarted, CardPlayed, CardsDrawn, PenaltyCardsDrawn, DeckReshuffled, TurnPassed, PlayerSkipped,
+                 DirectionReversed, ColorChosen, TurnChanged, ChallengeResolved, PlusFiveTargeted, HandsSwapped,
+                 HandsRotated, UnoCalled, UnoCaught, RoundEnded, MatchEnded>;
 
 } // namespace uno::core

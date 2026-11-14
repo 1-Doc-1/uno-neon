@@ -75,6 +75,26 @@ describe('the time the server leaves to present each special card', () => {
     expect(ms).toBeLessThanOrEqual(SERVER.playStep + 2 * SERVER.effectStep + 2 * SERVER.drawStep);
   });
 
+  it('covers a 7 with the 7-0 rule: the card, then the hands flying between two seats', () => {
+    const ms = presentation([
+      played('7', 'red'),
+      { kind: 'handsSwapped', playerId: 'a', targetId: 'c' },
+      { kind: 'turnChanged', playerId: 'b' },
+    ]);
+
+    expect(ms).toBeLessThanOrEqual(SERVER.playStep + SERVER.effectStep);
+  });
+
+  it('covers a 0 with the 7-0 rule: the card, then every hand moving on', () => {
+    const ms = presentation([
+      played('0', 'red'),
+      { kind: 'handsRotated', direction: 'clockwise' },
+      { kind: 'turnChanged', playerId: 'b' },
+    ]);
+
+    expect(ms).toBeLessThanOrEqual(SERVER.playStep + SERVER.effectStep);
+  });
+
   it('covers a Wild: the card, then the colour wheel', () => {
     const ms = presentation([
       played('wild', null, 'blue'),

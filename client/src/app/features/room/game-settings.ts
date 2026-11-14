@@ -51,6 +51,13 @@ const WILD_DRAW_FOUR_MODES: readonly SegmentOption<WildDrawFourMode>[] = [
   { value: 'strict', label: 'Strict' },
 ];
 
+type SevenZeroRule = 'off' | 'on';
+
+const SEVEN_ZERO_OPTIONS: readonly SegmentOption<SevenZeroRule>[] = [
+  { value: 'off', label: 'Sans' },
+  { value: 'on', label: '7 et 0' },
+];
+
 const MULTIPLIERS: readonly SegmentOption<CardMultiplier>[] = [
   { value: 1, label: '×1' },
   { value: 2, label: '×2' },
@@ -95,12 +102,21 @@ export class GameSettings {
   protected readonly lastCardRules = LAST_CARD_RULES;
   protected readonly stackings = STACKINGS;
   protected readonly wildDrawFourModes = WILD_DRAW_FOUR_MODES;
+  protected readonly sevenZeroOptions = SEVEN_ZERO_OPTIONS;
   protected readonly multipliers = MULTIPLIERS;
 
   protected readonly deckCards = computed(() => deckSize(this.settings()));
 
   protected lastCardRule(): LastCardRule {
     return this.settings().declareUnoToWin ? 'declare' : 'free';
+  }
+
+  protected sevenZeroRule(): SevenZeroRule {
+    return this.settings().sevenZero ? 'on' : 'off';
+  }
+
+  protected setSevenZeroRule(rule: SevenZeroRule): void {
+    this.changed.emit({ sevenZero: rule === 'on' });
   }
 
   protected setLastCardRule(rule: LastCardRule): void {

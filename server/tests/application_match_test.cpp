@@ -4,6 +4,7 @@
 #include "uno/core/card.hpp"
 #include "uno/core/domain_event.hpp"
 #include "uno/core/match.hpp"
+#include "uno/core/playability.hpp"
 #include "uno/core/player_action.hpp"
 #include "uno/net/codec.hpp"
 #include "uno/testing/legal_actions.hpp"
@@ -161,12 +162,13 @@ TEST_CASE("A move out of turn or with a card not held is refused and tells nobod
     }
 }
 
-TEST_CASE("Swapping hands is not available", "[app][match]")
+TEST_CASE("A target is refused for a card that has none", "[app][match]")
 {
     Table table(2);
     table.start();
     auto& current = table.currentPlayer();
-    const auto card = current.last<response::GameUpdate>().value().view.game.me.hand.front().id;
+    const auto hand = current.last<response::GameUpdate>().value().view.game.me.hand;
+    const auto card = std::ranges::find_if(hand, [](const core::Card& held) { return !core::isWild(held.rank); })->id;
     const auto target =
         table.players.front().id() == current.id() ? table.players.back().id() : table.players.front().id();
     static_cast<void>(current.received());
@@ -180,7 +182,7 @@ TEST_CASE("Swapping hands is not available", "[app][match]")
 
     const auto replies = current.received();
     REQUIRE(refusal(replies) == ErrorCode::IllegalMove);
-    REQUIRE(uno::testing::refusalReason(replies) == IllegalMoveReason::SwapTargetInvalid);
+    REQUIRE(uno::testing::refusalReason(replies) == IllegalMoveReason::TargetNotAllowed);
 }
 
 TEST_CASE("Every accepted action reaches every player with a consecutive state version", "[app][match]")

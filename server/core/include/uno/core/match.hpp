@@ -44,6 +44,7 @@ struct MatchSettings {
     DeckSettings deck{};                                 // ADR 0028: how many of the special cards the deck holds
     PenaltyStacking stacking{PenaltyStacking::Official}; // ADR 0029
     WildDrawFourMode wildDrawFourMode{WildDrawFourMode::OfficialChallenge}; // ADR 0041
+    bool sevenZero{false};                                                  // ADR 0041: 7 swaps hands, 0 rotates them
 
     [[nodiscard]] bool operator==(const MatchSettings&) const = default;
 };

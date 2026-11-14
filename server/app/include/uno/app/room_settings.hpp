@@ -27,7 +27,7 @@ inline constexpr std::uint8_t kMaxRoomPlayers = 10;
 struct RoomSettings {
     core::PenaltyStacking stacking{core::PenaltyStacking::Official}; // ADR 0029
     bool sevenZero{false};
-    core::DrawAmount drawAmount{core::DrawAmount::UntilPlayable}; // ADR 0024
+    core::DrawAmount drawAmount{core::DrawAmount::UntilPlayable};                       // ADR 0024
     core::WildDrawFourMode wildDrawFourMode{core::WildDrawFourMode::OfficialChallenge}; // ADR 0041
     TurnTimerSeconds turnTimer{TurnTimerSeconds::Thirty};
     core::MatchLength matchLength{core::MatchLength::To500};
@@ -72,7 +72,7 @@ struct RoomSettingsPatch {
 };
 
 // Why these settings cannot be used by a room of `memberCount` members, or nothing when they can: a
-// maxPlayers below the number of members, or a house rule the engine does not implement yet (step 1.6).
+// maxPlayers below the number of members.
 [[nodiscard]] std::optional<std::string> settingsProblem(const RoomSettings& settings, std::size_t memberCount);
 
 [[nodiscard]] RoomSettings applyPatch(RoomSettings settings, const RoomSettingsPatch& patch) noexcept;
