@@ -66,8 +66,21 @@
   color: var(--text-dim);
   font-size: var(--fs-xs);
   text-align: right;
-  // Les plus anciennes lignes (en haut) s'effacent en fondu
-  mask-image: linear-gradient(to bottom, transparent, var(--text) 65%);
+
+  // Les plus anciennes lignes (en haut) s'estompent, mais par paliers d'opacité plutôt que par un masque : un outil de
+  // contraste ne voit pas un masque. Le plancher (0,78) garde 4,5:1 sur le fond le plus clair de la page.
+  li:nth-last-child(2) {
+    opacity: 0.94;
+  }
+  li:nth-last-child(3) {
+    opacity: 0.88;
+  }
+  li:nth-last-child(4) {
+    opacity: 0.82;
+  }
+  li:nth-last-child(n + 5) {
+    opacity: 0.78;
+  }
 
   li:last-child {
     color: var(--text);
@@ -197,7 +210,6 @@
     right: 80px;
     max-width: none;
     text-align: left;
-    mask-image: none;
 
     li {
       overflow: hidden;

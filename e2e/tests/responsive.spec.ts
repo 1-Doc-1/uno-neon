@@ -1,4 +1,4 @@
-import { AxeBuilder } from '@axe-core/playwright';
+import { axeViolationsAtRest } from '../support/axe-at-rest.ts';
 import { expect, test } from '../support/fixtures.ts';
 import { layoutProblems } from '../support/layout.ts';
 import { Player } from '../support/player.ts';
@@ -52,19 +52,7 @@ test.describe('toutes les tailles d’écran', () => {
       await expect(page.locator('app-opponent-seat')).toHaveCount(4);
 
       expect(await layoutProblems(player), 'mise en page de la table').toEqual([]);
-      const axe = await new AxeBuilder({ page })
-        .withTags(['wcag2a', 'wcag2aa', 'wcag22aa'])
-        // Les bots jouent pendant la mesure : les effets et le journal en fondu changent d'une image à l'autre
-        .exclude('app-effects-layer')
-        .exclude('.journal')
-        .analyze();
-      expect(
-        axe.violations.flatMap((violation) =>
-          violation.nodes.map(
-            (node) => `${violation.id}: ${node.target.join(' ')} ${node.any[0]?.message ?? ''}`,
-          ),
-        ),
-      ).toEqual([]);
+      expect(await axeViolationsAtRest(page), 'axe, table au repos').toEqual([]);
       if (SHOT) {
         await page.screenshot({ path: `../docs/img/table-${size.name}.png` });
       }
