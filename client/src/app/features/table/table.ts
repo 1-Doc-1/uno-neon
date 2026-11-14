@@ -4,6 +4,7 @@ import type { ClientEvent, Color, PlayerView } from '../../protocol/generated/pr
 import { GameStore } from '../../state/game-store';
 import { ChatDock } from '../chat/chat-dock';
 import { PlayerMenu } from '../players/player-menu';
+import { ReactionPad } from './reaction-pad';
 import { GameMenu } from './game-menu';
 import { describeEvent } from './describe-event';
 import { playedCards } from './fx/discard-pile';
@@ -27,13 +28,14 @@ const BANNER_MS = 5000;
       }
     }
   `,
-  imports: [TableView, ChatDock, GameMenu, PlayerMenu],
+  imports: [TableView, ChatDock, GameMenu, PlayerMenu, ReactionPad],
   template: `
     <app-table-view
       [view]="view()"
       [journal]="journal()"
       [clockOffset]="store.serverClockOffset()"
       [banner]="banner()"
+      [reactions]="store.reactions()"
       [batch]="store.eventBatch()"
       [played]="played()"
       (cardPlayed)="play($event)"
@@ -54,7 +56,12 @@ const BANNER_MS = 5000;
       (backToLobby)="store.backToLobby()"
       (left)="leave()"
     />
-    <app-chat-dock />
+    <app-chat-dock>
+      <app-reaction-pad
+        [cooling]="store.reactionCooldown()"
+        (picked)="store.sendReaction($event)"
+      />
+    </app-chat-dock>
     @if (menuPlayer(); as playerId) {
       <app-player-menu [playerId]="playerId" (closed)="menuPlayer.set(null)" />
     }

@@ -131,7 +131,7 @@
   font-family: var(--font-display);
   font-weight: 700;
   white-space: nowrap;
-  animation-name: stamp;
+  animation-name: stamp-scale, stamp-fade;
 }
 
 .text {
@@ -181,27 +181,6 @@
 .challenge {
   color: var(--text);
   border-color: var(--text);
-}
-
-@keyframes stamp {
-  0% {
-    opacity: 0;
-    transform: scale(2.2);
-  }
-  25% {
-    opacity: 1;
-    transform: scale(0.94);
-  }
-  40% {
-    transform: scale(1);
-  }
-  80% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-    transform: scale(1);
-  }
 }
 
 // Le tampon « Passe » n'estompe jamais son texte : un texte à moitié transparent passe sous le contraste minimal (4,5:1), et un

@@ -7,6 +7,7 @@ import { ChatDisplayLine, ChatPanel } from './chat-panel';
   selector: 'app-chat-dock',
   imports: [ChatPanel],
   template: `
+    <ng-content />
     <app-chat-panel
       [lines]="lines()"
       [open]="open()"
@@ -22,6 +23,13 @@ import { ChatDisplayLine, ChatPanel } from './chat-panel';
       right: var(--space-3);
       bottom: var(--space-3);
       z-index: calc(var(--z-table) + 5);
+      // Le contenu projeté (les réactions à la table) se range à gauche du chat, ou au-dessous si la place manque
+      display: flex;
+      flex-flow: row wrap-reverse;
+      justify-content: flex-end;
+      align-items: flex-end;
+      gap: var(--space-2);
+      max-width: calc(100vw - 2 * var(--space-3));
     }
   `,
 })

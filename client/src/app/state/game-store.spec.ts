@@ -172,6 +172,78 @@ describe('GameStore', () => {
     });
   });
 
+  describe('quick reactions', () => {
+    const reaction = (playerId: string, emote: 'gg' | 'fire'): ServerMessage => ({
+      v: 1,
+      type: 'reaction',
+      payload: { playerId, emote },
+    });
+
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => vi.useRealTimers());
+
+    it('shows a reaction on its sender, then takes it down', async () => {
+      await connect();
+
+      transport.receive(reaction('p2', 'gg'));
+      expect(store.reactions().get('p2')).toBe('gg');
+
+      vi.advanceTimersByTime(2999);
+      expect(store.reactions().get('p2')).toBe('gg');
+      vi.advanceTimersByTime(1);
+      expect(store.reactions().has('p2')).toBe(false);
+    });
+
+    it('lets a newer reaction replace the old one and restart the delay', async () => {
+      await connect();
+      transport.receive(reaction('p2', 'gg'));
+      vi.advanceTimersByTime(2000);
+
+      transport.receive(reaction('p2', 'fire'));
+      vi.advanceTimersByTime(2000);
+
+      expect(store.reactions().get('p2')).toBe('fire');
+      vi.advanceTimersByTime(1000);
+      expect(store.reactions().has('p2')).toBe(false);
+    });
+
+    it('shows nothing for a muted player, and takes down the one already shown', async () => {
+      await connect();
+      transport.receive(reaction('p2', 'gg'));
+
+      store.setMuted('p2', true);
+      expect(store.reactions().has('p2')).toBe(false);
+      transport.receive(reaction('p2', 'fire'));
+      expect(store.reactions().has('p2')).toBe(false);
+    });
+
+    it('sends the emote, then waits the two seconds the server demands before the next', async () => {
+      await connect();
+
+      void store.sendReaction('wow');
+      expect(transport.sent[1]).toMatchObject({ type: 'reaction.send', payload: { emote: 'wow' } });
+      expect(store.reactionCooldown()).toBe(true);
+
+      expect(await store.sendReaction('fire')).toBe(false);
+      expect(transport.sent).toHaveLength(2);
+      vi.advanceTimersByTime(2000);
+      expect(store.reactionCooldown()).toBe(false);
+      void store.sendReaction('fire');
+      expect(transport.sent).toHaveLength(3);
+    });
+
+    it('forgets the reactions when the room is left', async () => {
+      await connect();
+      transport.receive(reaction('p2', 'gg'));
+
+      void store.leaveRoom();
+      transport.receive({ v: 1, type: 'ack', replyTo: transport.sent[1].id });
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(store.reactions().size).toBe(0);
+    });
+  });
+
   it('asks the server to go back to the lobby, or to play again', async () => {
     await connect();
 

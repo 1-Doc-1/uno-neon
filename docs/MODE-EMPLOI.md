@@ -91,6 +91,9 @@ Pendant la soirée :
 - **Chat** : le bouton « Chat » (en bas à droite) ouvre une discussion pour toute la table, au salon comme en partie.
   Un clic sur le **profil** d'un joueur permet de **masquer** ses messages (pour toi seul) et, pour l'hôte, de l'**exclure**
   (une confirmation est demandée).
+- **Réactions rapides** : le bouton « Réagir » (à côté du chat, à la table) propose six pictogrammes (👏 😮 😂 😖 🤔 🔥).
+  Un clic envoie la réaction, qui s'affiche quelques secondes sur ton siège ; une toutes les deux secondes au plus, jamais
+  de texte libre, et les bots n'en envoient pas.
 - **Fin de partie** : rien ne repart tout seul. Toi, l'hôte, choisis **« Revanche »** (mêmes joueurs, mêmes réglages) ou
   **« Retour au salon »**. En cours de partie, le bouton **« Menu »** te permet aussi de revenir au salon (la partie est alors
   abandonnée, sans score).

@@ -44,6 +44,7 @@ describe('HowToPlayPage', () => {
 
     expect(host.textContent).toContain('Contre-UNO');
     expect(host.textContent).toContain('Réglages audio');
+    expect(host.textContent).toContain('Les réactions rapides');
     expect(host.querySelectorAll('a[href="/"]').length).toBeGreaterThan(0);
   });
 });
