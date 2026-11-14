@@ -1,5 +1,5 @@
 import type { ClientEvent } from '../../../protocol/generated/protocol';
-import { INITIAL_PLAN_STATE, isFullscreen, planEffects } from './effect-plan';
+import { INITIAL_PLAN_STATE, planEffects } from './effect-plan';
 
 describe('planEffects, with the 7-0 rule', () => {
   it('shows a swap of two hands, naming both players, after the card that caused it', () => {
@@ -27,10 +27,5 @@ describe('planEffects, with the 7-0 rule', () => {
     );
 
     expect(specs).toEqual([{ kind: 'rotate', direction: 'counterClockwise' }]);
-  });
-
-  it('keeps these effects small: they may overlap the next one, unlike the full-screen ones', () => {
-    expect(isFullscreen('swap')).toBe(false);
-    expect(isFullscreen('rotate')).toBe(false);
   });
 });

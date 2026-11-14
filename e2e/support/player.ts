@@ -109,7 +109,8 @@ export class Player {
           (button) => button.getAttribute('aria-label') ?? '',
         ),
         turn: text('p.turn'),
-        counts: text('.count'),
+        // Les nombres de cartes (sièges, ma pastille, pioche), pas le compte à rebours d'une fenêtre de contre-UNO
+        counts: text('app-my-badge .count, app-opponent-seat .count, app-piles .count'),
         dialogs: [
           ...document.querySelectorAll('dialog[open], app-color-picker [role="dialog"]'),
         ].map((dialog) => dialog.getAttribute('aria-label')),
@@ -134,6 +135,11 @@ export class Player {
    * choisir rouge, sinon jouer la première carte jouable de la main. Rend `false` s'il n'y a rien à faire ; quand rien
    * ne se joue, le serveur pioche de lui-même (pioche guidée). Attend que l'écran ait changé avant de rendre la main.
    */
+  /** Combien de coups ce joueur a réellement joués par l'interface (un clic suivi d'un écran qui a changé). */
+  played = 0;
+  /** Combien de fois le jeu a joué avant son clic (le coup forcé du serveur, un tour terminé) : un clic perdu, pas un échec. */
+  raced = 0;
+
   async actNow(): Promise<boolean> {
     if (!(await this.canAct())) {
       return false;
@@ -156,6 +162,7 @@ export class Player {
       // Contre des bots (ou le serveur qui joue le coup forcé), le tour peut se terminer entre l'instant où l'on a
       // décidé de jouer et le clic : la carte est alors désactivée. Ce n'est pas un échec, on regarde de nouveau.
       if (error instanceof errors.TimeoutError) {
+        this.raced++;
         return false;
       }
       throw error;
@@ -165,6 +172,7 @@ export class Player {
         message: `l'écran de ${this.name} n'a pas réagi`,
       })
       .not.toBe(before);
+    this.played++;
     return true;
   }
 }

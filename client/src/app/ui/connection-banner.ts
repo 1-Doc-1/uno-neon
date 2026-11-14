@@ -31,7 +31,7 @@ import { GameStore } from '../state/game-store';
       z-index: var(--z-modal);
       display: grid;
       place-items: center;
-      background: rgb(0 0 0 / 0.6);
+      background: var(--scrim);
     }
     .box {
       display: grid;

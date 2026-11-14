@@ -1,4 +1,5 @@
 <div class="table" [class.short]="short()" [style.--seat-scale]="geometry()?.seatScale">
+  <h1 class="sr-only">Table de jeu</h1>
   <app-sound-control class="sound-corner" [compact]="narrow() || short()" />
   @if (banner(); as text) {
     <p class="banner" role="status">{{ text }}</p>

@@ -415,6 +415,30 @@ TEST_CASE("One address cannot hold more connections than the limit", "[net][serv
     static_cast<void>(third);
 }
 
+TEST_CASE("One address cannot open connections faster than the limit, even if each one is closed at once",
+          "[net][server][limits]")
+{
+    REQUIRE(uno::net::initializeCryptoRuntime());
+    uno::net::WebSocketServerConfig config;
+    config.originPolicy = uno::net::OriginPolicy({kAllowedOrigin});
+    config.connectionLimits = {.maxConnections = 100, .maxConnectionsPerAddress = 100, .opensPerMinute = 3};
+    RecordingHandler handler;
+    const RunningServer server(std::move(config), handler,
+                               [&handler](uno::net::WebSocketServer& running) { handler.attach(running); });
+    int status = 0;
+    for (int attempt = 0; attempt < 3; ++attempt) {
+        // Opened and dropped at once: the count of simultaneous connections never gets near its limit
+        const auto socket = TestWebSocket::connect(server.port(), kAllowedOrigin, status);
+        REQUIRE(status == kSwitchingProtocols);
+        static_cast<void>(socket);
+    }
+
+    const auto refused = TestWebSocket::connect(server.port(), kAllowedOrigin, status);
+
+    REQUIRE(status == 429);
+    static_cast<void>(refused);
+}
+
 TEST_CASE("The whole server holds a limited number of connections", "[net][server][limits]")
 {
     REQUIRE(uno::net::initializeCryptoRuntime());

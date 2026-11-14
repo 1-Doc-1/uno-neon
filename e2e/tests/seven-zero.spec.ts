@@ -56,8 +56,12 @@ test.describe('7 : échange des mains', () => {
 
     await guest.card('7 jaune, jouable').click();
 
-    await expect(host.page.locator('app-effects-layer .flight').first()).toBeVisible();
-    await expect(host.page.locator('app-effects-layer .flight')).toHaveCount(0);
+    // Les cartes de l'échange sont de dos seulement (la carte posée par Bob a aussi sa face) : on ne regarde qu'elles
+    const swapCards = host.page.locator(
+      'app-effects-layer .flight:has(app-card-back):not(:has(app-card))',
+    );
+    await expect(swapCards.first()).toBeVisible();
+    await expect(swapCards).toHaveCount(0);
     await expect(host.cardCountOf('Alice')).toHaveText('6');
   });
 });

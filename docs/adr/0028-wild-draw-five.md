@@ -1,6 +1,6 @@
 # 0028 — Carte +5 (`WildDrawFive`) et composition réglable du paquet
 
-- **Statut** : accepté
+- **Statut** : accepté, modifié en partie par l'ADR 0034
 - **Date** : 2026-10-09
 - **Complète** : ADR 0006 (ensembles fermés), ADR 0017 (pioche guidée), ADR 0019 (UNO obligatoire), ADR 0027 (résolution d'un effet)
 

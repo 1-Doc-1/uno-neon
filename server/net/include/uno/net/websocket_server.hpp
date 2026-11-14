@@ -32,6 +32,10 @@ struct RateLimits {
 struct ConnectionLimits {
     std::size_t maxConnections = 1000;
     std::size_t maxConnectionsPerAddress = 20;
+    // How many connections an address may open per minute. A connection without a cookie is given a fresh session
+    // token, and the session that follows lives ten minutes after the socket closes: without this, a loop of
+    // open / hello / close from one address would fill the sessions of the whole server.
+    std::size_t opensPerMinute = 60;
 };
 
 struct WebSocketServerConfig {

@@ -47,7 +47,8 @@ struct WebSocketServer::Impl {
         : config(std::move(serverConfig)), handler(&connectionHandler), loop(uWS::Loop::get()),
           startedAt(std::chrono::steady_clock::now()),
           createLimiter(config.rateLimits.createsPerMinute, std::chrono::minutes(1)),
-          joinLimiter(config.rateLimits.joinsPerMinute, std::chrono::minutes(1))
+          joinLimiter(config.rateLimits.joinsPerMinute, std::chrono::minutes(1)),
+          openLimiter(config.connectionLimits.opensPerMinute, std::chrono::minutes(1))
     {
     }
 
@@ -150,6 +151,11 @@ struct WebSocketServer::Impl {
             response->writeStatus("503 Service Unavailable")->end("Too many connections");
             return;
         }
+        if (!openLimiter.tryRecord(address, RateClock::now())) {
+            spdlog::warn("WebSocket refused: too many connection attempts");
+            response->writeStatus("429 Too Many Requests")->end("Too many connection attempts");
+            return;
+        }
         // The browser keeps its session in a cookie it sends back by itself; a script never sees it (ADR 0036).
         auto token = sessionTokenFromCookie(request->getHeader("cookie"));
         if (!token) {
@@ -194,6 +200,7 @@ struct WebSocketServer::Impl {
     std::chrono::steady_clock::time_point startedAt;
     SlidingWindowLimiter createLimiter;
     SlidingWindowLimiter joinLimiter;
+    SlidingWindowLimiter openLimiter;
     CryptoRandomSource tokenSource;
     std::unique_ptr<uWS::App> app;
     us_listen_socket_t* listenSocket = nullptr;

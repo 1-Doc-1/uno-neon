@@ -3,7 +3,7 @@
 > Tenu à jour par Claude Code à la fin de chaque étape. Les cases cochées = build + tests + lint verts.
 > Format d'une entrée de journal : `AAAA-MM-JJ — phase.étape — résumé — branche/PR`.
 
-## Phase en cours : MVP atteint — reste le polish (phases 0, 1, 2, 3 et 4 minimales terminées)
+## Phase en cours : lot V, clôture du projet (MVP atteint, polish fait ; reste le déploiement permanent, phase 6)
 
 > Cap : un **MVP jouable au plus tôt**. Ordre d'exécution ci-dessous (les numéros d'étape sont conservés pour la traçabilité). Les phases 3 et 4 sont d'abord faites en version minimale ; le polish (animations, galerie, responsive fin, accessibilité poussée, E2E) vient après le MVP.
 
@@ -45,7 +45,7 @@
 #### Phase 4 — Intégration client ↔ serveur (minimale)
 - [x] 4.1 `GameSocket` (reconnexion, backoff, messages typés)
 - [x] 4.2 `GameStore` branché sur le serveur, réconciliation par `stateVersion`
-- [ ] 4.3 Parcours complets : créer, rejoindre, jouer, gagner → **première partie jouable (MVP)**
+- [x] 4.3 Parcours complets : créer, rejoindre, jouer, gagner → **première partie jouable (MVP)**
 
 #### Lot G — Gameplay (après le MVP)
 - [x] G1 Bug du contre-UNO : reproduit par des tests, cause trouvée (fenêtre fermée trop tôt)
@@ -203,27 +203,27 @@
 - [0018 — Fenêtre de contre-UNO : grâce, échéance, plusieurs cibles](adr/0018-uno-catch-window.md)
 - [0019 — Règle maison « UNO obligatoire pour gagner »](adr/0019-declare-uno-to-win.md)
 - [0020 — L'horloge d'un tour n'est réarmée que quand le tour change](adr/0020-turn-clock.md)
-- [0023 — Tests E2E : une pile par test, graines trouvées par le protocole, aucune attente fixe](adr/0023-e2e-tests.md)
+- [0021 — Direction artistique « Nuit » : l'esprit du jeu de cartes, le néon en réserve](adr/0021-art-direction-v2.md)
 - [0022 — Animations : pilotées par les événements, purement cosmétiques](adr/0022-event-driven-animations.md)
-- [0025 — Rythme du jeu : durées centralisées, vitesse réglable, pioche depuis le paquet](adr/0025-game-feel.md)
+- [0023 — Tests E2E : une pile par test, graines trouvées par le protocole, aucune attente fixe](adr/0023-e2e-tests.md)
 - [0024 — Pioche « jusqu'à pouvoir jouer » : `drawAmount`, une action atomique, un événement par carte](adr/0024-draw-amount.md)
+- [0025 — Rythme du jeu : durées centralisées, vitesse réglable, pioche depuis le paquet](adr/0025-game-feel.md)
 - [0026 — Pioche rythmée : le serveur décide du rythme (`drawStepMs`), les clients le suivent](adr/0026-paced-draw.md)
 - [0027 — Résolution d'un effet : le serveur dit quand le tour s'ouvre (`actionsOpenAt`)](adr/0027-effect-resolution.md)
 - [0028 — Joker +5 et composition réglable du paquet](adr/0028-wild-draw-five.md)
 - [0029 — Cumul des pénalités : l'échelle +2 < +4 < +5](adr/0029-penalty-stacking.md)
-- [0031 — Cinématique d'introduction et sons synthétisés, déclenchés par l'AnimationDirector](adr/0031-intro-and-sound.md)
 - [0030 — Bots : stratégies sur la seule vue du joueur, adaptateur dans l'application](adr/0030-bots.md)
-- [0033 — Jouer avec des amis par un tunnel, depuis le PC de l'hôte](adr/0033-play-through-a-tunnel.md)
+- [0031 — Cinématique d'introduction et sons synthétisés, déclenchés par l'AnimationDirector](adr/0031-intro-and-sound.md)
 - [0032 — Musique d'ambiance, réglages audio séparés, clic d'interface et poussière des effets](adr/0032-music-ui-sounds-and-dust.md)
-- [0041 — Options maison : Joker +4 strict et échange des mains (7-0)](adr/0041-strict-wild-draw-four-and-seven-zero.md)
-- [0040 — L'interception (`jumpIn`) est retirée du produit](adr/0040-no-jump-in.md)
+- [0033 — Jouer avec des amis par un tunnel, depuis le PC de l'hôte](adr/0033-play-through-a-tunnel.md)
 - [0034 — Le Joker +5 devient la « super carte » : aucune réplique, pioche automatique](adr/0034-super-card.md)
 - [0035 — Vitesse des animations réglée par l'hôte](adr/0035-animation-speed.md)
 - [0036 — La session dans un cookie HttpOnly, un seul onglet actif, et des plafonds](adr/0036-session-cookie.md)
 - [0037 — Retour au salon, exclusion en partie, avatars et chat](adr/0037-lobby-control-chat-avatars.md)
 - [0038 — Sièges égaux, roue de couleur, impact des pénalités et cinématique de fin de partie](adr/0038-table-visuals.md)
 - [0039 — Jouer sur téléphone : mise en page, effets bornés, audio et clavier](adr/0039-phones.md)
-- [0021 — Direction artistique « Nuit » : l'esprit du jeu de cartes, le néon en réserve](adr/0021-art-direction-v2.md)
+- [0040 — L'interception (`jumpIn`) est retirée du produit](adr/0040-no-jump-in.md)
+- [0041 — Options maison : Joker +4 strict et échange des mains (7-0)](adr/0041-strict-wild-draw-four-and-seven-zero.md)
 
 ## Journal
 - 2026-09-30 — 0.1 — arborescence du monorepo, `.editorconfig`, README, modèle d'ADR, BOM retiré de `.gitattributes` — `chore/phase-0-foundations`

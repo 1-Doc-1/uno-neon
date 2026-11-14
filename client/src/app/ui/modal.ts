@@ -21,7 +21,7 @@ import { afterNextRender, Component, ElementRef, input, output, viewChild } from
       overflow: auto;
     }
     dialog::backdrop {
-      background: rgb(0 0 0 / 0.6);
+      background: var(--scrim);
     }
     dialog[open] {
       animation: modal-in var(--dur-base) var(--ease-out);

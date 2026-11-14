@@ -39,6 +39,7 @@ describe('WebSocketTransport', () => {
 
   afterEach(() => {
     transport.disconnect();
+    vi.restoreAllMocks();
     vi.useRealTimers();
   });
 
@@ -58,26 +59,39 @@ describe('WebSocketTransport', () => {
     expect(received).toEqual(['ack']);
   });
 
-  it('reconnects with a growing delay capped at 8 seconds', () => {
+  it('reconnects with a delay that doubles from 500 ms up to 8 s, with a jitter of one half to one', () => {
+    // The shortest jitter (half of the ceiling): the delays are exactly 250, 500, 1000, 2000, 4000, then 4000 again
+    vi.spyOn(Math, 'random').mockReturnValue(0);
     transport.connect();
     FakeSocket.instances[0].open();
 
-    FakeSocket.instances[0].drop();
-    expect(transport.status()).toBe('reconnecting');
-    expect(transport.attempt()).toBe(1);
-
-    vi.advanceTimersByTime(500);
-    expect(FakeSocket.instances).toHaveLength(2);
-
-    for (let i = 0; i < 8; i++) {
+    const shortest = [250, 500, 1000, 2000, 4000, 4000, 4000];
+    shortest.forEach((delay, index) => {
       FakeSocket.instances.at(-1)?.drop();
-      vi.advanceTimersByTime(8000);
-    }
-    expect(transport.attempt()).toBe(9);
+      expect(transport.attempt()).toBe(index + 1);
+      const before = FakeSocket.instances.length;
+      vi.advanceTimersByTime(delay - 1);
+      expect(FakeSocket.instances).toHaveLength(before);
+      vi.advanceTimersByTime(1);
+      expect(FakeSocket.instances).toHaveLength(before + 1);
+    });
 
     FakeSocket.instances.at(-1)?.open();
     expect(transport.attempt()).toBe(0);
     expect(transport.status()).toBe('open');
+  });
+
+  it('never waits longer than the ceiling, whatever the jitter', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.999);
+    transport.connect();
+    FakeSocket.instances[0].open();
+
+    for (let attempt = 0; attempt < 10; attempt++) {
+      FakeSocket.instances.at(-1)?.drop();
+      const before = FakeSocket.instances.length;
+      vi.advanceTimersByTime(8000);
+      expect(FakeSocket.instances).toHaveLength(before + 1);
+    }
   });
 
   it('does not reconnect when another connection took the session over', () => {

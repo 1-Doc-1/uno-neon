@@ -344,6 +344,19 @@ describe('GameStore', () => {
       expect(store.eventBatch()).toMatchObject({ resync: true });
     });
 
+    it('ignores a view older than the one it shows: a late update never takes the table back in time', async () => {
+      await connect();
+      transport.receive(update(12, [turn]));
+      const shown = store.view();
+      const batch = store.eventBatch();
+
+      transport.receive(update(11, [{ kind: 'handsRotated', direction: 'clockwise' }]));
+
+      expect(store.view()).toBe(shown);
+      expect(store.view()?.stateVersion).toBe(12);
+      expect(store.eventBatch()).toBe(batch);
+    });
+
     it('does not offer a batch again for a view it already showed', async () => {
       await connect();
       transport.receive(update(10));

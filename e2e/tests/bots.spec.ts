@@ -55,6 +55,8 @@ test.describe('Bots', () => {
     await expect(
       page.getByRole('heading', { name: /gagne la manche|remporte la partie/ }),
     ).toBeVisible();
+    // Alice a joué elle-même : la manche n'a pas été menée à son terme par le minuteur de tour ou le coup forcé du serveur
+    expect(alice.played, 'coups joués par Alice par l’interface').toBeGreaterThan(0);
 
     await context.close();
   });
