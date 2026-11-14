@@ -1,7 +1,7 @@
-import { AxeBuilder } from "@axe-core/playwright";
-import type { Page } from "@playwright/test";
+import { AxeBuilder } from '@axe-core/playwright';
+import type { Page } from '@playwright/test';
 
-const TAGS = ["wcag2a", "wcag2aa", "wcag22aa"];
+const TAGS = ['wcag2a', 'wcag2aa', 'wcag22aa'];
 const ATTEMPTS = 20;
 
 /**
@@ -13,7 +13,7 @@ async function watchEffects(page: Page): Promise<void> {
     const w = window as unknown as { __effectsSeen?: number };
     if (w.__effectsSeen !== undefined) return;
     w.__effectsSeen = 0;
-    const layer = document.querySelector("app-effects-layer");
+    const layer = document.querySelector('app-effects-layer');
     if (!layer) return;
     new MutationObserver((records) => {
       for (const record of records) {
@@ -25,15 +25,15 @@ async function watchEffects(page: Page): Promise<void> {
 
 /** Aucun effet affiché et aucune animation finie en cours (les boucles infinies, comme le souffle du paquet, restent). */
 function atRest(): boolean {
-  const layer = document.querySelector("app-effects-layer");
+  const layer = document.querySelector('app-effects-layer');
   const effects = [...(layer?.children ?? [])].filter(
-    (child) => child.tagName !== "APP-PARTICLE-CANVAS",
+    (child) => child.tagName !== 'APP-PARTICLE-CANVAS',
   );
   const running = document
     .getAnimations()
     .some(
       (animation) =>
-        animation.playState === "running" &&
+        animation.playState === 'running' &&
         animation.effect?.getComputedTiming().iterations !== Infinity,
     );
   return effects.length === 0 && !running;
@@ -53,20 +53,15 @@ export async function axeViolationsAtRest(page: Page): Promise<string[]> {
     const result = await new AxeBuilder({ page }).withTags(TAGS).analyze();
     const after = await page.evaluate(() => ({
       seen: (window as unknown as { __effectsSeen: number }).__effectsSeen,
-      rest:
-        (document.querySelector("app-effects-layer")?.children.length ?? 0) <=
-        1,
+      rest: (document.querySelector('app-effects-layer')?.children.length ?? 0) <= 1,
     }));
     if (after.seen === before && after.rest) {
       return result.violations.flatMap((violation) =>
         violation.nodes.map(
-          (node) =>
-            `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.message ?? ""}`,
+          (node) => `${violation.id}: ${node.target.join(' ')} ${node.any[0]?.message ?? ''}`,
         ),
       );
     }
   }
-  throw new Error(
-    `Aucun moment stable en ${ATTEMPTS} essais : la table n'est jamais au repos`,
-  );
+  throw new Error(`Aucun moment stable en ${ATTEMPTS} essais : la table n'est jamais au repos`);
 }
