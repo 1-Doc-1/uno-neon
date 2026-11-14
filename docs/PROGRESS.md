@@ -104,7 +104,7 @@
 
 #### Lots T-U — règles, salon et sécurité, table, mobile (4 PR à la suite : T1, T2, U1, U2)
 > Reprise après interruption : relire cette section, `git status`, `git log --oneline -10`, les PR ouvertes, puis continuer au premier point non coché. Problème bloquant noté ici (cause, essais) ; on fusionne ce qui est vert et on passe à la suite.
-> **U2 terminée en local (PR à ouvrir) ; T1 #42, T2 #43 et U1 #44 fusionnées**
+> **Lots T1 (#42), T2 (#43), U1 (#44) et U2 (#45) fusionnés.**
 
 **T1 — Règles et confort de jeu (`feat/game-rules-polish`)**
 - [x] T1.1 +5 « super carte » (ADR 0034 modifie 0028) : plus de réplique, pioche automatique du total ; chaîne close en mode Échelle ; moteur, simulation, protocole, « Comment jouer », E2E
@@ -138,12 +138,34 @@
 - [x] U2.4 Jeu au clavier seul de bout en bout
 - [x] U2.5 E2E émulation iPhone/Android, captures 360/768/1440/1920 ; 3.7 coché
 
+#### Lot V — clôture du projet (4 PR : V1 à V4)
+> Reprise après interruption : relire cette section, `git status`, `git log --oneline -10`, les PR ouvertes, puis continuer au premier point non coché.
+
+**V1 — Accessibilité sans exclusion (`fix/a11y-complete`)**
+- [x] V1.1 Test axe à six tailles sans aucune exclusion (couche d'effets et journal réintégrés), mesuré à un moment stable (aucun effet ni animation finie, avant et après l'analyse) ; contraste du journal à chaque palier d'estompage ; échec réel corrigé : la légende du tampon « Passe »
+- [x] V1.2 Résumé T2 : liste des décisions complétée (ADR 0034 à 0037) ; l'entrée de journal T2 existait déjà
+
+**V2 — Réactions rapides et écran de fin (`feat/quick-reactions`, étape 5.2)**
+- [ ] V2.1 Six émojis prédéfinis, envoi d'un clic, bulle sur le siège de l'émetteur, limitation de débit vérifiée, bots muets
+- [ ] V2.2 Écran de fin vérifié contre 5.2 et complété
+
+**V3 — Options maison restantes (`feat/house-rules`, étape 1.6)**
+- [ ] V3.1 Inventaire de 1.6 : prévu / déjà fait / sans objet
+- [ ] V3.2 Options manquantes : moteur, simulation, E2E, « Comment jouer »
+
+**V4 — Audit final (`chore/final-audit`, étape 5.3)**
+- [ ] V4.0 `keyboard.spec.ts` : échoue 3 fois sur 3 en local sur `main` comme sur `fix/a11y-complete` (délai de 120 s dépassé : `tabTo(player.playableCards)` attend sans fin une carte qui a disparu, course avec le coup joué par le jeu) ; vu en V1, non causé par elle, à corriger avec les autres tests trop tolérants
+- [ ] V4.1 web-design-guidelines, axe sur toutes les pages, Lighthouse par le tunnel ; corrections par gravité
+- [ ] V4.2 Relecture de tout le projet par agents en parallèle (sécurité, correction, qualité, tests) ; constats vérifiés, faux positifs listés
+- [ ] V4.3 README vitrine
+- [ ] V4.4 Bilan global, reste à faire (phase 6), cinq choix d'architecture à raconter
+
 #### Phase 1 (suite)
 - [ ] 1.6 Options maison (politiques injectables)
 
 #### Phase 3 (suite) et 4 (suite)
 - [x] 3.5 Animations et `prefers-reduced-motion` (lot J)
-- [ ] 3.6 Galerie `/dev/gallery` avec tous les états
+- [~] 3.6 Galerie `/dev/gallery` avec tous les états — **abandonnée** (décision du 2026-11-14) : elle n'apporte rien aux joueurs ni à la qualité du produit. Les états de la carte sont déjà couverts par les tests de composants et par `/dev` (cartes), `/dev/table` (une vingtaine de scénarios) et la démo des animations, tous sous axe.
 - [x] 3.7 Responsive 360 → 1920 px, accessibilité clavier et lecteur d'écran
 - [x] 4.3b Revanche (lot T2 : écran de fin avec Revanche / Retour au salon, ADR 0037)
 - [x] 4.4 E2E Playwright : parcours de jeu à 2 joueurs, reconnexion et forfait (lot K ; parties à 4, clavier seul, axe et captures de référence restent à écrire)
@@ -192,6 +214,10 @@
 - [0030 — Bots : stratégies sur la seule vue du joueur, adaptateur dans l'application](adr/0030-bots.md)
 - [0033 — Jouer avec des amis par un tunnel, depuis le PC de l'hôte](adr/0033-play-through-a-tunnel.md)
 - [0032 — Musique d'ambiance, réglages audio séparés, clic d'interface et poussière des effets](adr/0032-music-ui-sounds-and-dust.md)
+- [0034 — Le Joker +5 devient la « super carte » : aucune réplique, pioche automatique](adr/0034-super-card.md)
+- [0035 — Vitesse des animations réglée par l'hôte](adr/0035-animation-speed.md)
+- [0036 — La session dans un cookie HttpOnly, un seul onglet actif, et des plafonds](adr/0036-session-cookie.md)
+- [0037 — Retour au salon, exclusion en partie, avatars et chat](adr/0037-lobby-control-chat-avatars.md)
 - [0038 — Sièges égaux, roue de couleur, impact des pénalités et cinématique de fin de partie](adr/0038-table-visuals.md)
 - [0039 — Jouer sur téléphone : mise en page, effets bornés, audio et clavier](adr/0039-phones.md)
 - [0021 — Direction artistique « Nuit » : l'esprit du jeu de cartes, le néon en réserve](adr/0021-art-direction-v2.md)
@@ -263,3 +289,4 @@
 - 2026-10-11 — T2 — salon, sessions et sécurité : **session en cookie** `uno_session` (HttpOnly, Secure, SameSite=Strict, posé dans la réponse 101 ; le jeton quitte `session.hello` / `session.welcome` ; il vient du générateur cryptographique du transport, jamais du hasard de la partie, ADR 0036), **un seul onglet actif** (`session.busy`, `session.takeOver`, code 4000, écran « Jouer ici »), **anti-abus** (20 connexions par adresse, 1 000 au total, 300 salons, 2 000 sessions, l'adresse du tunnel n'est lue que d'un pair local, chat 5 messages / 10 s), **avatars** (12 SVG originaux, `avatarId`, mémorisés avec le pseudo), **chat** (`chat.send` / `chat.message`, texte brut validé, 200 caractères, panneau repliable avec non-lus, masquer un joueur), **fin de partie sans relance automatique** (`room.backToLobby`, Revanche / Retour au salon pour l'hôte seul, abandon confirmé en cours de partie), **exclusion par le menu du profil** (confirmation nominative, salon et partie) ; serveur : 488 tests (cookie, onglet en double, limites, chat, retour au salon, exclusion), client : 401 tests, E2E : 49 scénarios dont fermeture d'onglet, deux onglets, revanche, exclusion, chat, axe ; **graines E2E recalculées** (le chercheur sait trier par la donne seule : `UNO_FIND_DEAL_ONLY`, `UNO_FIND_SEEDS`, un port par graine) ; pour jouer à deux sur une machine : deux navigateurs — `feat/lobby-sessions`
 - 2026-10-11 — U1 — effets et mise en page de la table (ADR 0038) : **sièges** (pastille puis main de dos en accordéon, droite, mêmes proportions pour tous ; `facing` et `yaw` supprimés), **défaut de parité corrigé** (cause : le siège du haut, présent aux nombres impairs, réduisait l'ellipse et donc la taille des sièges ; la taille suit maintenant `referenceOpponents`, test pour 1 à 9 adversaires), **roue de couleur** (quarts de disque dépliés depuis la défausse, rien ne déborde : mesuré à quatre tailles, clavier, axe), **impact des +2 / +4** (éclair, ondes, défausse qui tremble, poussière, deux sons distincts), **cinématique de fin de partie** (podium, scores qui défilent, pluie de cartes et confettis, son, passable, fondu en mouvement réduit, avant Revanche / Retour au salon) ; 425 tests client, E2E à jour — `feat/table-visuals`
 - 2026-10-11 — U2 (3.7) — toutes tailles d'écran et téléphone (ADR 0039) : **audio** (`touchend`/`click` débloquent, contexte relancé à chaque geste, piste silencieuse d'une seconde contre l'interrupteur iOS ; **bug trouvé par le test téléphone** : la première piste avait zéro échantillon, lue en boucle elle figeait la page, d'où un test sur ses octets), **mise en page** (zéro défilement, `100dvh`, `overscroll-behavior`, zoom conservé ; `KeepOnScreen` borne les effets posés sur un siège ; 3 adversaires en arc au plus en portrait étroit ; paysage bas : piles réduites, menu et son en icônes ; seat du haut jamais coupé), **clavier** (manche entière sans souris, anneau de focus : les boutons de l'accueil et du salon masquaient le leur, corrigé), **E2E** (`phone.spec.ts` iPhone 13 / Pixel 7 en portrait et paysage avec mesures à chaque étape, `keyboard.spec.ts`, `responsive.spec.ts` 360 → 1920 px avec axe, captures `docs/img/table-*.png` avec `UNO_E2E_SCREENSHOTS=1`) ; SPEC §12.3 mise à jour — `feat/responsive-mobile`
+- 2026-11-14 — V1 — accessibilité sans exclusion : `responsive.spec.ts` ne retire plus la couche d'effets ni le journal de l'analyse axe ; mesure à un moment stable (`support/axe-at-rest.ts` : aucun effet affiché, aucune animation finie en cours, vérifié avant ET après l'analyse, sinon on recommence). **Cause du contraste vu une fois en CI** (reproduite en partie réelle contre 4 bots, 4 échecs en 4 minutes d'échantillonnage) : `.caption` du tampon « Passe », dont le fondu en opacité rendait le texte à moitié transparent sur une pastille elle-même translucide, devant une carte claire en vol (contrastes mesurés de 1,39 à 2,89) ; désormais le symbole se fond et la légende se dévoile par un balayage `clip-path`, son texte reste opaque. **Journal** : le fondu par masque (invisible pour un outil de contraste) devient des paliers d'opacité (1 / 0,94 / 0,88 / 0,82 / 0,78, plancher calculé 4,8:1) ; axe ne peut pas déterminer le fond de cette zone (« recouvert par un autre élément »), le test `a11y-journal.spec.ts` calcule donc le contraste de chaque palier lui-même (formule WCAG, fond le plus clair de la page) et a été vérifié en l'abaissant à 0,6 (échec à 3,59:1) ; contrôle final : 200 s d'échantillonnage en partie réelle pendant les effets (tampons, grands textes, libellés, roue, vols) sans aucune violation. Limite assumée : le fondu d'un grand texte ou d'un libellé UNO passe forcément par une opacité intermédiaire quelques images, ce qui n'est pas testé — `fix/a11y-complete`
