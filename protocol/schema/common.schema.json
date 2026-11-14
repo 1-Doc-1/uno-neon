@@ -195,9 +195,6 @@
         "stacking": {
           "$ref": "#/$defs/PenaltyStacking"
         },
-        "jumpIn": {
-          "type": "boolean"
-        },
         "sevenZero": {
           "type": "boolean"
         },
@@ -241,7 +238,6 @@
       },
       "required": [
         "stacking",
-        "jumpIn",
         "sevenZero",
         "drawAmount",
         "wildDrawFourMode",
@@ -264,9 +260,6 @@
       "properties": {
         "stacking": {
           "$ref": "#/$defs/PenaltyStacking"
-        },
-        "jumpIn": {
-          "type": "boolean"
         },
         "sevenZero": {
           "type": "boolean"
@@ -359,7 +352,6 @@
         "SWAP_TARGET_REQUIRED",
         "SWAP_TARGET_INVALID",
         "ONLY_DRAWN_CARD_PLAYABLE",
-        "JUMP_IN_TOO_LATE",
         "CANNOT_STACK",
         "CANNOT_CHALLENGE",
         "MUST_PLAY",

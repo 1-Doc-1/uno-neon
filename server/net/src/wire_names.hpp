@@ -212,7 +212,6 @@ struct WireNames<app::IllegalMoveReason> {
         WireName{.value = app::IllegalMoveReason::SwapTargetRequired, .name = "SWAP_TARGET_REQUIRED"},
         WireName{.value = app::IllegalMoveReason::SwapTargetInvalid, .name = "SWAP_TARGET_INVALID"},
         WireName{.value = app::IllegalMoveReason::OnlyDrawnCardPlayable, .name = "ONLY_DRAWN_CARD_PLAYABLE"},
-        WireName{.value = app::IllegalMoveReason::JumpInTooLate, .name = "JUMP_IN_TOO_LATE"},
         WireName{.value = app::IllegalMoveReason::CannotStack, .name = "CANNOT_STACK"},
         WireName{.value = app::IllegalMoveReason::CannotChallenge, .name = "CANNOT_CHALLENGE"},
         WireName{.value = app::IllegalMoveReason::MustPlay, .name = "MUST_PLAY"},

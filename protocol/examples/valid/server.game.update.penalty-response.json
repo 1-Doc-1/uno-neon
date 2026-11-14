@@ -12,8 +12,7 @@
           "color": "red",
           "rank": "drawTwo"
         },
-        "chosenColor": null,
-        "isJumpIn": false
+        "chosenColor": null
       },
       {
         "kind": "penaltyStacked",
@@ -138,7 +137,6 @@
       "round": 1,
       "settings": {
         "stacking": "ladder",
-        "jumpIn": false,
         "sevenZero": false,
         "drawAmount": "untilPlayable",
         "wildDrawFourMode": "officialChallenge",

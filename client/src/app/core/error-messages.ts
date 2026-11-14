@@ -39,7 +39,6 @@ const ILLEGAL_REASONS: Record<IllegalMoveReason, string> = {
   SWAP_TARGET_REQUIRED: 'Choisis un joueur avec qui échanger.',
   SWAP_TARGET_INVALID: 'Ce joueur ne peut pas être choisi.',
   ONLY_DRAWN_CARD_PLAYABLE: 'Tu peux seulement jouer la carte que tu viens de piocher.',
-  JUMP_IN_TOO_LATE: 'Trop tard pour intercepter.',
   CANNOT_STACK: 'Tu ne peux pas empiler cette carte.',
   CANNOT_CHALLENGE: 'Tu ne peux pas contester ici.',
   MUST_PLAY: 'Tu dois jouer une carte : la pioche n’est pas permise ici.',

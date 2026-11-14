@@ -87,7 +87,7 @@
     },
     "CardPlayedEvent": {
       "title": "CardPlayedEvent",
-      "description": "A card was put on the discard pile. isJumpIn: played out of turn (jumpIn rule).",
+      "description": "A card was put on the discard pile.",
       "type": "object",
       "properties": {
         "kind": {
@@ -108,12 +108,9 @@
               "type": "null"
             }
           ]
-        },
-        "isJumpIn": {
-          "type": "boolean"
         }
       },
-      "required": ["kind", "playerId", "card", "chosenColor", "isJumpIn"],
+      "required": ["kind", "playerId", "card", "chosenColor"],
       "additionalProperties": false
     },
     "CardsDrawnEvent": {

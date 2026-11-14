@@ -55,7 +55,6 @@ function viewWith(
     round: 1,
     settings: {
       stacking: 'official',
-      jumpIn: false,
       sevenZero: false,
       drawAmount: 'untilPlayable',
       wildDrawFourMode: 'officialChallenge',

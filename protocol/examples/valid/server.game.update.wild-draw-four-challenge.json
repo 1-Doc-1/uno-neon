@@ -12,8 +12,7 @@
           "color": null,
           "rank": "wildDrawFour"
         },
-        "chosenColor": "green",
-        "isJumpIn": false
+        "chosenColor": "green"
       },
       {
         "kind": "colorChosen",
@@ -149,7 +148,6 @@
       "round": 1,
       "settings": {
         "stacking": "official",
-        "jumpIn": false,
         "sevenZero": false,
         "drawAmount": "untilPlayable",
         "wildDrawFourMode": "officialChallenge",

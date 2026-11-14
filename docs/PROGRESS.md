@@ -150,8 +150,9 @@
 - [x] V2.2 Écran de fin vérifié contre 5.2 : déjà complet, rien à ajouter
 
 **V3 — Options maison restantes (`feat/house-rules`, étape 1.6)**
-- [ ] V3.1 Inventaire de 1.6 : prévu / déjà fait / sans objet
-- [ ] V3.2 Options manquantes : moteur, simulation, E2E, « Comment jouer »
+- [x] V3.1 Inventaire de 1.6 (SPEC §4) : **faites** `stacking`, `drawAmount`, `drawRule`, `declareUnoToWin`, `turnTimerSeconds`, multiplicateurs, `animationSpeed`, `scoreTarget`, `maxPlayers` ; **réglage et protocole présents mais moteur absent** (le serveur les refusait en `INVALID_SETTINGS`) : `wildDrawFourMode: strict`, `sevenZero`, `jumpIn` ; **`jumpIn` retiré** (ADR 0040 : plus d'instant où réagir depuis l'ADR 0027, moteur bâti sur un seul acteur, cas limites non définis) du protocole, du serveur et du client
+- [ ] V3.2 `wildDrawFourMode: strict` : moteur, application, bots, simulation, client, E2E, « Comment jouer »
+- [ ] V3.3 `sevenZero` : moteur, application, bots, simulation, client (cible, animation), E2E, « Comment jouer »
 
 **V4 — Audit final (`chore/final-audit`, étape 5.3)**
 - [ ] V4.0 `keyboard.spec.ts` : échoue 3 fois sur 3 en local sur `main` comme sur `fix/a11y-complete` (délai de 120 s dépassé : `tabTo(player.playableCards)` attend sans fin une carte qui a disparu, course avec le coup joué par le jeu) ; vu en V1, non causé par elle, à corriger avec les autres tests trop tolérants
@@ -161,7 +162,7 @@
 - [ ] V4.4 Bilan global, reste à faire (phase 6), cinq choix d'architecture à raconter
 
 #### Phase 1 (suite)
-- [ ] 1.6 Options maison (politiques injectables)
+- [ ] 1.6 Options maison : lot V3 (`strict` et `sevenZero` à faire, `jumpIn` retiré : ADR 0040)
 
 #### Phase 3 (suite) et 4 (suite)
 - [x] 3.5 Animations et `prefers-reduced-motion` (lot J)
@@ -214,6 +215,7 @@
 - [0030 — Bots : stratégies sur la seule vue du joueur, adaptateur dans l'application](adr/0030-bots.md)
 - [0033 — Jouer avec des amis par un tunnel, depuis le PC de l'hôte](adr/0033-play-through-a-tunnel.md)
 - [0032 — Musique d'ambiance, réglages audio séparés, clic d'interface et poussière des effets](adr/0032-music-ui-sounds-and-dust.md)
+- [0040 — L'interception (`jumpIn`) est retirée du produit](adr/0040-no-jump-in.md)
 - [0034 — Le Joker +5 devient la « super carte » : aucune réplique, pioche automatique](adr/0034-super-card.md)
 - [0035 — Vitesse des animations réglée par l'hôte](adr/0035-animation-speed.md)
 - [0036 — La session dans un cookie HttpOnly, un seul onglet actif, et des plafonds](adr/0036-session-cookie.md)

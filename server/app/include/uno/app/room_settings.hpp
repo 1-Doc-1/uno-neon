@@ -26,7 +26,6 @@ inline constexpr std::uint8_t kMaxRoomPlayers = 10;
 // House rules chosen by the host (SPEC §4, protocol `RoomSettings`).
 struct RoomSettings {
     core::PenaltyStacking stacking{core::PenaltyStacking::Official}; // ADR 0029
-    bool jumpIn{false};
     bool sevenZero{false};
     core::DrawAmount drawAmount{core::DrawAmount::UntilPlayable}; // ADR 0024
     WildDrawFourMode wildDrawFourMode{WildDrawFourMode::OfficialChallenge};
@@ -56,7 +55,6 @@ struct RoomSettings {
 // Partial settings: only the fields to change (protocol `RoomSettingsPatch`).
 struct RoomSettingsPatch {
     std::optional<core::PenaltyStacking> stacking;
-    std::optional<bool> jumpIn;
     std::optional<bool> sevenZero;
     std::optional<core::DrawAmount> drawAmount;
     std::optional<WildDrawFourMode> wildDrawFourMode;

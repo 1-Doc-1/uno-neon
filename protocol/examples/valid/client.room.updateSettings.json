@@ -4,7 +4,6 @@
   "type": "room.updateSettings",
   "payload": {
     "settings": {
-      "jumpIn": true,
       "animationSpeed": "fast",
       "turnTimerSeconds": 15
     }

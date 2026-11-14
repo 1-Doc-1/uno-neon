@@ -116,7 +116,6 @@ export function scenarioView(name: ScenarioName, now: number): PlayerView {
     round: 2,
     settings: {
       stacking: 'official',
-      jumpIn: false,
       sevenZero: false,
       drawAmount: 'untilPlayable',
       wildDrawFourMode: 'officialChallenge',

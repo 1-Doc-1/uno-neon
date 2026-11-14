@@ -40,7 +40,6 @@ const played = (
   playerId: 'a',
   card: card(rank, color),
   chosenColor,
-  isJumpIn: false,
 });
 
 describe('the time the server leaves to present each special card', () => {

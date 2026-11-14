@@ -15,7 +15,6 @@ const played = (playerId: string, card: Card, chosenColor: 'blue' | null = null)
   playerId,
   card,
   chosenColor,
-  isJumpIn: false,
 });
 const turnTo = (playerId: string): ClientEvent => ({ kind: 'turnChanged', playerId });
 const drew = (playerId: string, count: number, cards?: Card[]): ClientEvent => ({

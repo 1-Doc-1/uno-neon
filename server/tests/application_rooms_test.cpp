@@ -284,7 +284,7 @@ TEST_CASE("Settings given at creation are applied, house rules are refused for n
 
     host.send(request::CreateRoom{
         .nickname = "Léa",
-        .settings = patchOf([](RoomSettingsPatch& patch) { patch.jumpIn = true; }),
+        .settings = patchOf([](RoomSettingsPatch& patch) { patch.sevenZero = true; }),
     });
     REQUIRE(refusal(host.received()) == ErrorCode::InvalidSettings);
     host.send(request::CreateRoom{

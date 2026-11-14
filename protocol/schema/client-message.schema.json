@@ -497,7 +497,7 @@
     },
     "PlayCardMessage": {
       "title": "PlayCardMessage",
-      "description": "Plays a card on your turn (or out of turn with jumpIn). chosenColor is required for wild cards, swapTargetId for a 7 with sevenZero, targetId for a Wild Draw Five (any other player; also the way to answer a Wild Draw Five aimed at you).",
+      "description": "Plays a card on your turn. chosenColor is required for wild cards, swapTargetId for a 7 with sevenZero, targetId for a Wild Draw Five (any other player; also the way to answer a Wild Draw Five aimed at you).",
       "type": "object",
       "properties": {
         "v": {

@@ -65,7 +65,6 @@ std::vector<ClientEvent> project(std::span<const DomainEvent> events, const Play
                         .playerId = played.player,
                         .card = card,
                         .chosenColor = chosen,
-                        .isJumpIn = false,
                     });
                 },
                 [&](const CardsDrawn& drawn) {

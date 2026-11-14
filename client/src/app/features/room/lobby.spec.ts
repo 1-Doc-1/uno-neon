@@ -28,7 +28,6 @@ function roomOf(players: RoomMember[]): RoomView {
     phase: 'lobby',
     settings: {
       stacking: 'official',
-      jumpIn: false,
       sevenZero: false,
       drawAmount: 'untilPlayable',
       wildDrawFourMode: 'officialChallenge',
