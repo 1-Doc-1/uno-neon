@@ -99,7 +99,7 @@ export function scoreAt(score: number, progress: number): number {
       gap: var(--space-4);
       padding: var(--space-5);
       overflow: hidden;
-      background: radial-gradient(ellipse at 50% 40%, rgb(34 44 80 / 0.96), rgb(8 12 28 / 0.98));
+      background: var(--cinematic-bg);
       color: var(--text);
       text-align: center;
       cursor: pointer;
