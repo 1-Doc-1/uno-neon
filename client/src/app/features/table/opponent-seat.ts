@@ -1,8 +1,9 @@
 import { Component, input, output } from '@angular/core';
-import type { SeatView } from '../../protocol/generated/protocol';
+import type { Emote, SeatView } from '../../protocol/generated/protocol';
 import { Avatar } from '../../ui/avatar';
 import { ClickSound } from '../../ui/click-sound';
 import { MAX_FAN_BACKS, OpponentFan } from './opponent-fan';
+import { ReactionBubble } from './reaction-bubble';
 
 /**
  * Un adversaire : une pastille avec l'avatar, le nombre de cartes, le pseudo et l'état de connexion, puis sa main de dos
@@ -10,7 +11,7 @@ import { MAX_FAN_BACKS, OpponentFan } from './opponent-fan';
  */
 @Component({
   selector: 'app-opponent-seat',
-  imports: [ClickSound, Avatar, OpponentFan],
+  imports: [ClickSound, Avatar, OpponentFan, ReactionBubble],
   template: `
     <article
       class="seat"
@@ -58,6 +59,7 @@ import { MAX_FAN_BACKS, OpponentFan } from './opponent-fan';
         @if (forgotUno()) {
           <span class="forgot">UNO oublié !</span>
         }
+        <app-reaction-bubble [emote]="reaction()" [nickname]="seat().nickname" />
         @if (isCurrent()) {
           <span class="sr-only">C’est son tour</span>
         }
@@ -73,6 +75,8 @@ export class OpponentSeat {
   /** Sa fenêtre de contre-UNO est ouverte : il n'a qu'une carte et n'a pas annoncé UNO. */
   readonly forgotUno = input.required<boolean>();
   readonly compact = input(false);
+  /** Sa réaction rapide du moment, s'il en a une. */
+  readonly reaction = input<Emote | null>(null);
   readonly maxBacks = input(MAX_FAN_BACKS);
   /** Part du temps de tour qu'il reste (0 à 1) si c'est son tour et qu'il y a un minuteur, sinon `null`. */
   readonly timerFraction = input<number | null>(null);

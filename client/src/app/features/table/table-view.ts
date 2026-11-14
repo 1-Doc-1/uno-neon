@@ -14,7 +14,7 @@ import {
 } from '@angular/core';
 import { tensionOfTurn } from '../../audio/music';
 import { AudioService } from '../../audio/audio.service';
-import type { Card, Color, PlayerView } from '../../protocol/generated/protocol';
+import type { Card, Color, Emote, PlayerView } from '../../protocol/generated/protocol';
 import type { EventBatch } from '../../state/game-store';
 import { ChallengeDialog } from './challenge-dialog';
 import { ColorPicker } from './color-picker';
@@ -86,6 +86,8 @@ export class TableView {
   readonly clockOffset = input(0);
   /** Résultat d'une contestation, affiché en bandeau un instant. */
   readonly banner = input<string | null>(null);
+  /** La réaction rapide affichée sur le siège de chaque joueur, par identifiant. */
+  readonly reactions = input<ReadonlyMap<string, Emote>>(new Map());
   /** Les événements de la dernière mise à jour : ils pilotent les animations (jamais une comparaison de vues). */
   readonly batch = input<EventBatch | null>(null);
   /** Les cartes posées depuis le début de la manche, pour la pile désordonnée de la défausse. */

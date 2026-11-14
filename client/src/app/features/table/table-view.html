@@ -28,6 +28,7 @@
             [isCurrent]="seat.playerId === view().currentPlayerId"
             [forgotUno]="forgotten().has(seat.playerId)"
             [compact]="placements()[index].compact"
+            [reaction]="reactions().get(seat.playerId) ?? null"
             [maxBacks]="maxBacks()"
             [timerFraction]="seat.playerId === view().currentPlayerId ? turnFraction() : null"
             [targetable]="pendingTarget() !== null"
@@ -81,6 +82,7 @@
         class="me"
         [seat]="seat"
         [myTurn]="myTurn()"
+        [reaction]="reactions().get(seat.playerId) ?? null"
         [timerFraction]="myTurn() ? turnFraction() : null"
         [timerSeconds]="myTurn() ? turnSeconds() : null"
       />

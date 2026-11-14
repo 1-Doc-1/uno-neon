@@ -1,11 +1,12 @@
 import { Component, input } from '@angular/core';
-import type { SeatView } from '../../protocol/generated/protocol';
+import type { Emote, SeatView } from '../../protocol/generated/protocol';
 import { Avatar } from '../../ui/avatar';
+import { ReactionBubble } from './reaction-bubble';
 
 /** Ma pastille, en bas à gauche : avatar, nombre de cartes, pseudo, score et minuteur quand c'est mon tour. */
 @Component({
   selector: 'app-my-badge',
-  imports: [Avatar],
+  imports: [Avatar, ReactionBubble],
   template: `
     <div class="me" [class.current]="myTurn()" [attr.data-anchor]="'seat:' + seat().playerId">
       <div
@@ -27,6 +28,7 @@ import { Avatar } from '../../ui/avatar';
           }
         </p>
       </div>
+      <app-reaction-bubble [emote]="reaction()" [nickname]="seat().nickname" />
     </div>
   `,
   styleUrl: './my-badge.scss',
@@ -34,6 +36,8 @@ import { Avatar } from '../../ui/avatar';
 export class MyBadge {
   readonly seat = input.required<SeatView>();
   readonly myTurn = input.required<boolean>();
+  /** Ma réaction rapide du moment, si j'en ai envoyé une. */
+  readonly reaction = input<Emote | null>(null);
   /** Part du temps de tour qu'il reste (0 à 1), ou `null` sans minuteur ou hors de mon tour. */
   readonly timerFraction = input<number | null>(null);
   readonly timerSeconds = input<number | null>(null);

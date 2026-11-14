@@ -7,6 +7,7 @@ import type {
   ClientEvent,
   ClientMessage,
   Color,
+  Emote,
   ErrorPayload,
   PlayerView,
   RoomClosedPayload,
@@ -44,6 +45,10 @@ export interface ChatLine {
 const NOTICE_LIFETIME_MS = 5000;
 const CHAT_LOG_SIZE = 100;
 const LOG_SIZE = 20;
+/** Le serveur accepte une réaction par joueur toutes les 2 s : on grise le sélecteur d'autant (SPEC §8). */
+const REACTION_COOLDOWN_MS = 2000;
+/** Une réaction reste affichée sur son siège un court instant. */
+const REACTION_SHOWN_MS = 3000;
 const CLIENT_VERSION = '0.1.0';
 
 /**
@@ -82,6 +87,9 @@ export class GameStore {
   private readonly chatUnreadState = signal(0);
   private readonly chatOpenState = signal(false);
   private readonly mutedState = signal<ReadonlySet<string>>(new Set());
+  private readonly reactionsState = signal<ReadonlyMap<string, Emote>>(new Map());
+  private readonly reactionCooldownState = signal(false);
+  private readonly reactionTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   readonly connection = this.transport.status;
   readonly reconnectAttempt = this.transport.attempt;
@@ -104,6 +112,10 @@ export class GameStore {
   /** Le chat du salon, du plus ancien au plus récent (les joueurs masqués n'y figurent pas). */
   readonly chat = this.chatState.asReadonly();
   readonly chatUnread = this.chatUnreadState.asReadonly();
+  /** La réaction rapide affichée en ce moment sur le siège de chaque joueur (au plus une par joueur). */
+  readonly reactions = this.reactionsState.asReadonly();
+  /** Vrai pendant les 2 s qui suivent mon dernier envoi : le serveur refuserait le suivant. */
+  readonly reactionCooldown = this.reactionCooldownState.asReadonly();
   readonly mutedPlayers = this.mutedState.asReadonly();
 
   /** Vrai tant que la session n'est pas établie ou que le salon repris n'est pas encore arrivé. */
@@ -208,6 +220,18 @@ export class GameStore {
     }
   }
 
+  // ---- Réactions rapides ----
+
+  /** Envoie une des six réactions ; sans effet pendant le délai imposé par le serveur. */
+  sendReaction(emote: Emote): Promise<boolean> {
+    if (this.reactionCooldownState()) {
+      return Promise.resolve(false);
+    }
+    this.reactionCooldownState.set(true);
+    setTimeout(() => this.reactionCooldownState.set(false), REACTION_COOLDOWN_MS);
+    return this.request('reaction.send', { emote });
+  }
+
   // ---- Chat ----
 
   sendChat(text: string): Promise<boolean> {
@@ -235,6 +259,8 @@ export class GameStore {
     });
     if (muted) {
       this.chatState.update((log) => log.filter((line) => line.playerId !== playerId));
+      clearTimeout(this.reactionTimers.get(playerId));
+      this.clearReaction(playerId);
     }
   }
 
@@ -366,6 +392,7 @@ export class GameStore {
         this.closedState.set(message.payload.reason);
         break;
       case 'reaction':
+        this.onReaction(message.payload.playerId, message.payload.emote);
         break;
     }
   }
@@ -386,6 +413,27 @@ export class GameStore {
     } else {
       this.busyState.set(true);
     }
+  }
+
+  private onReaction(playerId: string, emote: Emote): void {
+    if (this.mutedState().has(playerId)) {
+      return;
+    }
+    clearTimeout(this.reactionTimers.get(playerId));
+    this.reactionsState.update((current) => new Map(current).set(playerId, emote));
+    this.reactionTimers.set(
+      playerId,
+      setTimeout(() => this.clearReaction(playerId), REACTION_SHOWN_MS),
+    );
+  }
+
+  private clearReaction(playerId: string): void {
+    this.reactionTimers.delete(playerId);
+    this.reactionsState.update((current) => {
+      const next = new Map(current);
+      next.delete(playerId);
+      return next;
+    });
   }
 
   private onChat(playerId: string, text: string): void {
@@ -449,6 +497,9 @@ export class GameStore {
     this.eventBatchState.set(null);
     this.chatState.set([]);
     this.chatUnreadState.set(0);
+    this.reactionTimers.forEach((timer) => clearTimeout(timer));
+    this.reactionTimers.clear();
+    this.reactionsState.set(new Map());
   }
 
   notify(text: string): void {
