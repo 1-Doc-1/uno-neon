@@ -1,0 +1,31 @@
+// Les morceaux que la pastille d'un adversaire et la mienne partagent : une seule définition, deux usages.
+
+// Anneau de minuteur : un arc clair qui se vide avec le temps qu'il reste (`--f`, de 0 à 1)
+@mixin timer-ring {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  background: conic-gradient(var(--text) calc(var(--f) * 1turn), var(--ring-track) 0);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+}
+
+// Le nombre de cartes : un badge sur l'avatar, au-dessus de l'anneau du minuteur
+@mixin card-count {
+  position: absolute;
+  z-index: 2;
+  right: -12px;
+  bottom: -10px;
+  min-width: 26px;
+  padding: 0 6px;
+  border-radius: var(--radius-pill);
+  background: var(--text);
+  color: var(--text-on-neon);
+  font-family: var(--font-display);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  line-height: 24px;
+  text-align: center;
+  box-shadow: 0 0 0 2px var(--panel-solid);
+}

@@ -182,7 +182,9 @@ Application::Outcome Application::attach(ConnectionId connection, bool takeOver)
                 scheduler_->cancel(std::exchange(room->graceTimers[session->playerId.value], TimerHandle{}));
                 spdlog::info("player {} reconnected to room {}", session->playerId.value, room->code.value);
                 broadcastRoom(*room);
-                if (room->phase == response::RoomPhase::InGame) {
+                // Once the match is over, the end screen (podium, rematch) is drawn from the game view too: a player
+                // who reloads the page there must get it back, or they would find a lobby they cannot start.
+                if (room->phase != response::RoomPhase::Lobby && room->match.has_value()) {
                     // Everyone, the returning player included, gets the state: for them it is the resync.
                     broadcastGame(*room, {}, {core::PlayerReconnectedEvent{.playerId = session->playerId}});
                 }

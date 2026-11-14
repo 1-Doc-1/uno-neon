@@ -51,20 +51,6 @@ export type EffectSpec =
 
 export type EffectKind = EffectSpec['kind'];
 
-/** Un seul effet plein écran à la fois : ces effets occupent le centre de la table, leur durée visible est leur durée. */
-const FULLSCREEN: ReadonlySet<EffectKind> = new Set([
-  'bigText',
-  'plusFive',
-  'reverse',
-  'wheel',
-  'challenge',
-  'spotlight',
-]);
-
-export function isFullscreen(kind: EffectKind): boolean {
-  return FULLSCREEN.has(kind);
-}
-
 /** Temps (ms) avant l'effet suivant, et temps pendant lequel celui-ci reste visible (les petits effets se chevauchent). */
 interface Timing {
   readonly stepMs: number;

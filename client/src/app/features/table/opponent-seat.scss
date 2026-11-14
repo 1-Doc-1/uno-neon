@@ -1,3 +1,5 @@
+@use '../../../styles/seat-parts' as seat;
+
 :host {
   // Tailles proportionnelles à la hauteur de l'écran : la table occupe la place disponible
   // `--seat-scale` : réduction calculée par la géométrie de la table quand la place manque (voir table-geometry.ts)
@@ -42,9 +44,7 @@
 // C'est son tour : une lueur claire autour de la pastille, qui grossit un peu
 .current .pill {
   transform: scale(1.06);
-  box-shadow:
-    0 0 0 2px rgb(255 255 255 / 0.85),
-    0 0 20px rgb(255 255 255 / 0.4);
+  box-shadow: var(--turn-glow);
 }
 
 // Hors ligne : éventail et avatar passés en gris, mais le texte garde son contraste (jamais d'opacité)
@@ -63,39 +63,14 @@
     height: var(--portrait);
   }
 
-  // Anneau de minuteur : un arc clair qui se vide avec le temps qu'il reste
   &.timed::before {
-    content: '';
-    position: absolute;
-    inset: -6px;
-    border-radius: 50%;
-    background: conic-gradient(var(--text) calc(var(--f) * 1turn), rgb(255 255 255 / 0.14) 0);
-    -webkit-mask: radial-gradient(
-      farthest-side,
-      transparent calc(100% - 4px),
-      #000 calc(100% - 3px)
-    );
-    mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+    @include seat.timer-ring;
   }
 }
 
 // Le nombre de cartes : un badge sur l'avatar, au-dessus de l'anneau du minuteur
 .count {
-  position: absolute;
-  z-index: 2;
-  right: -12px;
-  bottom: -10px;
-  min-width: 26px;
-  padding: 0 6px;
-  border-radius: var(--radius-pill);
-  background: var(--text);
-  color: var(--text-on-neon);
-  font-family: var(--font-display);
-  font-size: var(--fs-sm);
-  font-weight: 700;
-  line-height: 24px;
-  text-align: center;
-  box-shadow: 0 0 0 2px var(--panel-solid);
+  @include seat.card-count;
 }
 
 .ribbon {

@@ -1,11 +1,14 @@
 #include "uno/app/client_message.hpp"
 #include "uno/app/error_code.hpp"
+#include "uno/app/room_settings.hpp"
 #include "uno/app/server_message.hpp"
 #include "uno/core/card.hpp"
 #include "uno/core/domain_event.hpp"
 #include "uno/core/match.hpp"
+#include "uno/core/penalty_stacking.hpp"
 #include "uno/core/playability.hpp"
 #include "uno/core/player_action.hpp"
+#include "uno/core/wild_draw_four_mode.hpp"
 #include "uno/net/codec.hpp"
 #include "uno/testing/legal_actions.hpp"
 
@@ -207,37 +210,64 @@ TEST_CASE("Every accepted action reaches every player with a consecutive state v
     REQUIRE(versions == std::set<std::uint64_t>{2});
 }
 
+namespace {
+
+// Plays one round to its end by requests (always the move the engine lists first for the player on turn, rotated), then
+// checks what went over the wire: no card of anybody else in the updates of any player, and the hands public at the
+// end.
+void playRoundAndRequireNoLeak(Table& table, std::size_t count, std::size_t stride)
+{
+    table.start();
+    std::size_t steps = 0;
+    while (table.room().phase == response::RoomPhase::InGame && steps < 4000) {
+        ++steps;
+        const auto& round = table.room().match->round();
+        if (std::holds_alternative<core::RoundOver>(round.phase())) {
+            break;
+        }
+        const auto actions = uno::testing::legalActionsOfCurrentPlayer(round);
+        REQUIRE_FALSE(actions.empty());
+        const auto& action = actions.at(steps % actions.size());
+        auto& current = table.currentPlayer();
+        static_cast<void>(current.received());
+        current.send(toRequest(action));
+        REQUIRE_FALSE(refusal(current.received()).has_value());
+    }
+
+    REQUIRE(std::holds_alternative<core::RoundOver>(table.room().match->round().phase()));
+    for (auto& player : table.players) {
+        requireNoLeakInUpdates(player, stride);
+    }
+    // Once the round is over the remaining hands are public.
+    const auto last = table.players.front().last<response::GameUpdate>().value();
+    REQUIRE(last.view.game.roundResult.has_value());
+    REQUIRE(last.view.game.roundResult->revealedHands.size() == count);
+}
+
+} // namespace
+
 TEST_CASE("A whole match played through requests never leaks a card on the wire", "[app][match][leak]")
 {
     for (std::uint64_t seed = 1; seed <= 6; ++seed) {
         const auto count = 2 + (seed % 4); // 2 to 5 players
         Table table(count, seed);
-        table.start();
+        playRoundAndRequireNoLeak(table, count, 9);
+    }
+}
 
-        std::size_t steps = 0;
-        while (table.room().phase == response::RoomPhase::InGame && steps < 4000) {
-            ++steps;
-            const auto& round = table.room().match->round();
-            if (std::holds_alternative<core::RoundOver>(round.phase())) {
-                break;
-            }
-            const auto actions = uno::testing::legalActionsOfCurrentPlayer(round);
-            REQUIRE_FALSE(actions.empty());
-            const auto& action = actions.at(steps % actions.size());
-            auto& current = table.currentPlayer();
-            static_cast<void>(current.received());
-            current.send(toRequest(action));
-            REQUIRE_FALSE(refusal(current.received()).has_value());
-        }
-
-        REQUIRE(std::holds_alternative<core::RoundOver>(table.room().match->round().phase()));
-        for (auto& player : table.players) {
-            requireNoLeakInUpdates(player);
-        }
-        // Once the round is over the remaining hands are public.
-        const auto last = table.players.front().last<response::GameUpdate>().value();
-        REQUIRE(last.view.game.roundResult.has_value());
-        REQUIRE(last.view.game.roundResult->revealedHands.size() == count);
+TEST_CASE("The same, with the 7-0 swaps, the strict Wild Draw Four and the stacking ladder, every update checked",
+          "[app][match][leak]")
+{
+    for (std::uint64_t seed = 1; seed <= 4; ++seed) {
+        const auto count = 2 + (seed % 4);
+        Table table(count, seed);
+        RoomSettingsPatch rules;
+        rules.sevenZero = true;
+        rules.wildDrawFourMode = core::WildDrawFourMode::Strict;
+        rules.stacking = core::PenaltyStacking::Ladder;
+        table.players.front().send(request::UpdateSettings{.settings = rules});
+        REQUIRE(table.room().settings.sevenZero);
+        playRoundAndRequireNoLeak(table, count, 1);
     }
 }
 

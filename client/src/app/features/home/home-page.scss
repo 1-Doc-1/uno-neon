@@ -154,7 +154,7 @@
   }
 
   input {
-    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.14);
+    box-shadow: inset 0 0 0 1px var(--hairline);
   }
 
   // Écran étroit : le champ prend toute la largeur de la tuile, le bouton passe dessous

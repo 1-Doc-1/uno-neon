@@ -11,7 +11,8 @@ moteur manquait : `wildDrawFourMode: strict` et `sevenZero`. Chacune est désact
 
 ## Décision : Joker +4 strict (`wildDrawFourMode`)
 - **Un seul endroit juge si une carte est jouable** : `Round::canPlayCard(joueur, carte)` (et `isPlayableFrom` en
-  interne) remplace tous les appels à `isPlayable`, qui ne connaît pas la main. Le moteur, la vue (`playableCardIds`),
+  interne) remplace les appels *de décision* à `isPlayable`, qui ne connaît pas la main (celui-ci reste le test de
+  base, appelé par `isPlayableFrom`). Le moteur, la vue (`playableCardIds`),
   le coup forcé de l'application, les bots (qui ne lisent que la vue) et le générateur de coups légaux des tests s'en
   servent : le mode strict ne demande aucun cas particulier ailleurs.
 - **En `strict`, un +4 dont la main contient une carte de la couleur courante est refusé** (`ILLEGAL_MOVE` /

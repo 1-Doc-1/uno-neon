@@ -265,9 +265,34 @@ private:
                 requirePointsAreTheHandsLeft(ended->points);
             }
         }
+        requireStrictWildDrawFourWasLegal(before, actor, action);
         requireForcedDrawIsComplete(before, actor, action);
         checkState();
         checkEvents(*result);
+    }
+
+    // ADR 0041: a Wild Draw Four that the strict mode accepted was legal, whoever sent it and whatever else was tried:
+    // no card of the current color in the hand (a Wild Draw Four put on a pending penalty ignores it).
+    static void requireStrictWildDrawFourWasLegal(const Match& before, const PlayerId& actor,
+                                                  const PlayerAction& action)
+    {
+        const auto* play = std::get_if<PlayCard>(&action);
+        const auto& round = before.round();
+        if (play == nullptr || round.wildDrawFourMode() != uno::core::WildDrawFourMode::Strict ||
+            std::holds_alternative<uno::core::AwaitingStackResponse>(round.phase())) {
+            return;
+        }
+        const auto hand = round.hand(actor);
+        if (!hand) {
+            return;
+        }
+        const auto played = std::ranges::find(*hand, play->cardId, &uno::core::Card::id);
+        if (played == hand->end() || played->rank != uno::core::Rank::WildDrawFour) {
+            return;
+        }
+        REQUIRE(round.currentColor().has_value());
+        REQUIRE(std::ranges::none_of(
+            *hand, [&round](const uno::core::Card& card) { return card.color == round.currentColor(); }));
     }
 
     // ADR 0024: after an accepted draw by a player with nothing to play, they hold a playable card to decide on, or

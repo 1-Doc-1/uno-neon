@@ -1,6 +1,6 @@
 # 0029 — Cumul des pénalités : l'échelle +2 < +4 < +5
 
-- **Statut** : accepté
+- **Statut** : accepté, modifié en partie par l'ADR 0034
 - **Date** : 2026-10-10
 - **Complète** : ADR 0017 (pioche guidée), ADR 0019 (UNO obligatoire), ADR 0027 (résolution d'un effet), ADR 0028 (Joker +5)
 - **Remplace** : l'ancien réglage `stacking` (`off` / `sameType` / `mixed`) de la SPEC §4, jamais implémenté

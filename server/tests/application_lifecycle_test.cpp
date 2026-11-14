@@ -94,6 +94,23 @@ TEST_CASE("A finished match closes its room after 5 minutes", "[app][lifecycle]"
     REQUIRE(table.harness.rooms.size() == 0);
 }
 
+TEST_CASE("A player who comes back during the end screen gets the finished game: podium, rematch", "[app][lifecycle]")
+{
+    Table table(2);
+    table.start();
+    REQUIRE(playUntil(table, [&table](const core::Round&) { return table.room().match->winner().has_value(); }));
+    REQUIRE(table.room().phase == response::RoomPhase::MatchOver);
+    const auto leaver = table.players.at(1);
+    table.harness.application.onDisconnected(leaver.connection());
+
+    auto back = table.harness.connect();
+    back.hello(leaver.token());
+
+    const auto updates = back.all<response::GameUpdate>();
+    REQUIRE_FALSE(updates.empty());
+    REQUIRE(updates.back().view.game.matchWinnerId.has_value());
+}
+
 TEST_CASE("A disconnected lobby player is removed after the grace period unless they return", "[app][lifecycle]")
 {
     Table table(3);
@@ -320,10 +337,16 @@ TEST_CASE("A card drawn at timeout is not played: the turn passes", "[app][lifec
         }
         seen = true;
         const auto decider = table.room().match->round().currentPlayer();
+        const auto topBefore = table.room().match->round().discardPile().top().id;
+        const auto handBefore = table.room().match->round().hand(decider)->size();
 
         table.harness.scheduler.advance(31s);
 
-        REQUIRE(table.room().match->round().currentPlayer() != decider);
+        const auto& round = table.room().match->round();
+        REQUIRE(round.currentPlayer() != decider);
+        // The drawn card was kept, not played: the discard pile did not move and the player holds it
+        REQUIRE(round.discardPile().top().id == topBefore);
+        REQUIRE(round.hand(decider)->size() == handBefore);
     }
     REQUIRE(seen);
 }

@@ -1,0 +1,3 @@
+# Un jeu entre amis, partagé par un lien : pas fait pour être indexé
+User-agent: *
+Disallow: /
