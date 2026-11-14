@@ -170,7 +170,6 @@ export type IllegalMoveReason =
   | 'SWAP_TARGET_REQUIRED'
   | 'SWAP_TARGET_INVALID'
   | 'ONLY_DRAWN_CARD_PLAYABLE'
-  | 'JUMP_IN_TOO_LATE'
   | 'CANNOT_STACK'
   | 'CANNOT_CHALLENGE'
   | 'MUST_PLAY'
@@ -311,7 +310,6 @@ export interface CreateRoomPayload {
  */
 export interface RoomSettingsPatch {
   stacking?: PenaltyStacking;
-  jumpIn?: boolean;
   sevenZero?: boolean;
   drawAmount?: DrawAmount;
   wildDrawFourMode?: WildDrawFourMode;
@@ -443,7 +441,7 @@ export interface ReadyForNextRoundMessage {
   payload: EmptyPayload;
 }
 /**
- * Plays a card on your turn (or out of turn with jumpIn). chosenColor is required for wild cards, swapTargetId for a 7 with sevenZero, targetId for a Wild Draw Five (any other player; also the way to answer a Wild Draw Five aimed at you).
+ * Plays a card on your turn. chosenColor is required for wild cards, swapTargetId for a 7 with sevenZero, targetId for a Wild Draw Five (any other player; also the way to answer a Wild Draw Five aimed at you).
  */
 export interface PlayCardMessage {
   v: ProtocolVersion;
@@ -622,7 +620,6 @@ export interface RoomView {
  */
 export interface RoomSettings {
   stacking: PenaltyStacking;
-  jumpIn: boolean;
   sevenZero: boolean;
   drawAmount: DrawAmount;
   wildDrawFourMode: WildDrawFourMode;
@@ -674,14 +671,13 @@ export interface RoundStartedEvent {
   dealerId: PlayerId;
 }
 /**
- * A card was put on the discard pile. isJumpIn: played out of turn (jumpIn rule).
+ * A card was put on the discard pile.
  */
 export interface CardPlayedEvent {
   kind: 'cardPlayed';
   playerId: PlayerId;
   card: Card;
   chosenColor: Color | null;
-  isJumpIn: boolean;
 }
 /**
  * A card. Wild cards have no color of their own (`color: null`).

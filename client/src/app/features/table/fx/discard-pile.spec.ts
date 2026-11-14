@@ -7,7 +7,6 @@ const play = (id: number): ClientEvent => ({
   playerId: 'a',
   card: card(id),
   chosenColor: null,
-  isJumpIn: false,
 });
 
 describe('scatterOf', () => {

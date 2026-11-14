@@ -33,6 +33,10 @@ export type EffectSpec =
     }
   | { readonly kind: 'skip'; readonly playerId: string }
   | { readonly kind: 'reverse'; readonly direction: Direction }
+  /** Un 7 (option 7-0) : deux joueurs échangent leur main. Les cartes volent de l'un à l'autre, de dos. */
+  | { readonly kind: 'swap'; readonly playerId: string; readonly targetId: string }
+  /** Un 0 (option 7-0) : chaque main passe au joueur suivant, dans le sens du jeu. */
+  | { readonly kind: 'rotate'; readonly direction: Direction }
   | { readonly kind: 'wheel'; readonly color: Color }
   | { readonly kind: 'turn'; readonly from: string | null; readonly to: string }
   | { readonly kind: 'uno'; readonly playerId: string }
@@ -76,6 +80,8 @@ const FIXED_TIMING: Record<Exclude<EffectKind, 'draw'>, Timing> = {
   plusFive: { stepMs: MOTION_MS.bigText, visibleMs: MOTION_MS.bigText },
   skip: { stepMs: MOTION_MS.specialGap, visibleMs: MOTION_MS.skip },
   reverse: { stepMs: MOTION_MS.reverse, visibleMs: MOTION_MS.reverse },
+  swap: { stepMs: MOTION_MS.reverse, visibleMs: MOTION_MS.reverse },
+  rotate: { stepMs: MOTION_MS.reverse, visibleMs: MOTION_MS.reverse },
   wheel: { stepMs: MOTION_MS.wheel, visibleMs: MOTION_MS.wheel },
   turn: { stepMs: 90, visibleMs: MOTION_MS.turn },
   uno: { stepMs: MOTION_MS.specialGap, visibleMs: MOTION_MS.uno },
@@ -204,6 +210,12 @@ export function planEffects(
         break;
       case 'directionChanged':
         specs.push({ kind: 'reverse', direction: event.direction });
+        break;
+      case 'handsSwapped':
+        specs.push({ kind: 'swap', playerId: event.playerId, targetId: event.targetId });
+        break;
+      case 'handsRotated':
+        specs.push({ kind: 'rotate', direction: event.direction });
         break;
       case 'turnChanged':
         if (event.playerId !== turnPlayerId) {

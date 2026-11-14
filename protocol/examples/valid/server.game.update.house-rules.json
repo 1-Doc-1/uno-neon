@@ -12,8 +12,7 @@
           "color": "blue",
           "rank": "7"
         },
-        "chosenColor": null,
-        "isJumpIn": false
+        "chosenColor": null
       },
       {
         "kind": "handsSwapped",
@@ -28,8 +27,7 @@
           "color": "blue",
           "rank": "0"
         },
-        "chosenColor": null,
-        "isJumpIn": false
+        "chosenColor": null
       },
       {
         "kind": "handsRotated",
@@ -43,8 +41,7 @@
           "color": "blue",
           "rank": "reverse"
         },
-        "chosenColor": null,
-        "isJumpIn": false
+        "chosenColor": null
       },
       {
         "kind": "directionChanged",
@@ -58,8 +55,7 @@
           "color": "blue",
           "rank": "skip"
         },
-        "chosenColor": null,
-        "isJumpIn": false
+        "chosenColor": null
       },
       {
         "kind": "playerSkipped",
@@ -195,7 +191,6 @@
       "round": 1,
       "settings": {
         "stacking": "official",
-        "jumpIn": true,
         "sevenZero": true,
         "drawAmount": "untilPlayable",
         "wildDrawFourMode": "officialChallenge",

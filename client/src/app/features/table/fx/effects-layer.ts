@@ -207,6 +207,7 @@ export class EffectsLayer {
         const rect = this.handRect()(cardId);
         return rect ? toBox(rect) : null;
       },
+      seatOrder: Object.keys(this.names()),
     };
   }
 

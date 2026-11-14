@@ -77,6 +77,8 @@ export interface Anchors {
   readonly box: (anchor: string) => Box | null;
   /** La dernière position connue d'une carte de ma main, même si elle vient de la quitter. */
   readonly handCard: (cardId: number) => Box | null;
+  /** Les joueurs dans l'ordre des sièges (celui du serveur) : une rotation des mains en a besoin. */
+  readonly seatOrder: readonly string[];
   readonly layer: Box;
 }
 
@@ -180,6 +182,53 @@ function placeDraw(
     kind: 'flights',
     flights,
   };
+}
+
+/** Les cartes de dos d'une main qui passe d'un siège à l'autre : quelques-unes, l'une après l'autre. */
+const HAND_FLIGHT_CARDS = 3;
+
+function handFlights(
+  effect: ActiveEffect,
+  route: readonly (readonly [string, string])[],
+  anchors: Anchors,
+): Placed | null {
+  const deck = anchors.box('deck');
+  if (!deck) {
+    return null;
+  }
+  const flightMs = Math.round(effect.durationMs * 0.55);
+  const stagger = Math.round((effect.durationMs - flightMs) / HAND_FLIGHT_CARDS);
+  const flights: Flight[] = [];
+  for (const [fromId, toId] of route) {
+    const from = seatOf(anchors, fromId);
+    const to = seatOf(anchors, toId);
+    if (!from || !to) {
+      continue;
+    }
+    for (let index = 0; index < HAND_FLIGHT_CARDS; index++) {
+      flights.push({
+        from: sizedLike(from, deck, SEAT_CARD_RATIO),
+        to: sizedLike(to, deck, SEAT_CARD_RATIO),
+        fromTilt: 0,
+        toTilt: 0,
+        delayMs: index * stagger,
+        durationMs: flightMs,
+        card: null,
+        look: 'back',
+        settle: false,
+        vanishOnLanding: true,
+      });
+    }
+  }
+  return flights.length === 0
+    ? null
+    : {
+        id: effect.id,
+        durationMs: effect.durationMs,
+        reduced: effect.reduced,
+        kind: 'flights',
+        flights,
+      };
 }
 
 /** Un effet qui vise un joueur : en grand au centre chez lui, sur son siège avec son nom chez les autres. */
@@ -320,6 +369,25 @@ export function placeEffect(effect: ActiveEffect, anchors: Anchors): Placed | nu
     case 'spotlight': {
       const seat = seatOf(anchors, spec.playerId);
       return seat && { ...base, kind: 'spotlight', at: seat };
+    }
+    case 'swap':
+      return handFlights(
+        effect,
+        [
+          [spec.playerId, spec.targetId],
+          [spec.targetId, spec.playerId],
+        ],
+        anchors,
+      );
+    case 'rotate': {
+      // Chaque main passe au siège suivant : l'indice suivant dans le sens des aiguilles (ADR 0041), comme le moteur
+      const seats = anchors.seatOrder;
+      const step = spec.direction === 'clockwise' ? 1 : seats.length - 1;
+      return handFlights(
+        effect,
+        seats.map((id, index) => [id, seats[(index + step) % seats.length] ?? id] as const),
+        anchors,
+      );
     }
     case 'reverse': {
       const table = at('table');

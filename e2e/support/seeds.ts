@@ -48,4 +48,11 @@ export const SEEDS = {
    * Bob joue en premier sur un 5 jaune, avec un +2 jaune jouable et un +4. Alice a un +2 et ni +4 ni +5.
    */
   ladderChain: 341,
+  /**
+   * Option 7-0 (ADR 0041) : Bob joue en premier sur un 2 jaune et n'a qu'un seul 7 jouable (le 7 jaune), plus un Joker.
+   * (UNO_FIND_SETTINGS='{"sevenZero":true}'.)
+   */
+  sevenFirst: 96,
+  /** Même réglage : Bob joue en premier sur un 3 rouge, avec un 0 rouge jouable. */
+  zeroFirst: 47,
 } as const;

@@ -18,6 +18,8 @@ export function soundOfEffect(spec: EffectSpec, meId: string | null): SoundId | 
     case 'skip':
       return 'skip';
     case 'reverse':
+    case 'swap':
+    case 'rotate':
       return 'reverse';
     case 'wheel':
       return 'color';

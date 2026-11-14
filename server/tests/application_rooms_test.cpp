@@ -2,6 +2,7 @@
 #include "uno/app/error_code.hpp"
 #include "uno/app/server_message.hpp"
 #include "uno/core/draw_rule.hpp"
+#include "uno/core/wild_draw_four_mode.hpp"
 
 #include "support/app_harness.hpp"
 #include "support/require.hpp"
@@ -276,7 +277,7 @@ TEST_CASE("A player already in a room cannot create or join another", "[app][roo
     REQUIRE(refusal(host.received()) == ErrorCode::AlreadyInRoom);
 }
 
-TEST_CASE("Settings given at creation are applied, house rules are refused for now", "[app][room]")
+TEST_CASE("Settings given at creation are applied, house rules included", "[app][room]")
 {
     AppHarness harness;
     auto host = harness.helloPlayer();
@@ -284,15 +285,12 @@ TEST_CASE("Settings given at creation are applied, house rules are refused for n
 
     host.send(request::CreateRoom{
         .nickname = "Léa",
-        .settings = patchOf([](RoomSettingsPatch& patch) { patch.jumpIn = true; }),
-    });
-    REQUIRE(refusal(host.received()) == ErrorCode::InvalidSettings);
-    host.send(request::CreateRoom{
-        .nickname = "Léa",
         .settings = patchOf([](RoomSettingsPatch& patch) {
             patch.turnTimer = TurnTimerSeconds::Sixty;
             patch.matchLength = uno::core::MatchLength::SingleRound;
             patch.maxPlayers = 4;
+            patch.sevenZero = true;
+            patch.wildDrawFourMode = uno::core::WildDrawFourMode::Strict;
         }),
     });
 
@@ -300,6 +298,8 @@ TEST_CASE("Settings given at creation are applied, house rules are refused for n
     REQUIRE(settings.turnTimer == TurnTimerSeconds::Sixty);
     REQUIRE(settings.matchLength == uno::core::MatchLength::SingleRound);
     REQUIRE(settings.maxPlayers == 4);
+    REQUIRE(settings.sevenZero);
+    REQUIRE(settings.wildDrawFourMode == uno::core::WildDrawFourMode::Strict);
 }
 
 TEST_CASE("Joining adds the player and tells everyone", "[app][room]")
@@ -411,8 +411,6 @@ TEST_CASE("Only the host changes settings, and only consistent ones", "[app][roo
     join(third, code, "Zoé");
     static_cast<void>(host.received());
     host.send(request::UpdateSettings{.settings = patchOf([](RoomSettingsPatch& patch) { patch.maxPlayers = 2; })});
-    REQUIRE(refusal(host.received()) == ErrorCode::InvalidSettings);
-    host.send(request::UpdateSettings{.settings = patchOf([](RoomSettingsPatch& patch) { patch.sevenZero = true; })});
     REQUIRE(refusal(host.received()) == ErrorCode::InvalidSettings);
 
     REQUIRE(guest.room().settings.maxPlayers == 3);

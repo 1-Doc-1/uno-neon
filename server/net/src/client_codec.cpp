@@ -39,10 +39,10 @@ Parsed<RoomSettingsPatch> parseSettingsPatch(const Json& value)
     ObjectReader reader(value, "settings");
     RoomSettingsPatch patch;
     patch.stacking = reader.optional<core::PenaltyStacking>("stacking", detail::parseEnum<core::PenaltyStacking>);
-    patch.jumpIn = reader.optional<bool>("jumpIn", detail::parseBool);
     patch.sevenZero = reader.optional<bool>("sevenZero", detail::parseBool);
     patch.drawAmount = reader.optional<core::DrawAmount>("drawAmount", detail::parseEnum<core::DrawAmount>);
-    patch.wildDrawFourMode = reader.optional<WildDrawFourMode>("wildDrawFourMode", detail::parseEnum<WildDrawFourMode>);
+    patch.wildDrawFourMode =
+        reader.optional<core::WildDrawFourMode>("wildDrawFourMode", detail::parseEnum<core::WildDrawFourMode>);
     patch.turnTimer = reader.optional<TurnTimerSeconds>("turnTimerSeconds", parseTurnTimer);
     patch.matchLength = reader.optional<core::MatchLength>("matchLength", detail::parseEnum<core::MatchLength>);
     patch.maxPlayers = reader.optional<std::uint8_t>("maxPlayers", parseMaxPlayers);
@@ -306,9 +306,6 @@ Json encodeSettingsPatch(const RoomSettingsPatch& patch)
     Json json = Json::object();
     if (patch.stacking) {
         json.emplace("stacking", detail::toWire(*patch.stacking));
-    }
-    if (patch.jumpIn) {
-        json.emplace("jumpIn", *patch.jumpIn);
     }
     if (patch.sevenZero) {
         json.emplace("sevenZero", *patch.sevenZero);

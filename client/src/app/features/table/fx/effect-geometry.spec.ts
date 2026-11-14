@@ -22,6 +22,7 @@ const anchors = (overrides: Partial<Anchors> = {}): Anchors => ({
   layer: { cx: 720, cy: 450, w: 1440, h: 900 },
   box: (name) => BOXES[name] ?? null,
   handCard: () => null,
+  seatOrder: ['loic', 'zoe', 'me'],
   ...overrides,
 });
 
@@ -275,5 +276,44 @@ describe('placeEffect', () => {
 
     expect(wheel).toMatchObject({ kind: 'wheel', at: { cx: 450, cy: 300 } });
     expect(wheelElsewhere).toMatchObject({ kind: 'wheel', at: { cx: 450, cy: 300 } });
+  });
+
+  it('swaps two hands: cards of their backs fly both ways between the two seats', () => {
+    const placed = placeEffect(
+      effect({ kind: 'swap', playerId: 'loic', targetId: 'zoe' }, { durationMs: 1400 }),
+      anchors(),
+    );
+
+    const flights = placed?.kind === 'flights' ? placed.flights : [];
+    expect(flights).toHaveLength(6);
+    expect(flights.every((flight) => flight.look === 'back' && flight.card === null)).toBe(true);
+    const toZoe = flights.filter((flight) => flight.to.cx === 900);
+    const toLoic = flights.filter((flight) => flight.to.cx === 150);
+    expect(toZoe).toHaveLength(3);
+    expect(toLoic).toHaveLength(3);
+    // Les cartes partent l'une après l'autre, et toutes arrivent avant la fin de l'effet
+    expect(toZoe.map((flight) => flight.delayMs)).toEqual(
+      [...toZoe.map((f) => f.delayMs)].sort((a, b) => a - b),
+    );
+    expect(Math.max(...flights.map((f) => f.delayMs + f.durationMs))).toBeLessThanOrEqual(1400);
+  });
+
+  it('rotates the hands one seat on in the direction of play, and the other way round against it', () => {
+    const clockwise = placeEffect(
+      effect({ kind: 'rotate', direction: 'clockwise' }, { durationMs: 1400 }),
+      anchors(),
+    );
+    const against = placeEffect(
+      effect({ kind: 'rotate', direction: 'counterClockwise' }, { durationMs: 1400 }),
+      anchors(),
+    );
+
+    const routes = (placed: ReturnType<typeof placeEffect>): string[] =>
+      placed?.kind === 'flights'
+        ? [...new Set(placed.flights.map((f) => `${f.from.cx}>${f.to.cx}`))]
+        : [];
+    // Ordre des sièges : Loïc (150), Zoé (900), moi (80)
+    expect(routes(clockwise)).toEqual(['150>900', '900>80', '80>150']);
+    expect(routes(against)).toEqual(['150>80', '900>150', '80>900']);
   });
 });

@@ -55,7 +55,6 @@ function viewWith(
     round: 1,
     settings: {
       stacking: 'official',
-      jumpIn: false,
       sevenZero: false,
       drawAmount: 'untilPlayable',
       wildDrawFourMode: 'officialChallenge',
@@ -281,6 +280,134 @@ describe('Table', () => {
       );
 
       expect(host.querySelector('app-uno-actions')).not.toBeNull();
+    });
+  });
+
+  describe('a 7 with the 7-0 rule', () => {
+    const seven: Card = { id: 70, color: 'red', rank: '7' };
+    const withSevenZero = (sevenZero: boolean): PlayerView['settings'] => ({
+      ...viewWith().settings,
+      sevenZero,
+    });
+    const mineToPlay = (hand: Card[] = [seven, { id: 1, color: 'blue', rank: '5' }]) => ({
+      hand,
+      playableCardIds: [70],
+    });
+    const myTurn: Partial<PlayerView> = { currentPlayerId: 'me' };
+
+    beforeEach(() => {
+      HTMLDialogElement.prototype.show = function show(): void {
+        this.setAttribute('open', '');
+      };
+    });
+
+    const click = (host: HTMLElement, selector: string, index = 0): void =>
+      host.querySelectorAll<HTMLElement>(selector)[index]?.click();
+
+    it('asks which player to swap hands with, and plays the 7 as soon as one is chosen', () => {
+      const { host, fixture } = render(
+        viewWith({ ...myTurn, settings: withSevenZero(true) }, mineToPlay()),
+      );
+
+      click(host, '.slot.playable');
+      fixture.detectChanges();
+      const picker = host.querySelector('app-target-picker');
+      expect(picker?.querySelector('dialog')?.getAttribute('aria-label')).toBe(
+        'Choisir le joueur avec qui échanger ta main',
+      );
+      expect(host.querySelector('app-color-picker')).toBeNull();
+
+      click(host, 'app-target-picker .target', 1); // Léa
+      fixture.detectChanges();
+
+      expect(transport.sent.at(-1)).toMatchObject({
+        type: 'game.playCard',
+        payload: { cardId: 70, swapTargetId: 'lea' },
+      });
+      expect(transport.sent.at(-1)).not.toHaveProperty('payload.targetId');
+      expect(host.querySelector('app-target-picker')).toBeNull();
+    });
+
+    it('also takes the player from a click on a seat of the table', () => {
+      const { host, fixture } = render(
+        viewWith({ ...myTurn, settings: withSevenZero(true) }, mineToPlay()),
+      );
+
+      click(host, '.slot.playable');
+      fixture.detectChanges();
+      click(host, 'app-opponent-seat .seat.targetable', 0); // Max
+
+      expect(transport.sent.at(-1)).toMatchObject({
+        type: 'game.playCard',
+        payload: { cardId: 70, swapTargetId: 'max' },
+      });
+    });
+
+    it('plays nothing when the choice is cancelled', () => {
+      const { host, fixture } = render(
+        viewWith({ ...myTurn, settings: withSevenZero(true) }, mineToPlay()),
+      );
+      const sent = transport.sent.length;
+
+      click(host, '.slot.playable');
+      fixture.detectChanges();
+      click(host, 'app-target-picker button[appButton]'); // Annuler
+      fixture.detectChanges();
+
+      expect(host.querySelector('app-target-picker')).toBeNull();
+      expect(transport.sent).toHaveLength(sent);
+    });
+
+    it('asks nothing for the last card, which ends the round without any swap', () => {
+      const { host, fixture } = render(
+        viewWith({ ...myTurn, settings: withSevenZero(true) }, mineToPlay([seven])),
+      );
+
+      click(host, '.slot.playable');
+      fixture.detectChanges();
+
+      expect(host.querySelector('app-target-picker')).toBeNull();
+      expect(transport.sent.at(-1)).toMatchObject({
+        type: 'game.playCard',
+        payload: { cardId: 70 },
+      });
+    });
+
+    it('asks nothing with two players: there is only one hand to take', () => {
+      const { host, fixture } = render(
+        viewWith(
+          {
+            ...myTurn,
+            settings: withSevenZero(true),
+            players: [seat('me', 'Moi', 2), seat('max', 'Max', 4)],
+          },
+          mineToPlay(),
+        ),
+      );
+
+      click(host, '.slot.playable');
+      fixture.detectChanges();
+
+      expect(host.querySelector('app-target-picker')).toBeNull();
+      expect(transport.sent.at(-1)).toMatchObject({
+        type: 'game.playCard',
+        payload: { cardId: 70 },
+      });
+    });
+
+    it('is a plain card without the rule: played at once, no player to choose', () => {
+      const { host, fixture } = render(
+        viewWith({ ...myTurn, settings: withSevenZero(false) }, mineToPlay()),
+      );
+
+      click(host, '.slot.playable');
+      fixture.detectChanges();
+
+      expect(host.querySelector('app-target-picker')).toBeNull();
+      expect(transport.sent.at(-1)).toMatchObject({
+        type: 'game.playCard',
+        payload: { cardId: 70 },
+      });
     });
   });
 

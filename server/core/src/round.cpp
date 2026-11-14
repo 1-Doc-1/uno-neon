@@ -116,6 +116,8 @@ std::expected<RoundStart, DomainError> Round::start(RoundSetup setup, RandomSour
     round.drawAmount_ = setup.drawAmount;
     round.declareUnoToWin_ = setup.declareUnoToWin;
     round.stacking_ = setup.stacking;
+    round.wildDrawFourMode_ = setup.wildDrawFourMode;
+    round.sevenZero_ = setup.sevenZero;
 
     std::vector<DomainEvent> events{RoundStarted{.dealer = dealer, .firstCard = *flipped}};
     if (flipped->rank == Rank::Wild) {
@@ -153,7 +155,30 @@ bool Round::mustDeclareUno(const PlayerId& player) const
     if (const auto* stack = std::get_if<AwaitingStackResponse>(&phase_)) {
         return canStackOn(hand.front().rank, stack->top); // the only card that can answer
     }
-    return std::holds_alternative<AwaitingPlay>(phase_) && isPlayable(hand.front(), discardPile_.top(), currentColor_);
+    return std::holds_alternative<AwaitingPlay>(phase_) && isPlayableFrom(hand, hand.front());
+}
+
+bool Round::isSpecial(const Card& card) const noexcept
+{
+    return isSpecialCard(card) || (sevenZero_ && (card.rank == Rank::Seven || card.rank == Rank::Zero));
+}
+
+bool Round::isPlayableFrom(std::span<const Card> hand, const Card& card) const
+{
+    if (!isPlayable(card, discardPile_.top(), currentColor_)) {
+        return false;
+    }
+    // ADR 0041: a Wild Draw Four is only played legally. `currentColor_` is set whenever a card can be played.
+    if (wildDrawFourMode_ == WildDrawFourMode::Strict && card.rank == Rank::WildDrawFour && currentColor_.has_value()) {
+        return isWildDrawFourLegal(hand, *currentColor_);
+    }
+    return true;
+}
+
+bool Round::canPlayCard(const PlayerId& player, const Card& card) const
+{
+    const auto seat = turnOrder_.seatOf(player);
+    return seat.has_value() && isPlayableFrom(hands_.at(*seat), card);
 }
 
 bool Round::awaitsPenaltyAnswer() const noexcept
@@ -188,9 +213,9 @@ bool Round::canDraw(const PlayerId& player) const
     }
     // Guided: drawing is for those who cannot play, or who prefer to keep a special card (ADR 0017).
     const auto& hand = hands_.at(turnOrder_.currentSeat());
-    const auto playable = [&](const Card& card) { return isPlayable(card, discardPile_.top(), currentColor_); };
+    const auto playable = [&](const Card& card) { return isPlayableFrom(hand, card); };
     return std::ranges::none_of(hand, playable) ||
-           std::ranges::any_of(hand, [&](const Card& card) { return isSpecialCard(card) && playable(card); });
+           std::ranges::any_of(hand, [&](const Card& card) { return isSpecial(card) && playable(card); });
 }
 
 bool Round::canKeepDrawnCard(const PlayerId& player) const
@@ -204,7 +229,7 @@ bool Round::canKeepDrawnCard(const PlayerId& player) const
     }
     const auto& hand = hands_.at(turnOrder_.currentSeat());
     const auto card = std::ranges::find(hand, drawn->drawnCard, &Card::id);
-    return card != hand.end() && isSpecialCard(*card);
+    return card != hand.end() && isSpecial(*card);
 }
 
 std::optional<PlayerAction> Round::forcedAction() const
@@ -219,8 +244,8 @@ std::optional<PlayerAction> Round::forcedAction() const
     }
     const auto& hand = hands_.at(turnOrder_.currentSeat());
     if (std::holds_alternative<AwaitingPlay>(phase_)) {
-        const bool nothingPlayable = std::ranges::none_of(
-            hand, [&](const Card& card) { return isPlayable(card, discardPile_.top(), currentColor_); });
+        const bool nothingPlayable =
+            std::ranges::none_of(hand, [&](const Card& card) { return isPlayableFrom(hand, card); });
         return nothingPlayable ? std::optional<PlayerAction>{DrawCard{}} : std::nullopt;
     }
     // A target with no card to answer with has no choice left but to draw (ADR 0028, 0029).
@@ -264,9 +289,21 @@ std::expected<std::vector<DomainEvent>, DomainError> Round::apply(const PlayerId
         action);
 }
 
-std::expected<void, DomainError> Round::checkTarget(const Card& card, const PlayCard& action,
-                                                    const PlayerId& actor) const
+std::expected<void, DomainError> Round::checkTarget(const Card& card, const PlayCard& action, const PlayerId& actor,
+                                                    std::size_t handSize) const
 {
+    if (sevenZero_ && card.rank == Rank::Seven) {
+        // The last card ends the round without any swap, and with two players there is only one to swap with
+        const bool targetOptional = handSize == 1 || turnOrder_.seats().size() == 2;
+        if (!action.target.has_value()) {
+            return targetOptional ? std::expected<void, DomainError>{}
+                                  : std::unexpected{DomainError::SwapTargetRequired};
+        }
+        if (*action.target == actor || !turnOrder_.seatOf(*action.target).has_value()) {
+            return std::unexpected{DomainError::SwapTargetInvalid};
+        }
+        return {};
+    }
     if (card.rank != Rank::WildDrawFive) {
         return action.target.has_value() ? std::unexpected{DomainError::TargetNotAllowed}
                                          : std::expected<void, DomainError>{};
@@ -309,13 +346,16 @@ std::expected<Card, DomainError> Round::validatePlay(const PlayerId& actor, cons
     if (isWild(card.rank) != action.chosenColor.has_value()) {
         return std::unexpected{isWild(card.rank) ? DomainError::ColorRequired : DomainError::ColorNotAllowed};
     }
-    if (const auto target = checkTarget(card, action, actor); !target) {
+    if (const auto target = checkTarget(card, action, actor, hand.size()); !target) {
         return std::unexpected{target.error()};
     }
 
     // Stacking ignores colors (ADR 0029): the card was already checked against the pending penalty.
     if (stack == nullptr && !isPlayable(card, discardPile_.top(), currentColor_)) {
         return std::unexpected{DomainError::ColorMismatch};
+    }
+    if (stack == nullptr && !isPlayableFrom(hand, card)) {
+        return std::unexpected{DomainError::WildDrawFourIllegal};
     }
     // House rule (ADR 0019): checked after the legality of the card, so that an unplayable card says why.
     if (declareUnoToWin_ && hand.size() == 1 && !unoCalled_.at(actorSeat)) {
@@ -367,7 +407,7 @@ std::expected<std::vector<DomainEvent>, DomainError> Round::applyPlayCard(const 
         turnOrder_.moveTo(penalty->target);
         phase_ = AwaitingStackResponse{.total = penalty->total, .top = card.rank};
         events.emplace_back(TurnChanged{.player = turnOrder_.current()});
-    } else if (card.rank == Rank::WildDrawFour) {
+    } else if (card.rank == Rank::WildDrawFour && wildDrawFourMode_ == WildDrawFourMode::OfficialChallenge) {
         // previousColor is only ever empty while awaiting the very first color choice (ADR 0007),
         // a phase that never accepts PlayCard: it is always set here. Same pattern as the
         // chosenColor re-check above, for the same clang-tidy reason.
@@ -382,10 +422,45 @@ std::expected<std::vector<DomainEvent>, DomainError> Round::applyPlayCard(const 
         events.emplace_back(TurnChanged{.player = turnOrder_.current()});
     } else {
         phase_ = AwaitingPlay{};
+        const bool exchanged = sevenZero_ && (card.rank == Rank::Seven || card.rank == Rank::Zero);
+        if (exchanged) {
+            exchangeHands(card, action, events);
+        }
         std::ranges::copy(resolveEffect(card.rank, random), std::back_inserter(events));
+        if (exchanged) {
+            return events; // the player holds another hand now: they did not leave themselves with one card
+        }
     }
     openUnoWindowIfNeeded(actor, actorSeat);
     return events;
+}
+
+void Round::exchangeHands(const Card& card, const PlayCard& action, std::vector<DomainEvent>& events)
+{
+    const auto forget = [this](std::size_t seat) {
+        unoCalled_.at(seat) = false;
+        closeUnoWindow(turnOrder_.seats().subspan(seat, 1).front());
+    };
+    if (card.rank == Rank::Seven) {
+        const PlayerId target = action.target.value_or(turnOrder_.next());
+        const auto mine = turnOrder_.currentSeat();
+        const auto theirs = seatOfOrThrow(turnOrder_, target);
+        std::swap(hands_.at(mine), hands_.at(theirs));
+        forget(mine);
+        forget(theirs);
+        events.emplace_back(HandsSwapped{.player = turnOrder_.current(), .target = target});
+        return;
+    }
+    // A 0: the hand of each player goes to the next one in the direction of play (with two players, a swap)
+    if (turnOrder_.direction() == Direction::Clockwise) {
+        std::ranges::rotate(hands_, hands_.end() - 1);
+    } else {
+        std::ranges::rotate(hands_, hands_.begin() + 1);
+    }
+    for (std::size_t seat = 0; seat < hands_.size(); ++seat) {
+        forget(seat);
+    }
+    events.emplace_back(HandsRotated{.direction = turnOrder_.direction()});
 }
 
 std::optional<Penalty> Round::penaltyOfPlay(const Card& card, const PlayCard& action) const
@@ -417,7 +492,9 @@ std::expected<std::vector<DomainEvent>, DomainError> Round::applyDrawCard(const 
     }
 
     const auto seat = turnOrder_.currentSeat();
-    const auto isPlayableNow = [&](const Card& card) { return isPlayable(card, discardPile_.top(), currentColor_); };
+    // Judged against the hand as it is: a drawn card of the current color makes a held Wild Draw Four illegal (ADR
+    // 0041).
+    const auto isPlayableNow = [&](const Card& card) { return isPlayableFrom(hands_.at(seat), card); };
     // ADR 0024: only a player with nothing to play keeps drawing; a voluntary draw is a single card.
     const bool untilPlayable =
         drawAmount_ == DrawAmount::UntilPlayable && std::ranges::none_of(hands_.at(seat), isPlayableNow);
@@ -718,9 +795,10 @@ std::vector<DomainEvent> Round::resolveEffect(Rank rank, RandomSource& random)
         }
         break;
     }
-    case Rank::DrawTwo: {
+    case Rank::DrawTwo:
+    case Rank::WildDrawFour: { // the second one only reaches here when nothing can be challenged (ADR 0041)
         const auto target = turnOrder_.next();
-        drawPenalty(target, kDrawTwoPenaltyCards, random, events);
+        drawPenalty(target, penaltyCards(rank), random, events);
         turnOrder_.advance();
         turnOrder_.advance();
         events.emplace_back(PlayerSkipped{.skippedPlayer = target});

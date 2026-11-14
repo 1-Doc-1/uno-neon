@@ -12,8 +12,7 @@
           "color": "yellow",
           "rank": "3"
         },
-        "chosenColor": null,
-        "isJumpIn": false
+        "chosenColor": null
       },
       {
         "kind": "roundEnded",
@@ -105,7 +104,6 @@
       "round": 1,
       "settings": {
         "stacking": "official",
-        "jumpIn": false,
         "sevenZero": false,
         "drawAmount": "untilPlayable",
         "wildDrawFourMode": "officialChallenge",

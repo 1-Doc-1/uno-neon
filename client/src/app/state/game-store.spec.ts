@@ -266,7 +266,6 @@ describe('GameStore', () => {
           phase: 'lobby',
           settings: {
             stacking: 'official',
-            jumpIn: false,
             sevenZero: false,
             drawAmount: 'untilPlayable',
             wildDrawFourMode: 'officialChallenge',

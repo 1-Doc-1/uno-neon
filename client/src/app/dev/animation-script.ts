@@ -35,7 +35,6 @@ const played = (playerId: string, played: Card, chosenColor: Color | null = null
   playerId,
   card: played,
   chosenColor,
-  isJumpIn: false,
 });
 const targeted = (playerId: string, targetId: string, total: number): ClientEvent => ({
   kind: 'plusFiveTargeted',

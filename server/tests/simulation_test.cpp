@@ -11,6 +11,7 @@
 #include "uno/core/player_view.hpp"
 #include "uno/core/scoring.hpp"
 #include "uno/core/turn_phase.hpp"
+#include "uno/core/wild_draw_four_mode.hpp"
 #include "uno/testing/environment.hpp"
 #include "uno/testing/fixtures.hpp"
 #include "uno/testing/legal_actions.hpp"
@@ -117,6 +118,19 @@ constexpr std::uint32_t kColorCount = 4;
     return (seed / 6) % 2 == 1 ? uno::core::PenaltyStacking::Ladder : uno::core::PenaltyStacking::Official;
 }
 
+// Both ways of facing a Wild Draw Four are simulated: the official challenge, and the strict mode (ADR 0041) where an
+// illegal one is refused and nothing is ever challenged.
+[[nodiscard]] uno::core::WildDrawFourMode wildDrawFourModeFor(std::uint64_t seed)
+{
+    return (seed / 11) % 2 == 1 ? uno::core::WildDrawFourMode::Strict : uno::core::WildDrawFourMode::OfficialChallenge;
+}
+
+// The 7-0 rule (ADR 0041) is on for a third of the matches: a 7 swaps two hands, a 0 moves them all.
+[[nodiscard]] bool sevenZeroFor(std::uint64_t seed)
+{
+    return (seed / 13) % 3 == 0;
+}
+
 // A random composition of the deck (ADR 0028): each special card is multiplied by one of the four allowed factors,
 // independently, so that decks from 110 to 166 cards are played, with one Wild Draw Five pair as often as ten.
 [[nodiscard]] uno::core::DeckSettings deckFor(std::uint64_t seed)
@@ -137,6 +151,8 @@ constexpr std::uint32_t kColorCount = 4;
                                     .declareUnoToWin = declareUnoToWinFor(seed),
                                     .deck = deckFor(seed),
                                     .stacking = stackingFor(seed),
+                                    .wildDrawFourMode = wildDrawFourModeFor(seed),
+                                    .sevenZero = sevenZeroFor(seed),
                                 },
                                 random);
     REQUIRE(started.has_value());
@@ -309,6 +325,9 @@ private:
         REQUIRE(view.has_value());
         requireViewLeaksNothing(round, *view, viewer);
         requireForcedActionIsAccepted(round);
+        // Strict mode: a Wild Draw Four played is always legal, so no one ever has a challenge to make (ADR 0041)
+        REQUIRE((match_.settings().wildDrawFourMode != uno::core::WildDrawFourMode::Strict ||
+                 !std::holds_alternative<uno::core::AwaitingPenaltyResponse>(round.phase())));
     }
 
     // A move the engine calls forced must be one it accepts, and only the guided draw has any (and the target of a

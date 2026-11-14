@@ -70,6 +70,8 @@ export class Lobby {
         s.drawAmount === 'untilPlayable' ? 'jusqu’à pouvoir jouer' : '1 carte'
       } · ${s.declareUnoToWin ? 'UNO obligatoire pour gagner' : 'dernière carte libre'} · ${
         s.stacking === 'ladder' ? 'pénalités cumulées (+2 < +4 < +5)' : 'pénalités sans cumul'
+      } · ${s.wildDrawFourMode === 'strict' ? 'Joker +4 strict' : 'Joker +4 contestable'}${
+        s.sevenZero ? ' · 7 et 0 : échange de mains' : ''
       }`,
       third: `Paquet de ${deckSize(s)} cartes : +2 ×${s.drawTwoMultiplier}, +4 ×${s.wildDrawFourMultiplier}, +5 ×${s.wildDrawFiveMultiplier}`,
     };

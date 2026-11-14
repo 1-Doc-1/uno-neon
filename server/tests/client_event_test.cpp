@@ -137,7 +137,6 @@ TEST_CASE("A played Wild shows its card and chosen color to everyone", "[core][c
     REQUIRE(cards.size() == 1);
     REQUIRE(cards.front().card == wildCard(0, Rank::WildDrawFour));
     REQUIRE(cards.front().chosenColor == Color::Green);
-    REQUIRE_FALSE(cards.front().isJumpIn);
     REQUIRE(eventsOfKind<ColorChosenEvent>(projected).size() == 1);
 }
 

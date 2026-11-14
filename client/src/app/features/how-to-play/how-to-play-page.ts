@@ -109,6 +109,24 @@ const HOUSE_RULES: readonly HouseRule[] = [
     example: 'Un +2 sur toi : tu pioches 2 cartes et tu passes ton tour.',
   },
   {
+    name: 'Échange de mains : 7 et 0',
+    text: 'Un 7 te fait échanger ta main avec celle du joueur de ton choix (à deux joueurs, avec l’autre). Un 0 fait passer toutes les mains au joueur suivant, dans le sens du jeu. Une dernière carte 7 ou 0 termine la manche sans rien échanger, et un 7 ou un 0 retourné au départ n’a aucun effet.',
+    example:
+      'Tu as 6 cartes, un joueur n’en a que 2 : pose un 7 et prends sa main. Tu n’as plus que 2 cartes, et lui en a 5.',
+  },
+  {
+    name: 'Joker +4 : Strict',
+    text: 'Le +4 est refusé si ta main contient une carte de la couleur courante : impossible de bluffer, donc plus rien à contester. Un +4 posé est toujours légal et se pioche tout de suite.',
+    example:
+      'La défausse est rouge et tu as un 3 rouge : ton +4 est grisé, tu joues autre chose. Sans carte rouge, tu peux le poser.',
+  },
+  {
+    name: 'Joker +4 : Contestation (par défaut)',
+    text: 'Le +4 se joue même en bluff. Celui qui le reçoit l’accepte (il pioche 4 cartes) ou le conteste : si tu bluffais, tu pioches 4 cartes ; sinon, il en pioche 6.',
+    example:
+      'Tu as un 3 rouge sur une défausse rouge et tu poses un +4 : si l’autre conteste, ton bluff est découvert.',
+  },
+  {
     name: 'Cartes +2, Jokers +4 et Jokers +5 dans le paquet (×1, ×2, ×3, ×5)',
     text: 'Multiplie le nombre de ces cartes : plus il y en a, plus les pénalités tombent.',
     example: 'Avec les Jokers +5 à ×5, le paquet en compte 10 : la partie devient très cruelle.',

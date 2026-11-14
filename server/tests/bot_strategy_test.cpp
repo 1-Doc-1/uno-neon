@@ -11,6 +11,7 @@
 #include "uno/core/player_view.hpp"
 #include "uno/core/round.hpp"
 #include "uno/core/turn_phase.hpp"
+#include "uno/core/wild_draw_four_mode.hpp"
 #include "uno/testing/fixtures.hpp"
 #include "uno/testing/legal_actions.hpp"
 #include "uno/testing/seeded_random_source.hpp"
@@ -74,6 +75,10 @@ constexpr std::size_t kViewsPerLevel = 1000;
                 .wildDrawFive = kMultipliers.at((seed / 8) % 4),
             },
         .stacking = (seed / 3) % 2 == 1 ? PenaltyStacking::Ladder : PenaltyStacking::Official,
+        // The strict Wild Draw Four (ADR 0041): the bots only get the cards the engine lets them play
+        .wildDrawFourMode = (seed / 5) % 2 == 1 ? WildDrawFourMode::Strict : WildDrawFourMode::OfficialChallenge,
+        // The 7-0 rule (ADR 0041): a bot that plays a 7 has to name the player to swap with
+        .sevenZero = (seed / 7) % 2 == 1,
     };
 }
 
@@ -113,7 +118,8 @@ TEST_CASE("Whatever the table, a bot only proposes moves the engine accepts, and
     for (std::uint64_t seed = 1; checked < kViewsPerLevel; ++seed) {
         SeededRandomSource random{seed};
         const std::size_t playerCount = 2 + (seed % 5);
-        auto started = Match::start(players(playerCount), settingsFor(seed), random);
+        const auto settings = settingsFor(seed);
+        auto started = Match::start(players(playerCount), settings, random);
         REQUIRE(started.has_value());
         auto match = std::move(started->match);
 
@@ -129,7 +135,8 @@ TEST_CASE("Whatever the table, a bot only proposes moves the engine accepts, and
                 const auto view = project(match, viewer);
                 REQUIRE(view.has_value());
                 const auto catchable = catchableBy(match.round(), viewer);
-                const auto actions = strategy->decide(BotView{.game = *view, .catchable = catchable}, botRandom);
+                const auto actions = strategy->decide(
+                    BotView{.game = *view, .catchable = catchable, .sevenZero = settings.sevenZero}, botRandom);
 
                 Match copy = match;
                 SeededRandomSource scratch{1};

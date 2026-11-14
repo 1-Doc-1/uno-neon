@@ -9,6 +9,7 @@ import type {
   RoomSettings,
   RoomSettingsPatch,
   TurnTimerSeconds,
+  WildDrawFourMode,
 } from '../../protocol/generated/protocol';
 import { SegmentOption, Segmented } from '../../ui/segmented';
 import { deckSize } from './deck-size';
@@ -43,6 +44,18 @@ const DRAW_AMOUNTS: readonly SegmentOption<DrawAmount>[] = [
 const STACKINGS: readonly SegmentOption<PenaltyStacking>[] = [
   { value: 'official', label: 'Sans cumul' },
   { value: 'ladder', label: 'Échelle' },
+];
+
+const WILD_DRAW_FOUR_MODES: readonly SegmentOption<WildDrawFourMode>[] = [
+  { value: 'officialChallenge', label: 'Contestation' },
+  { value: 'strict', label: 'Strict' },
+];
+
+type SevenZeroRule = 'off' | 'on';
+
+const SEVEN_ZERO_OPTIONS: readonly SegmentOption<SevenZeroRule>[] = [
+  { value: 'off', label: 'Sans' },
+  { value: 'on', label: '7 et 0' },
 ];
 
 const MULTIPLIERS: readonly SegmentOption<CardMultiplier>[] = [
@@ -88,12 +101,22 @@ export class GameSettings {
   protected readonly drawAmounts = DRAW_AMOUNTS;
   protected readonly lastCardRules = LAST_CARD_RULES;
   protected readonly stackings = STACKINGS;
+  protected readonly wildDrawFourModes = WILD_DRAW_FOUR_MODES;
+  protected readonly sevenZeroOptions = SEVEN_ZERO_OPTIONS;
   protected readonly multipliers = MULTIPLIERS;
 
   protected readonly deckCards = computed(() => deckSize(this.settings()));
 
   protected lastCardRule(): LastCardRule {
     return this.settings().declareUnoToWin ? 'declare' : 'free';
+  }
+
+  protected sevenZeroRule(): SevenZeroRule {
+    return this.settings().sevenZero ? 'on' : 'off';
+  }
+
+  protected setSevenZeroRule(rule: SevenZeroRule): void {
+    this.changed.emit({ sevenZero: rule === 'on' });
   }
 
   protected setLastCardRule(rule: LastCardRule): void {

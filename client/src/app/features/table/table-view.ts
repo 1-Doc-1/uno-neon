@@ -51,6 +51,8 @@ export interface CardPlay {
   readonly color?: Color;
   /** Le joueur visé par un Joker +5. */
   readonly targetId?: string;
+  /** Le joueur dont un 7 prend la main (option 7-0). */
+  readonly swapTargetId?: string;
 }
 
 /**
@@ -119,6 +121,8 @@ export class TableView {
   protected readonly pendingWild = signal<number | null>(null);
   /** Joker +5 choisi dans la main, en attente de sa cible. */
   protected readonly pendingTarget = signal<number | null>(null);
+  /** Un 7 est choisi (option 7-0) : on attend le joueur dont il prendra la main. */
+  protected readonly pendingSwap = signal<number | null>(null);
   /** La cible déjà choisie du Joker +5 qui attend sa couleur. */
   private readonly chosenTarget = signal<string | null>(null);
   /**
@@ -357,6 +361,8 @@ export class TableView {
     const card = this.view().me.hand.find((c) => c.id === cardId);
     if (card?.rank === 'wildDrawFive') {
       this.pendingTarget.set(cardId);
+    } else if (card?.rank === '7' && this.mustChooseSwapTarget()) {
+      this.pendingSwap.set(cardId);
     } else if (card?.color === null) {
       this.pendingWild.set(cardId);
     } else {
@@ -364,8 +370,26 @@ export class TableView {
     }
   }
 
-  /** La cible du Joker +5 est choisie (dans la liste ou sur un siège) : reste sa couleur. */
+  /**
+   * Avec l'option 7-0, un 7 se pose en nommant le joueur dont on prend la main, sauf à deux joueurs (il n'y a pas le choix)
+   * ou pour sa dernière carte (la manche s'arrête, rien ne s'échange) : le serveur ne demande alors rien.
+   */
+  private mustChooseSwapTarget(): boolean {
+    return (
+      this.view().settings.sevenZero &&
+      this.view().me.hand.length > 1 &&
+      this.view().players.length > 2
+    );
+  }
+
+  /** La cible est choisie (dans la liste ou sur un siège) : un 7 se joue tout de suite, un Joker +5 demande encore sa couleur. */
   protected chooseTarget(playerId: string): void {
+    const swapCardId = this.pendingSwap();
+    if (swapCardId !== null) {
+      this.cancelPlay();
+      this.cardPlayed.emit({ cardId: swapCardId, swapTargetId: playerId });
+      return;
+    }
     const cardId = this.pendingTarget();
     if (cardId === null) {
       return;
@@ -377,6 +401,7 @@ export class TableView {
 
   protected cancelPlay(): void {
     this.pendingTarget.set(null);
+    this.pendingSwap.set(null);
     this.pendingWild.set(null);
     this.chosenTarget.set(null);
   }

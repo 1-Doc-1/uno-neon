@@ -6,7 +6,6 @@ import type { RoomSettings } from '../../protocol/generated/protocol';
  */
 export const DEFAULT_SETTINGS: RoomSettings = {
   stacking: 'official',
-  jumpIn: false,
   sevenZero: false,
   drawAmount: 'untilPlayable',
   wildDrawFourMode: 'officialChallenge',

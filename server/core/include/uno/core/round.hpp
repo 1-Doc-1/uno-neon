@@ -12,6 +12,7 @@
 #include "uno/core/random_source.hpp"
 #include "uno/core/turn_order.hpp"
 #include "uno/core/turn_phase.hpp"
+#include "uno/core/wild_draw_four_mode.hpp"
 
 #include <cstddef>
 #include <expected>
@@ -41,6 +42,8 @@ struct RoundSetup {
     DrawAmount drawAmount{DrawAmount::One};              // ADR 0024
     bool declareUnoToWin{false};                         // house rule (ADR 0019): the last card needs an announcement
     PenaltyStacking stacking{PenaltyStacking::Official}; // house rule (ADR 0029)
+    WildDrawFourMode wildDrawFourMode{WildDrawFourMode::OfficialChallenge}; // house rule (ADR 0041)
+    bool sevenZero{false};                                                  // house rule (ADR 0041)
 };
 
 // Round::start returns one of these; defined below the class, since it holds a Round by value.
@@ -86,6 +89,16 @@ public:
     [[nodiscard]] DrawAmount drawAmount() const noexcept { return drawAmount_; }
     [[nodiscard]] bool declareUnoToWin() const noexcept { return declareUnoToWin_; }
     [[nodiscard]] PenaltyStacking stacking() const noexcept { return stacking_; }
+    [[nodiscard]] WildDrawFourMode wildDrawFourMode() const noexcept { return wildDrawFourMode_; }
+    [[nodiscard]] bool sevenZero() const noexcept { return sevenZero_; }
+    // The cards that change the game, for the guided draw (ADR 0017): the Draw Two and the Wilds, and with sevenZero
+    // the 7 (it needs a player to swap with) and the 0 (it moves every hand), which are then never played for the
+    // player.
+    [[nodiscard]] bool isSpecial(const Card& card) const noexcept;
+    // Whether `player` could put `card`, from their hand, on the discard pile as things stand (the phase aside): it
+    // matches the top card or the current color, and with the strict Wild Draw Four (ADR 0041) a Wild Draw Four also
+    // needs a hand without a card of the current color. A card answering a pending penalty follows canStackOn instead.
+    [[nodiscard]] bool canPlayCard(const PlayerId& player, const Card& card) const;
     // Whether `player` is stuck on their last card for want of an announcement (ADR 0019): the house rule is on, it is
     // their turn to play, they hold one card that could be played, and they have not announced UNO. They can only
     // CallUno. Never a reason to draw: the card is playable, so neither the guided draw nor forcedAction() moves on.
@@ -121,11 +134,18 @@ public:
 private:
     Round(TurnOrder turnOrder, PlayerId dealer, std::vector<Hand> hands, DrawPile drawPile, DiscardPile discardPile);
 
+    // canPlayCard() for a hand already in hand: nothing is looked up.
+    [[nodiscard]] bool isPlayableFrom(std::span<const Card> hand, const Card& card) const;
     // Every check of a PlayCard, in the order of the errors: the card the action would play, or why it cannot.
     [[nodiscard]] std::expected<Card, DomainError> validatePlay(const PlayerId& actor, const PlayCard& action) const;
-    // The target a Wild Draw Five needs (and that any other card refuses): a seated player other than `actor`.
+    // The target a Wild Draw Five or, with sevenZero, a 7 needs (and that any other card refuses): a seated player
+    // other than `actor`. A 7 played as the last card, or in a round of two, needs none (ADR 0041).
     [[nodiscard]] std::expected<void, DomainError> checkTarget(const Card& card, const PlayCard& action,
-                                                               const PlayerId& actor) const;
+                                                               const PlayerId& actor, std::size_t handSize) const;
+    // sevenZero: the 7 played by the current player swaps their hand with the target (the only other player in a round
+    // of two), the 0 moves every hand one seat in the direction of play. Nobody keeps an announcement, nor a UNO
+    // window, for a hand they no longer hold.
+    void exchangeHands(const Card& card, const PlayCard& action, std::vector<DomainEvent>& events);
     [[nodiscard]] std::expected<std::vector<DomainEvent>, DomainError>
     applyPlayCard(const PlayerId& actor, const PlayCard& action, RandomSource& random);
     // The penalty `card` inflicts once played on what is already owed: nothing for a card that is not a penalty card.
@@ -173,6 +193,8 @@ private:
     TurnOrder turnOrder_;
     PlayerId dealer_;
     PenaltyStacking stacking_{PenaltyStacking::Official};
+    WildDrawFourMode wildDrawFourMode_{WildDrawFourMode::OfficialChallenge};
+    bool sevenZero_{false};
     DrawRule drawRule_{DrawRule::Official};
     DrawAmount drawAmount_{DrawAmount::One};
     bool declareUnoToWin_{false};

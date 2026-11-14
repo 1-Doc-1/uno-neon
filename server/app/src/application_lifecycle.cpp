@@ -48,9 +48,8 @@ void playFirstPlayableCard(core::Match& match, const core::PlayerId& actor, core
     if (!hand) {
         return;
     }
-    const auto playable = std::ranges::find_if(*hand, [&round](const core::Card& card) {
-        return core::isPlayable(card, round.discardPile().top(), round.currentColor());
-    });
+    const auto playable = std::ranges::find_if(
+        *hand, [&round, &actor](const core::Card& card) { return round.canPlayCard(actor, card); });
     if (playable != hand->end()) {
         // House rule (ADR 0019): the last card needs an announcement, which the server makes on the player's behalf
         // like the rest of their forced move.
@@ -273,6 +272,8 @@ std::chrono::milliseconds Application::presentationBudgetOf(std::span<const core
                            turnAction = true;
                        },
                        [&](const core::UnoCaught&) { budget += pace.effectStep; },
+                       [&](const core::HandsSwapped&) { budget += pace.effectStep; },
+                       [&](const core::HandsRotated&) { budget += pace.effectStep; },
                        [](const core::RoundStarted&) {},
                        [](const core::DeckReshuffled&) {},
                        [&](const core::TurnPassed&) { turnAction = true; },
@@ -422,7 +423,8 @@ bool Application::playBot(Room& room, const Member& bot)
         }
     }
     const auto actions =
-        makeBotStrategy(bot.botLevel)->decide(BotView{.game = *view, .catchable = catchable}, *random_);
+        makeBotStrategy(bot.botLevel)
+            ->decide(BotView{.game = *view, .catchable = catchable, .sevenZero = room.settings.sevenZero}, *random_);
     if (actions.empty()) {
         return false;
     }

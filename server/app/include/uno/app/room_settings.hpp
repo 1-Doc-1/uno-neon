@@ -5,6 +5,7 @@
 #include "uno/core/draw_rule.hpp"
 #include "uno/core/match.hpp"
 #include "uno/core/penalty_stacking.hpp"
+#include "uno/core/wild_draw_four_mode.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -13,7 +14,6 @@
 
 namespace uno::app {
 
-enum class WildDrawFourMode : std::uint8_t { OfficialChallenge, Strict };
 enum class TurnTimerSeconds : std::uint8_t { Off = 0, Fifteen = 15, Thirty = 30, Sixty = 60 };
 
 // ADR 0035: how long the table takes to show what happened. Fast halves the animations and, with them, every pause the
@@ -26,10 +26,9 @@ inline constexpr std::uint8_t kMaxRoomPlayers = 10;
 // House rules chosen by the host (SPEC §4, protocol `RoomSettings`).
 struct RoomSettings {
     core::PenaltyStacking stacking{core::PenaltyStacking::Official}; // ADR 0029
-    bool jumpIn{false};
     bool sevenZero{false};
-    core::DrawAmount drawAmount{core::DrawAmount::UntilPlayable}; // ADR 0024
-    WildDrawFourMode wildDrawFourMode{WildDrawFourMode::OfficialChallenge};
+    core::DrawAmount drawAmount{core::DrawAmount::UntilPlayable};                       // ADR 0024
+    core::WildDrawFourMode wildDrawFourMode{core::WildDrawFourMode::OfficialChallenge}; // ADR 0041
     TurnTimerSeconds turnTimer{TurnTimerSeconds::Thirty};
     core::MatchLength matchLength{core::MatchLength::To500};
     std::uint8_t maxPlayers{6};
@@ -56,10 +55,9 @@ struct RoomSettings {
 // Partial settings: only the fields to change (protocol `RoomSettingsPatch`).
 struct RoomSettingsPatch {
     std::optional<core::PenaltyStacking> stacking;
-    std::optional<bool> jumpIn;
     std::optional<bool> sevenZero;
     std::optional<core::DrawAmount> drawAmount;
-    std::optional<WildDrawFourMode> wildDrawFourMode;
+    std::optional<core::WildDrawFourMode> wildDrawFourMode;
     std::optional<TurnTimerSeconds> turnTimer;
     std::optional<core::MatchLength> matchLength;
     std::optional<std::uint8_t> maxPlayers;
@@ -74,7 +72,7 @@ struct RoomSettingsPatch {
 };
 
 // Why these settings cannot be used by a room of `memberCount` members, or nothing when they can: a
-// maxPlayers below the number of members, or a house rule the engine does not implement yet (step 1.6).
+// maxPlayers below the number of members.
 [[nodiscard]] std::optional<std::string> settingsProblem(const RoomSettings& settings, std::size_t memberCount);
 
 [[nodiscard]] RoomSettings applyPatch(RoomSettings settings, const RoomSettingsPatch& patch) noexcept;

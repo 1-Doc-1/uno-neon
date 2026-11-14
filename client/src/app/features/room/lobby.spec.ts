@@ -28,7 +28,6 @@ function roomOf(players: RoomMember[]): RoomView {
     phase: 'lobby',
     settings: {
       stacking: 'official',
-      jumpIn: false,
       sevenZero: false,
       drawAmount: 'untilPlayable',
       wildDrawFourMode: 'officialChallenge',
@@ -149,6 +148,34 @@ describe('Lobby', () => {
       ),
     ).toEqual(['×1', '×2', '×3', '×5']);
     expect(host.textContent).toContain('Paquet de 110 cartes');
+  });
+
+  it('lets the host choose the strict Wild Draw Four, and tells a guest which one is played', () => {
+    const { host } = render('lea', [
+      member('lea', 'Léa', { isHost: true }),
+      member('loic', 'Loïc'),
+    ]);
+    const strict = Array.from(
+      host.querySelectorAll<HTMLButtonElement>('[aria-label="Joker +4"] button'),
+    ).find((b) => b.textContent?.trim() === 'Strict');
+
+    expect(host.textContent).toContain('celui qui le reçoit peut le contester');
+    strict?.click();
+
+    expect(transport.sent.at(-1)).toMatchObject({
+      type: 'room.updateSettings',
+      payload: { settings: { wildDrawFourMode: 'strict' } },
+    });
+  });
+
+  it('tells a guest that the Wild Draw Four can be challenged, without a control to change it', () => {
+    const { host } = render('loic', [
+      member('lea', 'Léa', { isHost: true }),
+      member('loic', 'Loïc'),
+    ]);
+
+    expect(host.textContent).toContain('Joker +4 contestable');
+    expect(host.querySelector('[aria-label="Joker +4"]')).toBeNull();
   });
 
   it('shows a guest the composition of the deck without letting them change it', () => {

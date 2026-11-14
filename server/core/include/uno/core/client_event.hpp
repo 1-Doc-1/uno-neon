@@ -30,7 +30,6 @@ struct CardPlayedEvent {
     PlayerId playerId;
     Card card; // public from the moment it is played
     std::optional<Color> chosenColor;
-    bool isJumpIn{};
 
     bool operator==(const CardPlayedEvent&) const = default;
 };

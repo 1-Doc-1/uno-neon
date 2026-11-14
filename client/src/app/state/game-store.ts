@@ -280,11 +280,18 @@ export class GameStore {
   // ---- Partie ----
 
   /** Poser une carte : un Joker porte sa couleur, un Joker +5 aussi la cible qu'il vise. */
-  playCard(cardId: number, chosenColor?: Color, targetId?: string): Promise<boolean> {
+  /** `targetId` : la cible d'un Joker +5 ; `swapTargetId` : le joueur dont un 7 prend la main (option 7-0). */
+  playCard(
+    cardId: number,
+    chosenColor?: Color,
+    targetId?: string,
+    swapTargetId?: string,
+  ): Promise<boolean> {
     return this.request('game.playCard', {
       cardId,
       ...(chosenColor ? { chosenColor } : {}),
       ...(targetId ? { targetId } : {}),
+      ...(swapTargetId ? { swapTargetId } : {}),
     });
   }
 

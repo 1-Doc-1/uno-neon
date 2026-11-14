@@ -10,6 +10,7 @@
 #include "uno/core/player_id.hpp"
 #include "uno/core/random_source.hpp"
 #include "uno/core/round.hpp"
+#include "uno/core/wild_draw_four_mode.hpp"
 
 #include <cstdint>
 #include <expected>
@@ -42,6 +43,8 @@ struct MatchSettings {
     bool declareUnoToWin{false};                         // ADR 0019
     DeckSettings deck{};                                 // ADR 0028: how many of the special cards the deck holds
     PenaltyStacking stacking{PenaltyStacking::Official}; // ADR 0029
+    WildDrawFourMode wildDrawFourMode{WildDrawFourMode::OfficialChallenge}; // ADR 0041
+    bool sevenZero{false};                                                  // ADR 0041: 7 swaps hands, 0 rotates them
 
     [[nodiscard]] bool operator==(const MatchSettings&) const = default;
 };

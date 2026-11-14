@@ -38,6 +38,8 @@ namespace {
             .drawAmount = settings.drawAmount,
             .declareUnoToWin = settings.declareUnoToWin,
             .stacking = settings.stacking,
+            .wildDrawFourMode = settings.wildDrawFourMode,
+            .sevenZero = settings.sevenZero,
         },
         random);
 }

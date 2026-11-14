@@ -60,9 +60,10 @@ struct EventEncoder {
     Json operator()(const CardPlayedEvent& event) const
     {
         return Json{
-            {"kind", "cardPlayed"},           {"playerId", event.playerId.value},
-            {"card", encodeCard(event.card)}, {"chosenColor", encodeColorOrNull(event.chosenColor)},
-            {"isJumpIn", event.isJumpIn},
+            {"kind", "cardPlayed"},
+            {"playerId", event.playerId.value},
+            {"card", encodeCard(event.card)},
+            {"chosenColor", encodeColorOrNull(event.chosenColor)},
         };
     }
     Json operator()(const CardsDrawnEvent& event) const
@@ -402,7 +403,6 @@ Parsed<ClientEvent> parseCardPlayed(const Json& value)
     event.playerId = reader.required<PlayerId>("playerId", parsePlayerId);
     event.card = reader.required<Card>("card", parseCard);
     event.chosenColor = reader.required<std::optional<Color>>("chosenColor", parseColorOrNull);
-    event.isJumpIn = reader.required<bool>("isJumpIn", parseBool);
     if (auto finished = reader.finish(); !finished) {
         return std::unexpected(finished.error());
     }
@@ -758,7 +758,6 @@ Json encodeSettings(const RoomSettings& settings)
 {
     return Json{
         {"stacking", toWire(settings.stacking)},
-        {"jumpIn", settings.jumpIn},
         {"sevenZero", settings.sevenZero},
         {"drawAmount", toWire(settings.drawAmount)},
         {"wildDrawFourMode", toWire(settings.wildDrawFourMode)},
@@ -779,10 +778,10 @@ Parsed<RoomSettings> parseSettings(const Json& value)
     ObjectReader reader(value, "settings");
     RoomSettings settings;
     settings.stacking = reader.required<core::PenaltyStacking>("stacking", parseEnum<core::PenaltyStacking>);
-    settings.jumpIn = reader.required<bool>("jumpIn", parseBool);
     settings.sevenZero = reader.required<bool>("sevenZero", parseBool);
     settings.drawAmount = reader.required<core::DrawAmount>("drawAmount", parseEnum<core::DrawAmount>);
-    settings.wildDrawFourMode = reader.required<WildDrawFourMode>("wildDrawFourMode", parseEnum<WildDrawFourMode>);
+    settings.wildDrawFourMode =
+        reader.required<core::WildDrawFourMode>("wildDrawFourMode", parseEnum<core::WildDrawFourMode>);
     settings.turnTimer = reader.required<TurnTimerSeconds>("turnTimerSeconds", parseTurnTimer);
     settings.matchLength = reader.required<MatchLength>("matchLength", parseEnum<MatchLength>);
     settings.maxPlayers = reader.required<std::uint8_t>("maxPlayers", parseMaxPlayers);
