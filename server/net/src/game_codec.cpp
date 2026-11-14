@@ -778,7 +778,7 @@ Parsed<RoomSettings> parseSettings(const Json& value)
     settings.stacking = reader.required<core::PenaltyStacking>("stacking", parseEnum<core::PenaltyStacking>);
     settings.sevenZero = reader.required<bool>("sevenZero", parseBool);
     settings.drawAmount = reader.required<core::DrawAmount>("drawAmount", parseEnum<core::DrawAmount>);
-    settings.wildDrawFourMode = reader.required<WildDrawFourMode>("wildDrawFourMode", parseEnum<WildDrawFourMode>);
+    settings.wildDrawFourMode = reader.required<core::WildDrawFourMode>("wildDrawFourMode", parseEnum<core::WildDrawFourMode>);
     settings.turnTimer = reader.required<TurnTimerSeconds>("turnTimerSeconds", parseTurnTimer);
     settings.matchLength = reader.required<MatchLength>("matchLength", parseEnum<MatchLength>);
     settings.maxPlayers = reader.required<std::uint8_t>("maxPlayers", parseMaxPlayers);

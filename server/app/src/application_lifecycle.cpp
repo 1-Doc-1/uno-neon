@@ -48,9 +48,8 @@ void playFirstPlayableCard(core::Match& match, const core::PlayerId& actor, core
     if (!hand) {
         return;
     }
-    const auto playable = std::ranges::find_if(*hand, [&round](const core::Card& card) {
-        return core::isPlayable(card, round.discardPile().top(), round.currentColor());
-    });
+    const auto playable = std::ranges::find_if(
+        *hand, [&round, &actor](const core::Card& card) { return round.canPlayCard(actor, card); });
     if (playable != hand->end()) {
         // House rule (ADR 0019): the last card needs an announcement, which the server makes on the player's behalf
         // like the rest of their forced move.

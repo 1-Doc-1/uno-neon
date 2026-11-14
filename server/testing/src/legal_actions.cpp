@@ -42,7 +42,7 @@ void addPlayableCards(const core::Round& round, std::vector<core::PlayerAction>&
     const auto hand = round.hand(round.currentPlayer());
     REQUIRE(hand.has_value());
     for (const auto& card : *hand) {
-        if (core::isPlayable(card, round.discardPile().top(), round.currentColor())) {
+        if (round.canPlayCard(round.currentPlayer(), card)) {
             addPlaysOf(round, card, actions);
         }
     }

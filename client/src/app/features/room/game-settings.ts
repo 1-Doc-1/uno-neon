@@ -9,6 +9,7 @@ import type {
   RoomSettings,
   RoomSettingsPatch,
   TurnTimerSeconds,
+  WildDrawFourMode,
 } from '../../protocol/generated/protocol';
 import { SegmentOption, Segmented } from '../../ui/segmented';
 import { deckSize } from './deck-size';
@@ -43,6 +44,11 @@ const DRAW_AMOUNTS: readonly SegmentOption<DrawAmount>[] = [
 const STACKINGS: readonly SegmentOption<PenaltyStacking>[] = [
   { value: 'official', label: 'Sans cumul' },
   { value: 'ladder', label: 'Échelle' },
+];
+
+const WILD_DRAW_FOUR_MODES: readonly SegmentOption<WildDrawFourMode>[] = [
+  { value: 'officialChallenge', label: 'Contestation' },
+  { value: 'strict', label: 'Strict' },
 ];
 
 const MULTIPLIERS: readonly SegmentOption<CardMultiplier>[] = [
@@ -88,6 +94,7 @@ export class GameSettings {
   protected readonly drawAmounts = DRAW_AMOUNTS;
   protected readonly lastCardRules = LAST_CARD_RULES;
   protected readonly stackings = STACKINGS;
+  protected readonly wildDrawFourModes = WILD_DRAW_FOUR_MODES;
   protected readonly multipliers = MULTIPLIERS;
 
   protected readonly deckCards = computed(() => deckSize(this.settings()));

@@ -6,6 +6,7 @@
 #include "uno/core/draw_rule.hpp"
 #include "uno/core/match.hpp"
 #include "uno/core/penalty_stacking.hpp"
+#include "uno/core/wild_draw_four_mode.hpp"
 #include "uno/core/player_action.hpp"
 #include "uno/core/player_id.hpp"
 #include "uno/core/player_view.hpp"
@@ -74,6 +75,8 @@ constexpr std::size_t kViewsPerLevel = 1000;
                 .wildDrawFive = kMultipliers.at((seed / 8) % 4),
             },
         .stacking = (seed / 3) % 2 == 1 ? PenaltyStacking::Ladder : PenaltyStacking::Official,
+        // The strict Wild Draw Four (ADR 0041): the bots only get the cards the engine lets them play
+        .wildDrawFourMode = (seed / 5) % 2 == 1 ? WildDrawFourMode::Strict : WildDrawFourMode::OfficialChallenge,
     };
 }
 

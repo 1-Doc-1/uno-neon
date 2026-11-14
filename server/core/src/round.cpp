@@ -116,6 +116,7 @@ std::expected<RoundStart, DomainError> Round::start(RoundSetup setup, RandomSour
     round.drawAmount_ = setup.drawAmount;
     round.declareUnoToWin_ = setup.declareUnoToWin;
     round.stacking_ = setup.stacking;
+    round.wildDrawFourMode_ = setup.wildDrawFourMode;
 
     std::vector<DomainEvent> events{RoundStarted{.dealer = dealer, .firstCard = *flipped}};
     if (flipped->rank == Rank::Wild) {
@@ -153,7 +154,25 @@ bool Round::mustDeclareUno(const PlayerId& player) const
     if (const auto* stack = std::get_if<AwaitingStackResponse>(&phase_)) {
         return canStackOn(hand.front().rank, stack->top); // the only card that can answer
     }
-    return std::holds_alternative<AwaitingPlay>(phase_) && isPlayable(hand.front(), discardPile_.top(), currentColor_);
+    return std::holds_alternative<AwaitingPlay>(phase_) && isPlayableFrom(hand, hand.front());
+}
+
+bool Round::isPlayableFrom(std::span<const Card> hand, const Card& card) const
+{
+    if (!isPlayable(card, discardPile_.top(), currentColor_)) {
+        return false;
+    }
+    // ADR 0041: a Wild Draw Four is only played legally. `currentColor_` is set whenever a card can be played.
+    if (wildDrawFourMode_ == WildDrawFourMode::Strict && card.rank == Rank::WildDrawFour && currentColor_.has_value()) {
+        return isWildDrawFourLegal(hand, *currentColor_);
+    }
+    return true;
+}
+
+bool Round::canPlayCard(const PlayerId& player, const Card& card) const
+{
+    const auto seat = turnOrder_.seatOf(player);
+    return seat.has_value() && isPlayableFrom(hands_.at(*seat), card);
 }
 
 bool Round::awaitsPenaltyAnswer() const noexcept
@@ -188,7 +207,7 @@ bool Round::canDraw(const PlayerId& player) const
     }
     // Guided: drawing is for those who cannot play, or who prefer to keep a special card (ADR 0017).
     const auto& hand = hands_.at(turnOrder_.currentSeat());
-    const auto playable = [&](const Card& card) { return isPlayable(card, discardPile_.top(), currentColor_); };
+    const auto playable = [&](const Card& card) { return isPlayableFrom(hand, card); };
     return std::ranges::none_of(hand, playable) ||
            std::ranges::any_of(hand, [&](const Card& card) { return isSpecialCard(card) && playable(card); });
 }
@@ -219,8 +238,8 @@ std::optional<PlayerAction> Round::forcedAction() const
     }
     const auto& hand = hands_.at(turnOrder_.currentSeat());
     if (std::holds_alternative<AwaitingPlay>(phase_)) {
-        const bool nothingPlayable = std::ranges::none_of(
-            hand, [&](const Card& card) { return isPlayable(card, discardPile_.top(), currentColor_); });
+        const bool nothingPlayable =
+            std::ranges::none_of(hand, [&](const Card& card) { return isPlayableFrom(hand, card); });
         return nothingPlayable ? std::optional<PlayerAction>{DrawCard{}} : std::nullopt;
     }
     // A target with no card to answer with has no choice left but to draw (ADR 0028, 0029).
@@ -317,6 +336,9 @@ std::expected<Card, DomainError> Round::validatePlay(const PlayerId& actor, cons
     if (stack == nullptr && !isPlayable(card, discardPile_.top(), currentColor_)) {
         return std::unexpected{DomainError::ColorMismatch};
     }
+    if (stack == nullptr && !isPlayableFrom(hand, card)) {
+        return std::unexpected{DomainError::WildDrawFourIllegal};
+    }
     // House rule (ADR 0019): checked after the legality of the card, so that an unplayable card says why.
     if (declareUnoToWin_ && hand.size() == 1 && !unoCalled_.at(actorSeat)) {
         return std::unexpected{DomainError::MustDeclareUno};
@@ -367,7 +389,7 @@ std::expected<std::vector<DomainEvent>, DomainError> Round::applyPlayCard(const 
         turnOrder_.moveTo(penalty->target);
         phase_ = AwaitingStackResponse{.total = penalty->total, .top = card.rank};
         events.emplace_back(TurnChanged{.player = turnOrder_.current()});
-    } else if (card.rank == Rank::WildDrawFour) {
+    } else if (card.rank == Rank::WildDrawFour && wildDrawFourMode_ == WildDrawFourMode::OfficialChallenge) {
         // previousColor is only ever empty while awaiting the very first color choice (ADR 0007),
         // a phase that never accepts PlayCard: it is always set here. Same pattern as the
         // chosenColor re-check above, for the same clang-tidy reason.
@@ -417,7 +439,8 @@ std::expected<std::vector<DomainEvent>, DomainError> Round::applyDrawCard(const 
     }
 
     const auto seat = turnOrder_.currentSeat();
-    const auto isPlayableNow = [&](const Card& card) { return isPlayable(card, discardPile_.top(), currentColor_); };
+    // Judged against the hand as it is: a drawn card of the current color makes a held Wild Draw Four illegal (ADR 0041).
+    const auto isPlayableNow = [&](const Card& card) { return isPlayableFrom(hands_.at(seat), card); };
     // ADR 0024: only a player with nothing to play keeps drawing; a voluntary draw is a single card.
     const bool untilPlayable =
         drawAmount_ == DrawAmount::UntilPlayable && std::ranges::none_of(hands_.at(seat), isPlayableNow);
@@ -718,9 +741,10 @@ std::vector<DomainEvent> Round::resolveEffect(Rank rank, RandomSource& random)
         }
         break;
     }
-    case Rank::DrawTwo: {
+    case Rank::DrawTwo:
+    case Rank::WildDrawFour: { // the second one only reaches here when nothing can be challenged (ADR 0041)
         const auto target = turnOrder_.next();
-        drawPenalty(target, kDrawTwoPenaltyCards, random, events);
+        drawPenalty(target, penaltyCards(rank), random, events);
         turnOrder_.advance();
         turnOrder_.advance();
         events.emplace_back(PlayerSkipped{.skippedPlayer = target});

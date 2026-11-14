@@ -102,6 +102,23 @@
   </p>
 </div>
 <div class="setting">
+  <span class="setting-label">Joker +4</span>
+  <app-segmented
+    label="Joker +4"
+    [options]="wildDrawFourModes"
+    [value]="settings().wildDrawFourMode"
+    (selected)="changed.emit({ wildDrawFourMode: $event })"
+  />
+  <p class="hint">
+    @if (settings().wildDrawFourMode === 'strict') {
+      Le +4 est refusé si ta main contient une carte de la couleur courante : on ne peut pas
+      bluffer, donc il n’y a rien à contester.
+    } @else {
+      Le +4 se joue même en bluff, et celui qui le reçoit peut le contester.
+    }
+  </p>
+</div>
+<div class="setting">
   <span class="setting-label">Cartes +2 dans le paquet</span>
   <app-segmented
     label="Nombre de cartes +2"

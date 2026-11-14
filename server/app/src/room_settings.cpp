@@ -51,8 +51,7 @@ std::optional<std::string> settingsProblem(const RoomSettings& settings, std::si
     if (settings.maxPlayers < memberCount) {
         return "maxPlayers is below the number of players in the room";
     }
-    const RoomSettings defaults;
-    if (settings.sevenZero || settings.wildDrawFourMode != defaults.wildDrawFourMode) {
+    if (settings.sevenZero) {
         return "house rules are not available yet";
     }
     return std::nullopt;

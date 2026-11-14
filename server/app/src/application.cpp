@@ -584,6 +584,7 @@ Application::Outcome Application::startMatch(Room& room)
                                           .declareUnoToWin = room.settings.declareUnoToWin,
                                           .deck = room.settings.deck(),
                                           .stacking = room.settings.stacking,
+                                          .wildDrawFourMode = room.settings.wildDrawFourMode,
                                       },
                                       *random_);
     if (!started) {
@@ -781,6 +782,9 @@ Application::Outcome Application::applyPlayerAction(Room& current, const core::P
         case core::DomainError::NotStackable:
             return fail(ErrorCode::IllegalMove, "This card is weaker than the pending penalty",
                         IllegalMoveReason::CannotStack);
+        case core::DomainError::WildDrawFourIllegal:
+            return fail(ErrorCode::IllegalMove, "A Wild Draw Four needs a hand without a card of the current color",
+                        IllegalMoveReason::WildDrawFourIllegal);
         case core::DomainError::CannotChallenge:
             return fail(ErrorCode::IllegalMove, "A penalty cannot be challenged", IllegalMoveReason::CannotChallenge);
         case core::DomainError::UnoWindowClosed:

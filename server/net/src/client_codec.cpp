@@ -41,7 +41,7 @@ Parsed<RoomSettingsPatch> parseSettingsPatch(const Json& value)
     patch.stacking = reader.optional<core::PenaltyStacking>("stacking", detail::parseEnum<core::PenaltyStacking>);
     patch.sevenZero = reader.optional<bool>("sevenZero", detail::parseBool);
     patch.drawAmount = reader.optional<core::DrawAmount>("drawAmount", detail::parseEnum<core::DrawAmount>);
-    patch.wildDrawFourMode = reader.optional<WildDrawFourMode>("wildDrawFourMode", detail::parseEnum<WildDrawFourMode>);
+    patch.wildDrawFourMode = reader.optional<core::WildDrawFourMode>("wildDrawFourMode", detail::parseEnum<core::WildDrawFourMode>);
     patch.turnTimer = reader.optional<TurnTimerSeconds>("turnTimerSeconds", parseTurnTimer);
     patch.matchLength = reader.optional<core::MatchLength>("matchLength", detail::parseEnum<core::MatchLength>);
     patch.maxPlayers = reader.optional<std::uint8_t>("maxPlayers", parseMaxPlayers);

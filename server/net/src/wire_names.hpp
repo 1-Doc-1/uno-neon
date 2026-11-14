@@ -141,10 +141,10 @@ struct WireNames<core::DrawRule> {
 };
 
 template <>
-struct WireNames<app::WildDrawFourMode> {
+struct WireNames<core::WildDrawFourMode> {
     static constexpr std::array kTable{
-        WireName{.value = app::WildDrawFourMode::OfficialChallenge, .name = "officialChallenge"},
-        WireName{.value = app::WildDrawFourMode::Strict, .name = "strict"},
+        WireName{.value = core::WildDrawFourMode::OfficialChallenge, .name = "officialChallenge"},
+        WireName{.value = core::WildDrawFourMode::Strict, .name = "strict"},
     };
 };
 

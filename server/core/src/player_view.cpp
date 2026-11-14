@@ -40,12 +40,12 @@ namespace {
 }
 
 // Cards the viewer may play right now: only on their own turn, and only the drawn card after a draw.
-[[nodiscard]] std::vector<CardId> playableCardIds(const Round& round, std::span<const Card> hand)
+[[nodiscard]] std::vector<CardId> playableCardIds(const Round& round, const PlayerId& viewer, std::span<const Card> hand)
 {
     std::vector<CardId> ids;
     if (std::holds_alternative<AwaitingPlay>(round.phase())) {
         for (const auto& card : hand) {
-            if (isPlayable(card, round.discardPile().top(), round.currentColor())) {
+            if (round.canPlayCard(viewer, card)) {
                 ids.push_back(card.id);
             }
         }
@@ -71,7 +71,7 @@ namespace {
     me.playerId = viewer;
     me.hand.assign(hand.begin(), hand.end());
     if (myTurn) {
-        me.playableCardIds = playableCardIds(round, hand);
+        me.playableCardIds = playableCardIds(round, viewer, hand);
         me.canDraw = round.canDraw(viewer);
         me.canKeepDrawnCard = round.canKeepDrawnCard(viewer);
         me.mustDeclareUno = round.mustDeclareUno(viewer);

@@ -109,6 +109,18 @@ const HOUSE_RULES: readonly HouseRule[] = [
     example: 'Un +2 sur toi : tu pioches 2 cartes et tu passes ton tour.',
   },
   {
+    name: 'Joker +4 : Strict',
+    text: 'Le +4 est refusé si ta main contient une carte de la couleur courante : impossible de bluffer, donc plus rien à contester. Un +4 posé est toujours légal et se pioche tout de suite.',
+    example:
+      'La défausse est rouge et tu as un 3 rouge : ton +4 est grisé, tu joues autre chose. Sans carte rouge, tu peux le poser.',
+  },
+  {
+    name: 'Joker +4 : Contestation (par défaut)',
+    text: 'Le +4 se joue même en bluff. Celui qui le reçoit l’accepte (il pioche 4 cartes) ou le conteste : si tu bluffais, tu pioches 4 cartes ; sinon, il en pioche 6.',
+    example:
+      'Tu as un 3 rouge sur une défausse rouge et tu poses un +4 : si l’autre conteste, ton bluff est découvert.',
+  },
+  {
     name: 'Cartes +2, Jokers +4 et Jokers +5 dans le paquet (×1, ×2, ×3, ×5)',
     text: 'Multiplie le nombre de ces cartes : plus il y en a, plus les pénalités tombent.',
     example: 'Avec les Jokers +5 à ×5, le paquet en compte 10 : la partie devient très cruelle.',

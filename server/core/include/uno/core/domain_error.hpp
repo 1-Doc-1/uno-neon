@@ -36,6 +36,8 @@ enum class DomainError : std::uint8_t {
     CannotChallenge,  // ILLEGAL_MOVE / CANNOT_CHALLENGE: a Wild Draw Five cannot be contested
     // ADR 0029: penalty stacking.
     NotStackable, // ILLEGAL_MOVE / NOT_STACKABLE: the card is weaker than the pending penalty (or not a penalty card)
+    // ADR 0041: strict Wild Draw Four.
+    WildDrawFourIllegal, // ILLEGAL_MOVE / WILD_DRAW_FOUR_ILLEGAL: the hand holds a card of the current color
 };
 
 } // namespace uno::core
