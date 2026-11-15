@@ -110,14 +110,14 @@ describe('Table', () => {
     transport = new FakeTransport();
   });
 
-  it('offers the counter-UNO against another player even when it is not my turn, with name and countdown', () => {
+  it('offers the counter call against another player even when it is not my turn, with name and countdown', () => {
     const now = Date.now();
     const { button } = render(viewWith({ unoWindows: [window('max', now - 500, now + 9_500)] }));
 
     const catchButton = button('.catch');
 
     expect(catchButton).not.toBeNull();
-    expect(catchButton?.textContent).toContain('Contre-UNO !');
+    expect(catchButton?.textContent).toContain('Contre !');
     expect(catchButton?.textContent).toContain('Max');
     expect(catchButton?.textContent).toMatch(/(9|10) s/);
 
@@ -129,7 +129,7 @@ describe('Table', () => {
     });
   });
 
-  it('greys the counter-UNO out during the grace period: still there, but a click does nothing', () => {
+  it('greys the counter call out during the grace period: still there, but a click does nothing', () => {
     const now = Date.now();
     const { button } = render(viewWith({ unoWindows: [window('max', now + 1_500, now + 14_500)] }));
 
@@ -144,7 +144,7 @@ describe('Table', () => {
     expect(transport.sent.some((m) => m.type === 'game.catchUno')).toBe(false);
   });
 
-  it('offers one counter-UNO per target, each with its own countdown', () => {
+  it('offers one counter call per target, each with its own countdown', () => {
     const now = Date.now();
     const { host } = render(
       viewWith({
@@ -166,7 +166,7 @@ describe('Table', () => {
     expect(labels[1]).toContain('dans');
   });
 
-  it('shows no counter-UNO on myself, nor once the window ran out', () => {
+  it('shows no counter call on myself, nor once the window ran out', () => {
     const now = Date.now();
     const { button } = render(
       viewWith({
@@ -180,11 +180,11 @@ describe('Table', () => {
     expect(button('.catch')).toBeNull();
   });
 
-  it('flags the player who forgot UNO on their seat while their window is open', () => {
+  it('flags the player who forgot to call on their seat while their window is open', () => {
     const now = Date.now();
     const { host } = render(viewWith({ unoWindows: [window('max', now - 500, now + 9_500)] }));
 
-    expect(host.textContent).toContain('UNO oublié !');
+    expect(host.textContent).toContain('Dernière oubliée !');
   });
 
   it('has no draw or pass button: the deck draws when the server allows it', () => {
@@ -267,7 +267,7 @@ describe('Table', () => {
       expect(host.querySelector<HTMLButtonElement>('.slot.playable')?.disabled).toBe(false);
     });
 
-    it('still lets me announce UNO and catch someone', () => {
+    it('still lets me call the last card and catch someone', () => {
       const soon = Date.now() + 1000;
       const { host } = render(
         viewWith(
@@ -545,25 +545,25 @@ describe('Table', () => {
     expect(button('.deck')?.getAttribute('aria-label')).toBe('Pioche : 40 cartes');
   });
 
-  it('puts the UNO button forward when the last card waits for the announcement', () => {
+  it('puts the last-card button forward when the last card waits for the announcement', () => {
     const { host, button } = render(viewWith({}, { canCallUno: true, mustDeclareUno: true }));
 
     expect(button('.uno')?.classList.contains('must')).toBe(true);
-    expect(host.textContent).toContain('Annonce UNO pour poser ta dernière carte.');
+    expect(host.textContent).toContain('Annonce « Dernière ! » pour poser ta dernière carte.');
 
     button('.uno')?.click();
 
     expect(transport.sent.at(-1)).toMatchObject({ type: 'game.callUno' });
   });
 
-  it('keeps the UNO button discreet when nothing is waiting for it', () => {
+  it('keeps the last-card button discreet when nothing is waiting for it', () => {
     const { host, button } = render(viewWith({}, { canCallUno: true }));
 
     expect(button('.uno')?.classList.contains('must')).toBe(false);
-    expect(host.textContent).not.toContain('Annonce UNO pour poser');
+    expect(host.textContent).not.toContain('Annonce « Dernière ! » pour poser');
   });
 
-  it('shows the UNO button only when it is useful', () => {
+  it('shows the last-card button only when it is useful', () => {
     const { button, fixture } = render(viewWith());
     expect(button('.uno')).toBeNull();
 

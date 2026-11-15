@@ -1,7 +1,7 @@
 import { Component, input, output } from '@angular/core';
 import { ClickSound } from '../../ui/click-sound';
 
-/** Un bouton « Contre-UNO ! » : un par joueur dont la fenêtre est ouverte. */
+/** Un bouton « Contre ! » : un par joueur dont la fenêtre est ouverte. */
 export interface CatchButton {
   readonly playerId: string;
   readonly nickname: string;
@@ -10,12 +10,12 @@ export interface CatchButton {
   readonly secondsLeft: number;
 }
 
-/** Le bouton UNO et, empilés au même endroit, un « Contre-UNO ! » par cible (SPEC §12.3). */
+/** Le bouton « Dernière ! » et, empilés au même endroit, un « Contre ! » par cible (SPEC §12.3). */
 @Component({
   imports: [ClickSound],
   selector: 'app-uno-actions',
   template: `
-    <div class="actions" role="group" aria-label="Annonces UNO">
+    <div class="actions" role="group" aria-label="Annonces de dernière carte">
       @for (button of catchButtons(); track button.playerId) {
         <button
           type="button"
@@ -24,7 +24,7 @@ export interface CatchButton {
           [attr.aria-disabled]="button.inGrace"
           (click)="tryCatch(button)"
         >
-          Contre-UNO ! {{ button.nickname }}
+          Contre ! {{ button.nickname }}
           <span class="count">{{ button.inGrace ? 'dans ' : '' }}{{ button.secondsLeft }} s</span>
         </button>
       }
@@ -35,11 +35,11 @@ export interface CatchButton {
           [class.must]="mustDeclareUno()"
           (click)="unoCalled.emit()"
         >
-          UNO !
+          Dernière !
         </button>
       }
       @if (mustDeclareUno()) {
-        <p class="hint" role="status">Annonce UNO pour poser ta dernière carte.</p>
+        <p class="hint" role="status">Annonce « Dernière ! » pour poser ta dernière carte.</p>
       }
     </div>
   `,

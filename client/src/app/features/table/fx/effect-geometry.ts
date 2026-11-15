@@ -349,7 +349,7 @@ export function placeEffect(effect: ActiveEffect, anchors: Anchors): Placed | nu
           ...base,
           kind: 'label',
           variant: 'uno',
-          text: 'UNO !',
+          text: 'Dernière !',
           tone: null,
           where: 'seat',
           at: seat,
@@ -358,8 +358,8 @@ export function placeEffect(effect: ActiveEffect, anchors: Anchors): Placed | nu
     }
     case 'caught':
       return placePersonalLabel(base, anchors, spec.targetId, 'caught', {
-        mine: `Contre-UNO : tu pioches ${spec.amount}`,
-        theirs: (name) => `Contre-UNO sur ${name} : ${spec.amount} cartes`,
+        mine: `Contre : tu pioches ${spec.amount}`,
+        theirs: (name) => `Contre sur ${name} : ${spec.amount} cartes`,
       });
     case 'turn': {
       const to = seatOf(anchors, spec.to);

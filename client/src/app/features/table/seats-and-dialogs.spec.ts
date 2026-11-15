@@ -49,9 +49,9 @@ describe('OpponentSeat', () => {
     expect(human.textContent).toContain('en ligne');
   });
 
-  it('flags a forgotten UNO on the seat', () => {
-    expect(renderSeat(1, true).textContent).toContain('UNO oublié !');
-    expect(renderSeat(1, false).textContent).not.toContain('UNO oublié !');
+  it('flags a forgotten last-card call on the seat', () => {
+    expect(renderSeat(1, true).textContent).toContain('Dernière oubliée !');
+    expect(renderSeat(1, false).textContent).not.toContain('Dernière oubliée !');
   });
 });
 

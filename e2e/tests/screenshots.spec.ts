@@ -42,6 +42,39 @@ test.describe('captures du README', () => {
       await expect(page.getByRole('heading', { name: 'Comment jouer' })).toBeVisible();
       await page.screenshot({ path: '../docs/img/comment-jouer-1440.png' });
       await context.close();
+
+      // Les captures de téléphone du mode d'emploi : écran « Cliquer pour jouer », accueil, réglages audio, règles
+      const phone = await browser.newContext({
+        baseURL: stack.url,
+        viewport: { width: 375, height: 700 },
+        locale: 'fr-FR',
+        reducedMotion: 'reduce',
+      });
+      const small = await phone.newPage();
+      // Un robot ne voit pas l'écran « Cliquer pour jouer » : on se fait passer pour un vrai navigateur
+      await small.addInitScript(() => {
+        Object.defineProperty(Navigator.prototype, 'webdriver', {
+          get: () => false,
+        });
+      });
+      await small.goto('/');
+      const phoneGate = small.getByRole('button', {
+        name: /Cliquer pour jouer/,
+      });
+      await expect(phoneGate).toBeVisible();
+      await small.screenshot({
+        path: '../docs/img/cliquer-pour-jouer-375.png',
+      });
+      await phoneGate.click();
+      await small.locator('app-intro .intro').click();
+      await small.getByLabel('Ton pseudo').fill('Alice');
+      await small.screenshot({ path: '../docs/img/accueil-375.png' });
+      await small.getByText('Réglages audio').click();
+      await small.screenshot({ path: '../docs/img/reglages-audio-375.png' });
+      await small.goto('/comment-jouer');
+      await expect(small.getByRole('heading', { name: 'Comment jouer' })).toBeVisible();
+      await small.screenshot({ path: '../docs/img/comment-jouer-375.png' });
+      await phone.close();
     });
   });
 

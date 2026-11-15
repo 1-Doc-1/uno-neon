@@ -68,7 +68,7 @@ export class Lobby {
       first: `${MATCH_LENGTH_SUMMARY[s.matchLength]} · ${timer} · ${s.maxPlayers} joueurs max · animations ${s.animationSpeed === 'fast' ? 'rapides' : 'normales'}`,
       second: `Pioche ${s.drawRule === 'guided' ? 'guidée' : 'officielle'}, ${
         s.drawAmount === 'untilPlayable' ? 'jusqu’à pouvoir jouer' : '1 carte'
-      } · ${s.declareUnoToWin ? 'UNO obligatoire pour gagner' : 'dernière carte libre'} · ${
+      } · ${s.declareUnoToWin ? '« Dernière ! » obligatoire pour gagner' : 'dernière carte libre'} · ${
         s.stacking === 'ladder' ? 'pénalités cumulées (+2 < +4 < +5)' : 'pénalités sans cumul'
       } · ${s.wildDrawFourMode === 'strict' ? 'Joker +4 strict' : 'Joker +4 contestable'}${
         s.sevenZero ? ' · 7 et 0 : échange de mains' : ''

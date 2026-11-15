@@ -93,9 +93,9 @@ const HOUSE_RULES: readonly HouseRule[] = [
     example: 'Tu pioches un jaune alors qu’il te faut un bleu : ton tour est fini.',
   },
   {
-    name: 'Dernière carte : UNO obligatoire',
-    text: 'Tu ne peux pas poser ta dernière carte sans avoir annoncé UNO avant.',
-    example: 'Il te reste une carte : appuie sur UNO !, puis pose-la.',
+    name: 'Dernière carte : « Dernière ! » obligatoire',
+    text: 'Tu ne peux pas poser ta dernière carte sans avoir annoncé « Dernière ! » avant.',
+    example: 'Il te reste une carte : appuie sur Dernière !, puis pose-la.',
   },
   {
     name: 'Cumul des pénalités : Échelle',
@@ -134,7 +134,7 @@ const HOUSE_RULES: readonly HouseRule[] = [
 ];
 
 /**
- * « Comment jouer » : la page pour les amis de l'hôte. Règles de base, cartes spéciales, UNO, options du salon et
+ * « Comment jouer » : la page pour les amis de l'hôte. Règles de base, cartes spéciales, « Dernière ! », options du salon et
  * réglages audio, lisible sur téléphone. Du texte et des cartes d'exemple : aucune dépendance au serveur.
  */
 @Component({

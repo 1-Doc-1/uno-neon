@@ -47,7 +47,7 @@ export class Player {
     return this.page.getByRole('button', { name: 'Contester' });
   }
   get unoButton() {
-    return this.page.getByRole('button', { name: 'UNO !', exact: true });
+    return this.page.getByRole('button', { name: 'Dernière !', exact: true });
   }
   /** Le code du salon affiché dans la barre du salon (et non le champ « Code du salon » de l'accueil). */
   get roomCode() {
@@ -109,7 +109,7 @@ export class Player {
           (button) => button.getAttribute('aria-label') ?? '',
         ),
         turn: text('p.turn'),
-        // Les nombres de cartes (sièges, ma pastille, pioche), pas le compte à rebours d'une fenêtre de contre-UNO
+        // Les nombres de cartes (sièges, ma pastille, pioche), pas le compte à rebours d'une fenêtre de « Contre ! »
         counts: text('app-my-badge .count, app-opponent-seat .count, app-piles .count'),
         dialogs: [
           ...document.querySelectorAll('dialog[open], app-color-picker [role="dialog"]'),

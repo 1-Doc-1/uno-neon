@@ -57,7 +57,7 @@ import { ReactionBubble } from './reaction-bubble';
           ></button>
         }
         @if (forgotUno()) {
-          <span class="forgot">UNO oublié !</span>
+          <span class="forgot">Dernière oubliée !</span>
         }
         <app-reaction-bubble [emote]="reaction()" [nickname]="seat().nickname" />
         @if (isCurrent()) {
@@ -72,7 +72,7 @@ import { ReactionBubble } from './reaction-bubble';
 export class OpponentSeat {
   readonly seat = input.required<SeatView>();
   readonly isCurrent = input.required<boolean>();
-  /** Sa fenêtre de contre-UNO est ouverte : il n'a qu'une carte et n'a pas annoncé UNO. */
+  /** Sa fenêtre de « Contre ! » est ouverte : il n'a qu'une carte et n'a pas annoncé « Dernière ! ». */
   readonly forgotUno = input.required<boolean>();
   readonly compact = input(false);
   /** Sa réaction rapide du moment, s'il en a une. */

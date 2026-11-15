@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Installation unique des outils Linux pour UNO Néon, dans WSL (Ubuntu 24.04).
+# Installation unique des outils Linux pour NOC, dans WSL (Ubuntu 24.04).
 # Mêmes sources et versions que .github/workflows/ci.yml (job server-linux) : GCC 14 et Clang 20
 # (dépôts officiels Ubuntu 24.04 "noble"), clang-format/clang-tidy 23 (apt.llvm.org), vcpkg à la
 # baseline de server/vcpkg.json.

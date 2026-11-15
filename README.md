@@ -1,9 +1,7 @@
-# UNO Néon
+# NOC
 
-Un UNO multijoueur en ligne, **dans le navigateur, sans compte ni installation** : on choisit un pseudo, on crée un
+NOC est un jeu de défausse inspiré des jeux de cartes classiques, multijoueur en ligne, **dans le navigateur, sans compte ni installation** : on choisit un pseudo, on crée un
 salon, on partage un code de 6 caractères, et on joue de 2 à 10, avec ou sans bots.
-
-> Projet personnel non commercial, non affilié à Mattel. UNO est une marque de Mattel.
 
 ![La table de jeu à cinq : trois bots et un adversaire, ma main en éventail, la pioche et la défausse au centre, le journal en haut à droite](docs/img/table-1440.png)
 
@@ -15,10 +13,10 @@ salon, on partage un code de 6 caractères, et on joue de 2 à 10, avec ou sans 
 
 ## Ce que le jeu sait faire
 
-- **Les règles officielles** : toutes les cartes, la contestation du Joker +4, le contre-UNO (avec grâce et échéance),
+- **Les règles de base** : toutes les cartes, la contestation du Joker +4, le « Contre ! » (avec grâce et échéance),
   le sens du jeu, le remélange de la défausse, le score sur 250 ou 500 points ou une manche unique.
 - **Des règles maison, réglées par l'hôte** (toutes désactivées par défaut, expliquées dans la page « Comment jouer ») :
-  pioche guidée ou « jusqu'à pouvoir jouer », UNO obligatoire pour gagner, cumul des pénalités à l'échelle
+  pioche guidée ou « jusqu'à pouvoir jouer », « Dernière ! » obligatoire pour gagner, cumul des pénalités à l'échelle
   (+2 < +4 < +5), Joker +4 strict, échange des mains avec les 7 et les 0, Joker +5 « super carte », paquet plus ou
   moins riche en cartes spéciales, minuteur de tour, vitesse des animations.
 - **Des bots** de deux niveaux, qui ne voient que ce qu'un joueur voit.
@@ -40,8 +38,8 @@ flowchart LR
   end
   Socket <-->|"intentions ↑ · vues projetées ↓"| Net
   subgraph Serveur["Serveur C++23 : une seule boucle uWebSockets"]
-    Net["uno_net : codec strict, Origin, limites"] --> App["uno_app : sessions, salons, minuteurs, bots"]
-    App --> Core["uno_core : les règles, sans E/S ni horloge"]
+    Net["net : codec strict, Origin, limites"] --> App["app : sessions, salons, minuteurs, bots"]
+    App --> Core["core : les règles, sans E/S ni horloge"]
   end
   Proto[("protocol/ : JSON Schema")] -.->|"types générés"| Store
   Proto -.->|"exemples rejoués"| Net
@@ -56,7 +54,7 @@ automatisé le vérifie, à chaque coup d'une simulation de milliers de parties.
 
 | Choix | Pourquoi | Décision |
 |---|---|---|
-| Règles dans une bibliothèque **pure** (`uno_core`) | Aucune dépendance réseau, horloge ou aléa global : tout est injecté, donc testable et rejouable à l'identique | [0010](docs/adr/0010-round-state.md), [0008](docs/adr/0008-portable-deterministic-randomness.md) |
+| Règles dans une bibliothèque **pure** (`core`) | Aucune dépendance réseau, horloge ou aléa global : tout est injecté, donc testable et rejouable à l'identique | [0010](docs/adr/0010-round-state.md), [0008](docs/adr/0008-portable-deterministic-randomness.md) |
 | `std::variant` + `std::visit` pour actions, phases, événements | Un ensemble fermé : le compilateur refuse un cas oublié | [0006](docs/adr/0006-variant-closed-sets.md) |
 | Erreurs métier en `std::expected`, pas en exceptions | Une action refusée est un cas normal, et elle ne change rien à l'état | [0006](docs/adr/0006-variant-closed-sets.md) |
 | Protocole décrit en **JSON Schema** | Une source de vérité : les types du client sont générés, les exemples rejoués des deux côtés | [0005](docs/adr/0005-json-schema-protocol.md), [0007](docs/adr/0007-protocol-v1-deviations.md) |
@@ -87,9 +85,9 @@ Les 41 décisions sont dans [docs/adr/](docs/adr/), et la [spécification](docs/
 
 ## Comment jouer
 
-La page **« Comment jouer »** (lien sur l'accueil) explique les règles, les cartes spéciales, le UNO et le contre-UNO, et
+La page **« Comment jouer »** (lien sur l'accueil) explique les règles, les cartes spéciales, le « Dernière ! » et le « Contre ! », et
 chaque option du salon avec un exemple. En bref : poser une carte de la même couleur ou du même symbole, piocher sinon,
-et annoncer UNO à l'avant-dernière carte, sous peine d'être contré.
+et annoncer « Dernière ! » à l'avant-dernière carte, sous peine d'être contré.
 
 ## Lancer le projet
 

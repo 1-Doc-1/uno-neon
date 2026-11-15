@@ -21,7 +21,7 @@ import { KeepOnScreen } from './keep-on-screen';
 import { ParticleCanvas } from './particle-canvas';
 import { ReverseArrow } from './reverse-arrow';
 
-/** Une étoile à seize branches pour l'éclat « UNO ! » (rayons alternés, centrée en 0,0). */
+/** Une étoile à seize branches pour l'éclat « Dernière ! » (rayons alternés, centrée en 0,0). */
 const STAR = Array.from({ length: 16 }, (_, index) => {
   const angle = (index * Math.PI) / 8;
   const radius = index % 2 === 0 ? 48 : 30;

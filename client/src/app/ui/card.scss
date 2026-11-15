@@ -31,9 +31,17 @@ svg {
   fill: var(--fill);
 }
 
-// Ovale incliné : un peu plus sombre que le fond, pour que le chiffre blanc ressorte
+// Forme centrale : un peu plus sombre que le fond, pour que le chiffre blanc ressorte, cerclée d'un filet clair
 .oval {
   fill: color-mix(in oklab, var(--fill) 72%, black);
+}
+
+.oval-rim {
+  fill: none;
+  stroke: currentColor;
+  stroke-opacity: 0.55;
+  stroke-width: 2;
+  stroke-linejoin: round;
 }
 
 .shine {

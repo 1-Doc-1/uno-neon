@@ -39,10 +39,10 @@ describe('HowToPlayPage', () => {
     );
   });
 
-  it('covers UNO, the counter-UNO and the audio settings, and leads back home', () => {
+  it('covers the last-card call, the counter call and the audio settings, and leads back home', () => {
     const host = render();
 
-    expect(host.textContent).toContain('Contre-UNO');
+    expect(host.textContent).toContain('Contre !');
     expect(host.textContent).toContain('Réglages audio');
     expect(host.textContent).toContain('Les réactions rapides');
     expect(host.querySelectorAll('a[href="/"]').length).toBeGreaterThan(0);

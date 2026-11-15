@@ -2,7 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
   "name": "uno-neon-server",
   "version-semver": "0.1.0",
-  "description": "Authoritative UNO Néon game server",
+  "description": "Authoritative NOC game server",
   "dependencies": [
     "catch2",
     "libsodium",

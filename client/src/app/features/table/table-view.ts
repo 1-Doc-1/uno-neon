@@ -179,7 +179,7 @@ export class TableView {
   );
   /**
    * Vrai quand l'effet en cours est montré en entier : jusque-là la main est neutre et le paquet muet, car le serveur
-   * refuse tout coup de tour reçu avant `actionsOpenAt` (ADR 0027). Annoncer UNO et contrer restent permis.
+   * refuse tout coup de tour reçu avant `actionsOpenAt` (ADR 0027). Annoncer « Dernière ! » et contrer restent permis.
    */
   protected readonly actionsOpen = computed(() => this.serverNow() >= this.view().actionsOpenAt);
   protected readonly myTurn = computed(
@@ -264,7 +264,7 @@ export class TableView {
   );
   protected readonly lastLines = computed(() => this.journal().slice(-JOURNAL_LINES));
 
-  /** Les fenêtres de contre-UNO ouvertes sur d'autres joueurs que moi, avec ce qu'il reste de leur temps. */
+  /** Les fenêtres de « Contre ! » ouvertes sur d'autres joueurs que moi, avec ce qu'il reste de leur temps. */
   private readonly otherWindows = computed(() =>
     this.view().unoWindows.filter(
       (window) =>

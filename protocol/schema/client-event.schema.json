@@ -285,7 +285,7 @@
     },
     "UnoCalledEvent": {
       "title": "UnoCalledEvent",
-      "description": "A player announced UNO.",
+      "description": "A player announced « Dernière ! ».",
       "type": "object",
       "properties": {
         "kind": {
@@ -300,7 +300,7 @@
     },
     "UnoCaughtEvent": {
       "title": "UnoCaughtEvent",
-      "description": "A player was caught without announcing UNO and draws a penalty.",
+      "description": "A player was caught without announcing « Dernière ! » and draws a penalty.",
       "type": "object",
       "properties": {
         "kind": {

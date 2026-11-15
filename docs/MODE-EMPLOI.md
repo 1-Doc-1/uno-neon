@@ -1,4 +1,4 @@
-# Mode d'emploi — organiser une soirée UNO Néon (pour l'hôte)
+# Mode d'emploi — organiser une soirée NOC (pour l'hôte)
 
 Ce guide est pour **toi, l'hôte** : celui qui lance le jeu depuis son PC Windows et envoie un lien à ses amis.
 Tes amis, eux, n'ont **rien à installer** : ils ouvrent le lien dans leur navigateur (téléphone ou ordinateur).

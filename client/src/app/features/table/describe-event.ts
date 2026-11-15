@@ -33,7 +33,7 @@ export function describeEvent(
         ? `${nameOf(event.challengerId)} conteste : c’était un bluff, ${nameOf(event.penalizedPlayerId)} pioche ${event.penaltyAmount}.`
         : `${nameOf(event.challengerId)} conteste à tort et pioche ${event.penaltyAmount}.`;
     case 'unoCalled':
-      return `${nameOf(event.playerId)} annonce UNO !`;
+      return `${nameOf(event.playerId)} annonce « Dernière ! »`;
     case 'unoCaught':
       return `${nameOf(event.catcherId)} contre ${nameOf(event.targetId)} : ${event.penaltyAmount} cartes.`;
     case 'handsSwapped':

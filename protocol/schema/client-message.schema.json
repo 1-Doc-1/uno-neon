@@ -636,7 +636,7 @@
     },
     "CallUnoMessage": {
       "title": "CallUnoMessage",
-      "description": "Announces UNO: with 2 cards on your turn, or with 1 card while the UNO window is open.",
+      "description": "Announces « Dernière ! »: with 2 cards on your turn, or with 1 card while the « Dernière ! » window is open.",
       "type": "object",
       "properties": {
         "v": {
@@ -657,7 +657,7 @@
     },
     "CatchUnoMessage": {
       "title": "CatchUnoMessage",
-      "description": "Catches a player who did not announce UNO while the window is open.",
+      "description": "Catches a player who did not announce « Dernière ! » while the window is open.",
       "type": "object",
       "properties": {
         "v": {
