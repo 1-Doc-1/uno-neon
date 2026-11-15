@@ -1,0 +1,81 @@
+# NOC en production sur Coolify (ADR 0044). Le chemin d'un visiteur : Traefik (TLS) → web (Caddy) → server (jeu).
+#
+# - AUCUN port n'est publié : seul Traefik ouvre 80/443. `expose` n'est qu'une indication pour Coolify.
+# - Les images viennent de GHCR (publiées par .github/workflows/publish-images.yml) : Coolify ne construit rien.
+# - Coolify : Build Pack « Docker Compose », fichier /deploy/docker-compose.yml, domaine sur le service `web` (port 8080)
+#   et SEULEMENT sur lui. Le serveur de jeu n'a pas de domaine. Voir docs/DEPLOIEMENT.md.
+#
+# Les variables sans valeur par défaut sont OBLIGATOIRES : le déploiement échoue avec un message clair si l'une manque.
+
+name: noc
+
+x-hardening: &hardening
+  restart: unless-stopped
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  tmpfs: ["/tmp"]
+  stop_grace_period: 10s
+  logging:
+    driver: json-file
+    options: { max-size: "5m", max-file: "3" }
+
+services:
+  server:
+    <<: *hardening
+    image: "ghcr.io/1-doc-1/noc-server:${NOC_IMAGE_TAG:?NOC_IMAGE_TAG manque : le tag de l'image, par exemple sha-0123456 (voir docs/DEPLOIEMENT.md)}"
+    # 128 Mo au plus : le serveur de jeu en demande 10 à 20 au repos. Cette limite protège les autres applications du VPS.
+    mem_limit: 128m
+    memswap_limit: 128m
+    pids_limit: 64
+    cpus: 1.0
+    environment:
+      UNO_PORT: "9001"
+      # À l'intérieur du réseau Docker `noc-internal`, partagé avec Caddy seulement : toutes les interfaces du conteneur.
+      UNO_BIND_ADDRESS: "0.0.0.0"
+      # L'adresse publique du jeu, jamais « tout accepter » : https://noc.62-83-85-91.sslip.io
+      UNO_ALLOWED_ORIGINS: "${NOC_PUBLIC_ORIGIN:?NOC_PUBLIC_ORIGIN manque : l'adresse publique du jeu, par exemple https://noc.62-83-85-91.sslip.io}"
+      # Le serveur ne croit X-Forwarded-For que de l'adresse EXACTE du conteneur web (1 seul relais entre lui et le visiteur).
+      UNO_TRUSTED_PROXY_ADDRESSES: ${NOC_WEB_ADDRESS:-10.231.77.2}
+      UNO_LOG_LEVEL: ${NOC_LOG_LEVEL:-info}
+    expose: ["9001"]
+    networks:
+      # Réseau `internal: true` partagé avec Caddy UNIQUEMENT : le serveur ne peut ni sortir ni être atteint d'ailleurs, et
+      # Coolify ne l'attache pas au réseau de Traefik (pas de domaine, un seul réseau).
+      noc-internal:
+
+  web:
+    <<: *hardening
+    image: "ghcr.io/1-doc-1/noc-web:${NOC_IMAGE_TAG:?NOC_IMAGE_TAG manque : le même tag que pour le serveur}"
+    # 96 Mo : Caddy en demande 25 à 40 au repos ; GOMEMLIMIT lui demande de rester sous 64 Mio avant d'atteindre la limite.
+    mem_limit: 96m
+    memswap_limit: 96m
+    pids_limit: 128
+    cpus: 1.0
+    depends_on:
+      server:
+        condition: service_healthy
+    environment:
+      GOMEMLIMIT: "64MiB"
+      # Les réseaux de Traefik, les seuls dont Caddy croit X-Forwarded-For (plages CIDR d'au moins /8, jamais « tout »).
+      # Par défaut la plage privée des réseaux Docker ; le guide montre comment la resserrer au sous-réseau exact.
+      NOC_TRUSTED_PROXIES: ${NOC_TRUSTED_PROXIES:-172.16.0.0/12}
+      # Facultatif : un hachage bcrypt (JAMAIS le mot de passe). Défini, tout le site exige le mot de passe (ADR 0043).
+      # ATTENTION aux « $ » du hachage : voir .env.example et docs/DEPLOIEMENT.md.
+      SITE_PASSWORD_HASH: ${SITE_PASSWORD_HASH:-}
+    expose: ["8080"]
+    networks:
+      # Le réseau par défaut est celui où Coolify rattache Traefik ; noc-internal relie web au serveur de jeu.
+      default:
+      noc-internal:
+        ipv4_address: ${NOC_WEB_ADDRESS:-10.231.77.2}
+
+networks:
+  noc-internal:
+    internal: true
+    ipam:
+      config:
+        # Un petit sous-réseau (/28 : 14 machines) peu courant, à l'écart des plages que Docker distribue seul. Si une autre
+        # application l'utilise déjà, Docker REFUSE de créer le réseau (« Pool overlaps ») et le déploiement échoue
+        # bruyamment : changez alors NOC_INTERNAL_SUBNET ET NOC_WEB_ADDRESS (voir docs/DEPLOIEMENT.md).
+        - subnet: ${NOC_INTERNAL_SUBNET:-10.231.77.0/28}

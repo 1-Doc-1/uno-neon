@@ -1,0 +1,73 @@
+# Caddy de production derrière Traefik (Coolify), ADR 0044. Chaîne : visiteur → Traefik (TLS) → ce Caddy → serveur de jeu.
+#
+# Variables (vérifiées par web-entrypoint.sh avant de lancer Caddy) :
+#   NOC_TRUSTED_PROXIES   plages CIDR du réseau Docker de Traefik, les SEULES dont Caddy croit X-Forwarded-For
+#   SITE_PASSWORD_HASH    facultatif : hachage bcrypt ; défini, tout le site (WebSocket compris) exige le mot de passe
+#
+# La politique de sécurité des scripts (csp.caddy) est calculée à la construction de l'image, pas au démarrage.
+{
+	admin off
+	# Le TLS est celui de Traefik : ici, du HTTP simple.
+	auto_https off
+	servers {
+		# Traefik est le seul relais de confiance. « strict » : on prend l'adresse la plus à droite qui n'est pas un relais
+		# de confiance, jamais ce que le visiteur a écrit à gauche de l'en-tête.
+		trusted_proxies static {$NOC_TRUSTED_PROXIES}
+		trusted_proxies_strict
+		client_ip_headers X-Forwarded-For
+	}
+}
+
+http://:8080 {
+	# Accès protégé (ADR 0043). Sans SITE_PASSWORD_HASH la condition est fausse et rien n'est demandé ; la valeur par défaut
+	# (« none » en base64) ne sert qu'à garder la configuration valide et n'est jamais comparée. /sante reste ouverte : elle ne
+	# révèle rien et sert à la vérification de santé du conteneur.
+	@locked expression `"{$SITE_PASSWORD_HASH:}" != "" && !path('/sante')`
+	basic_auth @locked {
+		noc {$SITE_PASSWORD_HASH:bm9uZQ==}
+	}
+
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=15552000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=()"
+		Cross-Origin-Opener-Policy "same-origin"
+		Cross-Origin-Resource-Policy "same-origin"
+		-Server
+	}
+	import /etc/caddy/csp.caddy
+
+	# L'état détaillé du serveur (/health) ne regarde que l'exploitant : fermé au public.
+	handle /health {
+		respond 404
+	}
+
+	# La santé de la chaîne entière, sans rien dire du serveur.
+	handle /sante {
+		reverse_proxy server:9001 {
+			header_up X-Forwarded-For {client_ip}
+		}
+	}
+
+	handle /ws* {
+		reverse_proxy server:9001 {
+			# Le serveur ne croit que cet en-tête, posé par Caddy : l'adresse du visiteur, jamais une valeur écrite par lui.
+			header_up X-Forwarded-For {client_ip}
+		}
+	}
+
+	handle {
+		root * /srv
+
+		@hashed path_regexp hashed -[A-Za-z0-9_]{8}\.(js|css|woff2)$
+		header @hashed Cache-Control "public, max-age=31536000, immutable"
+		@entry path / /index.html
+		header @entry Cache-Control "no-cache"
+
+		try_files {path} /index.html
+		file_server
+	}
+}

@@ -1,0 +1,19 @@
+# Le contexte de construction des images est la racine du dépôt (deploy/Dockerfile.*) : on n'y envoie que le nécessaire.
+.git
+.github
+.claude
+.vscode
+**/node_modules
+**/build
+**/dist
+**/.angular
+**/test-results
+**/playwright-report
+**/vcpkg_installed
+.env
+.env.*
+!.env.example
+e2e
+docs
+scripts
+*.md
