@@ -1,4 +1,4 @@
-import { type ChildProcess, spawn } from 'node:child_process';
+import { type ChildProcess, spawn, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { createServer, type IncomingMessage, type Server } from 'node:http';
 import { connect, createServer as createTcpServer, type Socket } from 'node:net';
@@ -32,11 +32,18 @@ export interface StackOptions {
    * Court par défaut, pour des scénarios rapides.
    */
   readonly paceMs?: number;
+  /**
+   * Mot de passe du site (ADR 0043) : le jeu est servi derrière le vrai Caddy de `deploy/Caddyfile.tunnel`, avec
+   * SITE_PASSWORD_HASH, comme pour une soirée en ligne protégée. Absent, le site est ouvert (le serveur web de test).
+   */
+  readonly sitePassword?: string;
 }
 
 export interface Stack {
   /** Adresse du client ; `/ws` y est relayé vers le serveur de jeu de cette pile. */
   readonly url: string;
+  /** Nom d'utilisateur attendu quand la pile est protégée par un mot de passe. */
+  readonly siteUser: string;
   stop(): Promise<void>;
 }
 
@@ -119,6 +126,78 @@ async function waitForHealth(port: number, child: ChildProcess): Promise<void> {
   throw new Error('Le serveur de jeu ne répond pas sur /health.');
 }
 
+const SITE_USER = 'noc';
+const CADDY_BINARY = process.env['CADDY_BIN'] ?? 'caddy';
+
+/** Les sources de scripts de la CSP : les hachages qu'Angular (autoCsp) a calculés pour l'index.html compilé. */
+function scriptCspOf(indexHtml: string): string {
+  const hashes = new Set(readFileSync(indexHtml, 'utf8').match(/'sha256-[A-Za-z0-9+/=]+'/g) ?? []);
+  if (hashes.size === 0) {
+    throw new Error(
+      `Aucun hachage de script dans ${indexHtml} : la CSP ne peut pas être construite.`,
+    );
+  }
+  return `'strict-dynamic' ${[...hashes].join(' ')}`;
+}
+
+/** Le hachage bcrypt d'un mot de passe, calculé comme `scripts/set-password.ps1` : le mot de passe passe par l'entrée standard. */
+function hashPassword(password: string): string {
+  const result = spawnSync(CADDY_BINARY, ['hash-password'], {
+    input: `${password}\n`,
+    encoding: 'utf8',
+  });
+  if (result.error !== undefined || result.status !== 0 || !result.stdout.startsWith('$2')) {
+    throw new Error(
+      `Caddy introuvable ou en échec (${CADDY_BINARY} hash-password) : installe Caddy ou donne son chemin dans CADDY_BIN. ${result.error?.message ?? result.stderr}`,
+    );
+  }
+  return result.stdout.trim();
+}
+
+/**
+ * Le vrai Caddy de production du jeu par tunnel, devant le serveur de jeu : sert le client construit, relaie /ws et
+ * exige le mot de passe pour tout (ADR 0043).
+ */
+async function startPasswordFront(
+  gamePort: number,
+  port: number,
+  password: string,
+): Promise<ChildProcess> {
+  const child = spawn(
+    CADDY_BINARY,
+    ['run', '--config', join(root, 'deploy/Caddyfile.tunnel'), '--adapter', 'caddyfile'],
+    {
+      stdio: 'ignore',
+      env: {
+        ...process.env,
+        UNO_WEB_PORT: String(port),
+        UNO_SERVER_PORT: String(gamePort),
+        UNO_WEB_ROOT: CLIENT_DIST.replaceAll('\\', '/'),
+        UNO_CSP_SCRIPT: scriptCspOf(join(CLIENT_DIST, 'index.html')),
+        SITE_PASSWORD_HASH: hashPassword(password),
+      },
+    },
+  );
+  const deadline = Date.now() + 15_000;
+  while (Date.now() < deadline) {
+    if (child.exitCode !== null) {
+      throw new Error(`Caddy s'est arrêté au démarrage (code ${child.exitCode}).`);
+    }
+    try {
+      // Protégé : sans identifiants, la page répond 401 dès que Caddy écoute
+      const response = await fetch(`http://127.0.0.1:${port}/`);
+      if (response.status === 401) {
+        return child;
+      }
+    } catch {
+      // pas encore à l'écoute : on réessaie
+    }
+    await new Promise((done) => setTimeout(done, 50));
+  }
+  child.kill();
+  throw new Error('Caddy ne répond pas.');
+}
+
 /** Une pile complète pour un test : un serveur de jeu graine fixe + le client construit, sur des ports libres. */
 export async function startStack(options: StackOptions): Promise<Stack> {
   if (!existsSync(SERVER_BINARY)) {
@@ -131,8 +210,13 @@ export async function startStack(options: StackOptions): Promise<Stack> {
   }
   const gamePort = await freePort();
   const tunnels = new Set<Socket>();
-  const web = await startWebServer(() => gamePort, tunnels);
-  const url = `http://127.0.0.1:${web.port}`;
+  // Protégée : Caddy est la seule porte (il sert le client et relaie /ws) ; sinon, le petit serveur web de test
+  const front =
+    options.sitePassword === undefined
+      ? null
+      : { port: await freePort(), password: options.sitePassword };
+  const web = front === null ? await startWebServer(() => gamePort, tunnels) : null;
+  const url = `http://127.0.0.1:${front?.port ?? web?.port}`;
   const child = spawn(SERVER_BINARY, [], {
     cwd: dirname(SERVER_BINARY),
     stdio: ['ignore', 'inherit', 'inherit'],
@@ -146,22 +230,31 @@ export async function startStack(options: StackOptions): Promise<Stack> {
       UNO_LOG_LEVEL: 'error',
     },
   });
+  let caddy: ChildProcess | null = null;
   try {
     await waitForHealth(gamePort, child);
+    if (front !== null) {
+      caddy = await startPasswordFront(gamePort, front.port, front.password);
+    }
   } catch (error) {
     child.kill();
-    web.server.close();
+    caddy?.kill();
+    web?.server.close();
     throw error;
   }
   return {
     url,
+    siteUser: SITE_USER,
     async stop() {
       const startedAt = Date.now();
       for (const socket of tunnels) {
         socket.destroy();
       }
-      web.server.closeAllConnections();
-      const webClosed = new Promise<void>((done) => web.server.close(() => done()));
+      web?.server.closeAllConnections();
+      const webClosed = new Promise<void>((done) =>
+        web ? web.server.close(() => done()) : done(),
+      );
+      caddy?.kill();
       const exit = await stopServerProcess(child);
       await webClosed;
       const elapsedMs = Date.now() - startedAt;

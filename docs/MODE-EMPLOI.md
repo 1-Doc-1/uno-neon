@@ -106,7 +106,45 @@ Pendant la soirée :
 >
 > ![L'accueil sur ordinateur](img/accueil-1440.png)
 
-## 4. Arrêter
+## 4. Protéger la soirée par un mot de passe (facultatif)
+
+Par défaut, **toute personne qui a le lien peut entrer**. Pour une soirée entre amis, tu peux demander un mot de passe :
+le navigateur l'affiche dans une petite fenêtre **avant** de montrer le jeu, et il protège tout le site, le jeu en direct
+compris.
+
+**Activer (ou changer) le mot de passe**
+
+1. Dans PowerShell, à la racine du projet : `./scripts/set-password.ps1`
+2. Tape le mot de passe deux fois (8 caractères au moins ; rien ne s'affiche pendant la frappe).
+3. Lance la soirée avec l'option `-Password` : `./scripts/play-online.ps1 -Password`
+
+Pour **changer** le mot de passe, relance simplement `./scripts/set-password.ps1` : le nouveau remplace l'ancien.
+Il s'applique à la **prochaine** soirée (le lien d'une soirée en cours garde le mot de passe avec lequel elle a démarré).
+
+**Désactiver**
+
+- Lance la soirée **sans** `-Password` : le site est ouvert. Le script te prévient s'il croise une variable
+  `SITE_PASSWORD_HASH` oubliée dans ta session.
+- Pour oublier complètement le mot de passe : `./scripts/set-password.ps1 -Remove`.
+
+**Le partager avec tes amis**
+
+- Envoie-leur **le lien et le mot de passe par deux messages (ou deux canaux) différents** : si quelqu'un tombe sur le
+  lien, il ne peut pas entrer.
+- Leur navigateur demande un **nom d'utilisateur** et un mot de passe : le nom d'utilisateur est toujours **`noc`**.
+  Le navigateur s'en souvient pour la soirée ; sur un téléphone, la fenêtre peut s'appeler « Connexion requise ».
+- Pas besoin de compte, pas d'e-mail : c'est le même mot de passe pour tout le monde.
+
+**Ce que le script garde, et ce qu'il ne garde pas**
+
+- Il enregistre seulement une **empreinte** (un hachage bcrypt) de ton mot de passe, dans
+  `%LOCALAPPDATA%\noc\site-password.hash`, **hors du dépôt**. Le mot de passe lui-même n'est écrit nulle part : ni dans
+  un fichier, ni dans les journaux, ni sur une ligne de commande.
+- Une empreinte ne se transforme pas en mot de passe, mais un mot de passe **court ou courant** reste devinable : prends
+  une phrase.
+- Ne mets jamais ni le mot de passe, ni son empreinte dans un message public ou dans le dépôt.
+
+## 5. Arrêter
 
 Dans la fenêtre PowerShell où tourne le script, appuie sur **Ctrl+C**. Tu verras :
 
@@ -117,7 +155,7 @@ Tout est arrêté.
 
 Le lien ne fonctionne plus. La prochaine fois, tu auras un nouveau lien.
 
-## 5. Ce qu'il ne faut pas faire
+## 6. Ce qu'il ne faut pas faire
 
 - **Ne ferme pas la fenêtre PowerShell** pendant la partie : le jeu s'arrête pour tout le monde. (Si tu la fermes sans
   faire Ctrl+C, Windows arrête quand même les trois programmes : rien ne reste en fond, mais la partie est coupée.)
@@ -126,7 +164,7 @@ Le lien ne fonctionne plus. La prochaine fois, tu auras un nouveau lien.
 - **Ne lance pas le script deux fois** : le deuxième dira que le port est déjà utilisé.
 - **Ne partage pas le lien n'importe où** : toute personne qui l'a peut entrer dans le jeu (pas dans ton PC, seulement dans le jeu).
 
-## 6. Dépannage
+## 7. Dépannage
 
 | Problème | Ce qu'il faut faire |
 |---|---|
@@ -150,4 +188,7 @@ Les journaux (sans mot de passe ni adresse IP de tes amis) sont dans `%TEMP%\uno
 | installer ce qu'il faut (une fois) | `./scripts/setup-online.ps1 -Install` |
 | lancer la soirée | `./scripts/play-online.ps1` |
 | relancer sans recompiler | `./scripts/play-online.ps1 -SkipBuild` |
+| choisir ou changer le mot de passe | `./scripts/set-password.ps1` |
+| lancer une soirée protégée | `./scripts/play-online.ps1 -Password` |
+| oublier le mot de passe | `./scripts/set-password.ps1 -Remove` |
 | arrêter | `Ctrl+C` |

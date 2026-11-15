@@ -51,3 +51,37 @@ function Enter-BuildEnvironment {
     # Messages de cl en anglais : Ninja suit les dépendances d'en-têtes grâce à /showIncludes
     $env:VSLANG = '1033'
 }
+
+# --- Mot de passe du site (ADR 0043) -----------------------------------------------------------------------------
+# Seul le HACHAGE bcrypt est gardé, dans un dossier de l'utilisateur, hors du dépôt. Jamais le mot de passe.
+$script:PasswordHashFile = Join-Path $env:LOCALAPPDATA 'noc\site-password.hash'
+
+function ConvertTo-PlainText([System.Security.SecureString]$Secret) {
+    $pointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($Secret)
+    try { return [Runtime.InteropServices.Marshal]::PtrToStringBSTR($pointer) }
+    finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($pointer) }
+}
+
+# Demande un mot de passe deux fois, sans l'afficher, et rend son hachage bcrypt. Le mot de passe passe par l'entrée
+# standard de `caddy hash-password` : il n'apparaît ni sur une ligne de commande, ni dans un fichier.
+function Read-NewPasswordHash([string]$Caddy) {
+    $first = Read-Host 'Mot de passe du site (8 caractères au moins)' -AsSecureString
+    $second = Read-Host 'Mot de passe, encore une fois' -AsSecureString
+    $plain = ConvertTo-PlainText $first
+    try {
+        if ($plain -ne (ConvertTo-PlainText $second)) { throw 'Les deux saisies sont différentes.' }
+        if ($plain.Length -lt 8) { throw 'Le mot de passe doit faire 8 caractères au moins.' }
+        $hash = ($plain | & $Caddy hash-password 2>$null | Select-Object -First 1)
+        if ($LASTEXITCODE -ne 0 -or -not $hash -or -not $hash.StartsWith('$2')) { throw 'Caddy n''a pas produit de hachage bcrypt.' }
+        return $hash.Trim()
+    }
+    finally { $plain = $null }
+}
+
+# Le hachage enregistré, ou une erreur claire s'il n'y en a pas encore.
+function Get-StoredPasswordHash {
+    if (-not (Test-Path $script:PasswordHashFile)) { return $null }
+    $hash = (Get-Content -Raw -Path $script:PasswordHashFile).Trim()
+    if (-not $hash.StartsWith('$2')) { throw "Le fichier $script:PasswordHashFile ne contient pas un hachage bcrypt : relance ./scripts/set-password.ps1" }
+    return $hash
+}

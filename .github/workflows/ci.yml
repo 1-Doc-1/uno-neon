@@ -284,6 +284,21 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends ninja-build g++-14 autoconf autoconf-archive automake libtool pkg-config
 
+      # Caddy, pour les tests de l'accès protégé par mot de passe (e2e/tests/password.spec.ts, ADR 0043) : version et
+      # empreinte épinglées dans ce fichier, l'archive est refusée si elle ne correspond pas.
+      - name: Install Caddy (pinned version and checksum)
+        env:
+          CADDY_VERSION: 2.11.7
+          CADDY_SHA512: a7a433a1b133efc3c8d10eb0b99d52a24b5ef5c322dc77f5282182b1c0402139ab83f3a99f0c52409df77d20123fb0b523edad8a66d8f5e49136197bf61ef0e7
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/caddy.tar.gz" \
+            "https://github.com/caddyserver/caddy/releases/download/v${CADDY_VERSION}/caddy_${CADDY_VERSION}_linux_amd64.tar.gz"
+          echo "${CADDY_SHA512}  $RUNNER_TEMP/caddy.tar.gz" | sha512sum --check -
+          mkdir -p "$RUNNER_TEMP/caddy"
+          tar -xzf "$RUNNER_TEMP/caddy.tar.gz" -C "$RUNNER_TEMP/caddy" caddy
+          sudo install -m 0755 "$RUNNER_TEMP/caddy/caddy" /usr/local/bin/caddy
+          caddy version
+
       # Même clé que server-linux (gcc) : les dépendances vcpkg sont les mêmes, on réutilise son cache.
       - name: Restore vcpkg binary cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
