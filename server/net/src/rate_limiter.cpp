@@ -127,7 +127,7 @@ std::optional<Ipv6> parseIpv6(std::string_view text)
         return std::nullopt; // two compressions, or three colons in a row
     }
     const auto head = parseGroups(text.substr(0, gap));
-    const auto tail = compressed ? parseGroups(text.substr(gap + 2)) : std::optional<std::vector<std::uint16_t>>{{}};
+    const auto tail = compressed ? parseGroups(text.substr(gap + 2)) : parseGroups(std::string_view{});
     if (!head || !tail) {
         return std::nullopt;
     }
