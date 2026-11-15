@@ -155,7 +155,7 @@ const STEPS: readonly Step[] = [
     },
   },
   {
-    caption: 'Loïc n’a plus qu’une carte : « UNO ! »',
+    caption: 'Loïc n’a plus qu’une carte : « Dernière ! »',
     events: [{ kind: 'unoCalled', playerId: LOIC }],
     apply: () => undefined,
   },
@@ -196,7 +196,7 @@ const STEPS: readonly Step[] = [
   },
   {
     caption:
-      'Je contre Zoé qui a oublié d’annoncer UNO : tampon « Contre-UNO ! », puis ses 2 cartes',
+      'Je contre Zoé qui a oublié d’annoncer « Dernière ! » : tampon « Contre ! », puis ses 2 cartes',
     events: [{ kind: 'unoCaught', catcherId: ME, targetId: ZOE, penaltyAmount: 2 }, drew(ZOE, 2)],
     apply: (s) => {
       s.counts[ZOE] += 2;

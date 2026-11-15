@@ -69,7 +69,7 @@ type LastCardRule = 'free' | 'declare';
 
 const LAST_CARD_RULES: readonly SegmentOption<LastCardRule>[] = [
   { value: 'free', label: 'Libre' },
-  { value: 'declare', label: 'UNO obligatoire' },
+  { value: 'declare', label: '« Dernière ! » obligatoire' },
 ];
 
 const MAX_PLAYERS: readonly SegmentOption<number>[] = [2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => ({

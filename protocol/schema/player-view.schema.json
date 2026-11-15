@@ -40,7 +40,7 @@
       "anyOf": [{ "$ref": "common.schema.json#/$defs/EpochMillis" }, { "type": "null" }]
     },
     "actionsOpenAt": {
-      "description": "When the current turn may be played (server clock, ADR 0027): the server refuses every turn action (playCard, drawCard, pass, chooseColor, respondPenalty) received before, with EFFECT_IN_PROGRESS, until the effect in progress (card played, special effect, cards being drawn) has been shown. A value in the past, or the server clock itself, means nothing is in progress. Announcing UNO and catching are never held back. The clock of the turn starts at this time.",
+      "description": "When the current turn may be played (server clock, ADR 0027): the server refuses every turn action (playCard, drawCard, pass, chooseColor, respondPenalty) received before, with EFFECT_IN_PROGRESS, until the effect in progress (card played, special effect, cards being drawn) has been shown. A value in the past, or the server clock itself, means nothing is in progress. Announcing « Dernière ! » and catching are never held back. The clock of the turn starts at this time.",
       "$ref": "common.schema.json#/$defs/EpochMillis"
     },
     "drawStepMs": {
@@ -115,7 +115,7 @@
         },
         "canDraw": { "type": "boolean" },
         "mustDeclareUno": {
-          "description": "House rule declareUnoToWin (ADR 0019): the viewer holds one playable card and cannot play it until they announce UNO (game.callUno). Computed by the server.",
+          "description": "House rule declareUnoToWin (ADR 0019): the viewer holds one playable card and cannot play it until they announce « Dernière ! » (game.callUno). Computed by the server.",
           "type": "boolean"
         },
         "canKeepDrawnCard": {

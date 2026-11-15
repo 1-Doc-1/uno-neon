@@ -1,4 +1,4 @@
-# UNO Néon — Spécification complète
+# NOC — Spécification complète
 
 > **Pour Claude Code** : ce document est la source de vérité du projet. Il décrit le QUOI et le POURQUOI de chaque choix, et fixe le COMMENT quand il est structurant. Travaille phase par phase (§19), une étape à la fois, en suivant la méthode de `CLAUDE.md`. Si quelque chose ici te semble faux, risqué ou sous-optimal, **dis-le et propose une alternative argumentée** avant de coder : ce document peut évoluer via une ADR.
 
@@ -28,7 +28,7 @@
 
 ## 1. Vision et périmètre
 
-Un UNO en ligne jouable **dans le navigateur, sans installation, sans compte** : on choisit un pseudo, on crée un salon, on partage un lien ou un code de 6 caractères, on joue de 2 à 10 joueurs.
+NOC est un jeu de défausse en ligne, inspiré des jeux de cartes classiques, jouable **dans le navigateur, sans installation, sans compte** : on choisit un pseudo, on crée un salon, on partage un lien ou un code de 6 caractères, on joue de 2 à 10 joueurs.
 
 Objectifs de qualité, par ordre de priorité :
 1. **Juste et inviolable** : le serveur décide de tout, aucune triche possible via le navigateur.
@@ -36,7 +36,7 @@ Objectifs de qualité, par ordre de priorité :
 3. **Agréable** : animations fluides, retours clairs à chaque action, jouable au clavier et au tactile.
 4. **Exemplaire techniquement** : architecture en couches, patterns justifiés, tests automatisés, CI. Des étudiants doivent pouvoir lire le code et comprendre les choix.
 
-**Marque** : « UNO » est une marque de Mattel. Le design des cartes, le logo et les icônes doivent être **originaux** (pas de reproduction de l'ovale, du logo ou de la mise en page des cartes officielles). Le nom affiché est une constante unique `APP_NAME` (par défaut « UNO Néon ») pour pouvoir le changer en une ligne avant un déploiement public.
+**Marque** (ADR 0042) : le jeu s'appelle **NOC** et n'emploie ni le nom ni les visuels d'un jeu du commerce. Le design des cartes, le logo et les icônes sont **originaux** (pas de reproduction de l'ovale incliné, du logo ou de la mise en page de cartes existantes). Le nom affiché est une constante unique `APP_NAME`.
 
 ## 2. Glossaire (nommage dans le code)
 
@@ -95,10 +95,10 @@ Objectifs de qualité, par ordre de priorité :
   - +4 légal → le contestataire pioche 6 et passe son tour.
   - Pendant la contestation, seul le contestataire voit la main du poseur (information révélée par la règle elle-même), le temps d'afficher le verdict.
 
-**UNO**
-- Un joueur qui pose son avant-dernière carte doit annoncer « UNO ». Il peut l'annoncer pendant son tour quand il a 2 cartes (avant de poser ; l'annonce est annulée s'il ne descend pas à 1 carte), ou à 1 carte tant qu'il n'a pas été contré.
-- **Fenêtre de contre-UNO** (ADR 0018) : elle s'ouvre quand un joueur passe à 1 carte sans avoir annoncé. Pendant **2 s de grâce**, lui seul peut encore annoncer (une connexion lente ne le pénalise pas). Ensuite, tout autre joueur peut le « prendre » (bouton « Contre-UNO ») jusqu'à **15 s** après l'ouverture, même si la partie continue ; le fautif pioche 2 cartes. Le premier contre-UNO valide ferme la fenêtre, les suivants sont ignorés. Elle se ferme aussi quand le joueur annonce, n'a plus exactement 1 carte, ou à l'échéance.
-- Annoncer UNO sans y avoir droit n'a aucun effet (le bouton n'est simplement pas proposé).
+**« Dernière ! » et « Contre ! »**
+- Un joueur qui pose son avant-dernière carte doit annoncer « Dernière ! ». Il peut l'annoncer pendant son tour quand il a 2 cartes (avant de poser ; l'annonce est annulée s'il ne descend pas à 1 carte), ou à 1 carte tant qu'il n'a pas été contré.
+- **Fenêtre de « Contre ! »** (ADR 0018) : elle s'ouvre quand un joueur passe à 1 carte sans avoir annoncé. Pendant **2 s de grâce**, lui seul peut encore annoncer (une connexion lente ne le pénalise pas). Ensuite, tout autre joueur peut le « prendre » (bouton « Contre-UNO ») jusqu'à **15 s** après l'ouverture, même si la partie continue ; le fautif pioche 2 cartes. Le premier contre-UNO valide ferme la fenêtre, les suivants sont ignorés. Elle se ferme aussi quand le joueur annonce, n'a plus exactement 1 carte, ou à l'échéance.
+- Annoncer « Dernière ! » sans y avoir droit n'a aucun effet (le bouton n'est simplement pas proposé).
 
 **Pioche vide** : on remélange la défausse sauf la carte du dessus pour reformer la pioche. Si pioche + défausse ne suffisent pas pour une pénalité, le joueur pioche ce qui reste (pas d'erreur).
 
@@ -123,7 +123,7 @@ Chaque option est une **politique injectable** dans le moteur (voir §7, Strateg
 | `wildDrawFourMode` | `officialChallenge`, `strict` | `officialChallenge` | `strict` : le serveur refuse un +4 illégal, pas de contestation. |
 | `drawRule` | `guided`, `official` | `guided` | **Pioche guidée** (ADR 0017). Cartes « spéciales » : +2, Joker, +4, +5 (Passe et Inversion sont normales). Aucune carte jouable → pioche automatique après ~1,2 s. **Chaque carte piochée prend `drawStepMs` (1 s) à s'afficher** : le coup forcé qui suit une pioche de N cartes attend N × `drawStepMs` de plus, et l'horloge du tour qui commence alors démarre après ce temps (ADR 0026). Des cartes jouables mais aucune spéciale → piocher est refusé (`ILLEGAL_MOVE` / `MUST_PLAY`), il faut jouer. Au moins une spéciale jouable → le joueur choisit : poser, ou piocher en cliquant sur le paquet. Carte piochée non jouable → fin du tour ; jouable et normale → posée automatiquement après ~1,2 s ; jouable et spéciale → posée (clic sur la carte) ou gardée (clic sur le paquet). `official` : règle du §3. |
 | `animationSpeed` | `normal`, `fast` | `normal` | **Vitesse des animations** (ADR 0035, réservé à l'hôte). `fast` divise par deux les animations du client **et** les pauses du serveur qui leur correspondent (`playStep`, `effectStep`, `drawStep`, `actionCooldown`, coup forcé), pour tous les joueurs du salon : ce que le client montre tient toujours dans ce que le serveur attend. Les délais de jeu (minuteur, grâce du contre-UNO, reconnexion) ne changent pas. |
-| `declareUnoToWin` | bool | `false` | **UNO obligatoire pour gagner** (ADR 0019) : on ne peut pas poser sa dernière carte sans avoir annoncé UNO ; le serveur refuse avec `ILLEGAL_MOVE` / `MUST_DECLARE_UNO`. La vue expose `me.mustDeclareUno` (calculé par le serveur) et le client met en avant le bouton UNO. Une carte jouable bloquée par l'annonce manquante ne déclenche jamais la pioche automatique de la pioche guidée. |
+| `declareUnoToWin` | bool | `false` | **« Dernière ! » obligatoire pour gagner** (ADR 0019) : on ne peut pas poser sa dernière carte sans avoir annoncé « Dernière ! » ; le serveur refuse avec `ILLEGAL_MOVE` / `MUST_DECLARE_UNO`. La vue expose `me.mustDeclareUno` (calculé par le serveur) et le client met en avant le bouton UNO. Une carte jouable bloquée par l'annonce manquante ne déclenche jamais la pioche automatique de la pioche guidée. |
 | `turnTimerSeconds` | `0` (off), 15, 30, 60 | 30 | À l'expiration : pénalité en attente acceptée, sinon pioche 1 + passe (en pioche guidée : le joueur qui doit jouer joue sa première carte jouable) ; choix de couleur en attente → couleur tirée au hasard. |
 | `drawTwoMultiplier`, `wildDrawFourMultiplier`, `wildDrawFiveMultiplier` | `1`, `2`, `3`, `5` | `1` | **Composition du paquet** (ADR 0028) : multiplient le nombre de +2 (8 par paquet), de +4 (4) et de +5 (2). Le serveur n'accepte que ces quatre valeurs. Paquet standard : 110 cartes ; au maximum (×5 partout) : 166, de quoi servir 10 joueurs. La composition est calculée par une fonction pure (`compositionOf` / `createDeck`) : par couleur 1 zéro, 2 de chaque 1-9, Passe et Inversion, et 2 × `drawTwoMultiplier` +2 ; sans couleur : 4 Joker, 4 × `wildDrawFourMultiplier` +4, 2 × `wildDrawFiveMultiplier` +5. |
 | `scoreTarget` | 250, 500, `singleRound` | 500 | |
@@ -142,15 +142,15 @@ Interactions à gérer explicitement (et à tester) :
 - Pénalité plus grande que les cartes disponibles : on pioche ce qui existe.
 - `sevenZero` à 2 joueurs : le 7 échange forcément avec l'adversaire ; le 0 échange aussi les deux mains.
 - Un 7 posé comme dernière carte : pas d'échange, la manche se termine.
-- Contre-UNO sur un joueur qui s'est déconnecté : autorisé.
-- Deux contre-UNO simultanés : le premier traité gagne, le second reçoit `UNO_WINDOW_CLOSED`. Un contre-UNO pendant la grâce de 2 s reçoit `UNO_GRACE_PERIOD`. Plusieurs joueurs peuvent avoir une fenêtre ouverte en même temps.
+- « Contre ! » sur un joueur qui s'est déconnecté : autorisé.
+- Deux « Contre ! » simultanés : le premier traité gagne, le second reçoit `UNO_WINDOW_CLOSED`. Un « Contre ! » pendant la grâce de 2 s reçoit `UNO_GRACE_PERIOD`. Plusieurs joueurs peuvent avoir une fenêtre ouverte en même temps.
 - Revanche : même salon, mêmes joueurs connectés, mêmes réglages, scores remis à zéro ; **l'hôte seul la lance** (« Revanche » ou « Retour au salon » sur l'écran de fin), les autres voient « En attente de l'hôte » (ADR 0037).
 - Un joueur part entre deux manches : les points de la manche terminée restent acquis (ils sont comptés quand elle se termine) ; il emporte sa main et son score ; la manche suivante se joue sans lui (forfait s'ils étaient deux).
 - `declareUnoToWin` : un joueur à 1 carte jouable qui n'a pas annoncé UNO reçoit `MUST_DECLARE_UNO` s'il tente de la poser. Si le minuteur de tour expire dans cet état et qu'il ne peut pas piocher (pioche guidée, carte normale), le serveur annonce UNO puis pose la carte à sa place.
-- **Joker +5** (ADR 0028, tous testés) : **pioche guidée** : la cible n'a aucun choix, quelle que soit la règle de pioche et sa main : le serveur accepte pour elle (coup forcé, après `actionsOpenAt`, ADR 0034), ou elle clique sur le paquet. **UNO** : le poseur qui reste à une carte ouvre une fenêtre de contre-UNO comme après toute pose ; une cible qui reçoit des cartes voit sa fenêtre fermée ; **UNO obligatoire** : poser sa dernière carte, un +5, sans avoir annoncé UNO est refusé (`MUST_DECLARE_UNO`) et `me.mustDeclareUno` le dit. **Pioche épuisée** : la pénalité remélange la défausse (sauf la carte du dessus) et la cible pioche ce qui reste, sans erreur. **Départ** : si la cible part, la pénalité est annulée et le jeu reprend chez le joueur suivant ; si un autre joueur part, la chaîne continue. **Minuteur de tour** : la cible qui laisse expirer son tour accepte. **Sécurité** : le serveur valide la cible (joueur de la manche, différent de l'acteur), la couleur et la phase ; tout le monde voit qui est visé et le total, jamais les cartes piochées.
+- **Joker +5** (ADR 0028, tous testés) : **pioche guidée** : la cible n'a aucun choix, quelle que soit la règle de pioche et sa main : le serveur accepte pour elle (coup forcé, après `actionsOpenAt`, ADR 0034), ou elle clique sur le paquet. **UNO** : le poseur qui reste à une carte ouvre une fenêtre de contre-UNO comme après toute pose ; une cible qui reçoit des cartes voit sa fenêtre fermée ; **UNO obligatoire** : poser sa dernière carte, un +5, sans avoir annoncé « Dernière ! » est refusé (`MUST_DECLARE_UNO`) et `me.mustDeclareUno` le dit. **Pioche épuisée** : la pénalité remélange la défausse (sauf la carte du dessus) et la cible pioche ce qui reste, sans erreur. **Départ** : si la cible part, la pénalité est annulée et le jeu reprend chez le joueur suivant ; si un autre joueur part, la chaîne continue. **Minuteur de tour** : la cible qui laisse expirer son tour accepte. **Sécurité** : le serveur valide la cible (joueur de la manche, différent de l'acteur), la couleur et la phase ; tout le monde voit qui est visé et le total, jamais les cartes piochées.
 - **Cumul à l'échelle** (ADR 0029, tous testés) : **dernière carte** : une pile qui se termine par la dernière carte d'un joueur finit la manche, la dernière cible pioche tout le total (ces cartes comptent au score). **UNO** : celui qui empile jusqu'à une carte ouvre une fenêtre de contre-UNO comme après toute pose ; avec le réglage « UNO obligatoire », empiler sa dernière carte sans avoir annoncé est refusé (`MUST_DECLARE_UNO`, `me.mustDeclareUno`). **Sens du jeu** : un +2 ou un +4 vise le joueur suivant dans le sens courant. **Pioche épuisée** : la cible pioche ce qui reste, sans erreur. **Départ** : si la cible part, la pile est annulée et le jeu reprend chez le joueur suivant ; si un autre joueur part, elle continue. **Minuteur de tour** : la cible qui laisse expirer son tour accepte. **Refus** : une carte trop faible ou qui n'est pas une carte de pénalité reçoit `ILLEGAL_MOVE` / `CANNOT_STACK`.
 - **Bots** (ADR 0030) : un bot n'a ni connexion ni session, ne se déconnecte jamais et n'est jamais attendu entre deux manches. Il réfléchit 1 à 2 s (`botThinkMin` / `botThinkMax`) **après `actionsOpenAt`** et après la grâce d'une fenêtre de contre-UNO ouverte ; ses actions passent par les mêmes contrôles que celles d'un humain (`EFFECT_IN_PROGRESS` compris) ; s'il propose un coup refusé, le serveur joue pour lui comme à l'expiration du minuteur. Quand le dernier humain part, le salon est fermé.
-- Le minuteur de tour n'est pas relancé par un événement qui ne change pas le tour (contre-UNO, annonce, fin d'une fenêtre de contre-UNO) : ADR 0020.
+- Le minuteur de tour n'est pas relancé par un événement qui ne change pas le tour (« Contre ! », annonce, fin d'une fenêtre de « Contre ! ») : ADR 0020.
 
 ## 6. Architecture globale
 
@@ -172,7 +172,7 @@ uno-neon/
 ```
 
 **Règle de dépendance (architecture hexagonale / ports et adaptateurs)** : `net → app → core`, jamais l'inverse. `core` ne connaît ni le réseau, ni le JSON, ni le temps, ni l'aléatoire global.
-*Pourquoi* : les règles du UNO sont la partie la plus riche et la plus risquée ; les isoler permet de les tester à 100 % sans lancer de serveur, et de changer de transport (WebSocket, bots, tests) sans les toucher.
+*Pourquoi* : les règles du jeu sont la partie la plus riche et la plus risquée ; les isoler permet de les tester à 100 % sans lancer de serveur, et de changer de transport (WebSocket, bots, tests) sans les toucher.
 
 **Pas de règles dans le client** : le serveur calcule et envoie `playableCardIds`, `canDraw`, `canCallUno`… Le client affiche, il ne décide pas. *Pourquoi* : une seule source de vérité (DRY), aucune divergence possible entre deux implémentations des règles, et un client impossible à « tricher ».
 
@@ -184,7 +184,7 @@ uno-neon/
 - **Types forts** : `PlayerId`, `CardId`, `RoomCode` sont des structs distinctes (pas des `int`/`std::string` nus) → impossible de passer un `CardId` là où on attend un `PlayerId`.
 - `Card { CardId id; std::optional<Color> color; Rank rank; }` (les Jokers n'ont pas de couleur propre).
 - Les `CardId` sont attribués **aléatoirement** à chaque partie : un identifiant ne révèle rien sur la carte.
-- `Round` est l'agrégat : pioche, défausse, mains, sièges, sens, couleur courante, joueur courant, phase de tour, `PendingDraw`, fenêtre UNO.
+- `Round` est l'agrégat : pioche, défausse, mains, sièges, sens, couleur courante, joueur courant, phase de tour, `PendingDraw`, fenêtre de dernière carte.
 - `Match` enchaîne les `Round`, gère le donneur et les scores.
 
 ### 7.2 API du moteur (« functional core, imperative shell »)
@@ -256,8 +256,8 @@ Serveur → client : réponses `{ "v": 1, "type": "ack", "replyTo": "c-42" }` ou
 | `game.drawCard` | `{}` | son tour, phase `AwaitingPlay`, et si la règle de pioche l'autorise (`me.canDraw`) |
 | `game.pass` | `{}` | phase `AwaitingDrawnCardDecision` (« garder la carte » : interdit en pioche guidée si la carte piochée est normale) |
 | `game.respondPenalty` | `{ response: "accept" \| "challenge" }` | visé par une pénalité (empiler ou répliquer = `game.playCard`) ; `challenge` est refusé (`CANNOT_CHALLENGE`) contre un Joker +5, qui ne se contre pas (ADR 0034) |
-| `game.callUno` | `{}` | 2 cartes et son tour, ou 1 carte dans la fenêtre UNO |
-| `game.catchUno` | `{ targetId }` | fenêtre UNO ouverte sur la cible |
+| `game.callUno` | `{}` | 2 cartes et son tour, ou 1 carte dans la fenêtre de dernière carte |
+| `game.catchUno` | `{ targetId }` | fenêtre de dernière carte ouverte sur la cible |
 | `reaction.send` | `{ emote: "gg" \| "wow" \| "lol" \| "ouch" \| "think" \| "fire" }` | limité à 1 toutes les 2 s |
 
 | `chat.send` | `{ text }` | dans un salon (au salon comme en partie) ; 1 à 200 caractères visibles sur une ligne (`CHAT_INVALID`), au plus 5 messages en 10 s (`RATE_LIMITED`) ; texte brut (ADR 0037) |
@@ -301,7 +301,7 @@ interface PlayerView {
   pendingDraw: number; turnDeadline: number | null; // epoch ms, horloge serveur
   actionsOpenAt: number; // epoch ms, horloge serveur : le serveur refuse toute action de tour reçue avant (ADR 0027)
   drawStepMs: number; // rythme des cartes piochées, dicté par le serveur (ADR 0026)
-  unoWindows: Array<{ targetId: string; graceEndsAt: number; expiresAt: number }>; // fenêtres de contre-UNO ouvertes (ADR 0018), heure serveur
+  unoWindows: Array<{ targetId: string; graceEndsAt: number; expiresAt: number }>; // fenêtres de « Contre ! » ouvertes (ADR 0018), heure serveur
   round: number; settings: RoomSettings;
   roundResult: { winnerId: string; points: number; revealedHands: Record<string, Card[]> } | null;
 }
@@ -321,7 +321,7 @@ Les messages d'erreur sont en anglais technique ; **le client traduit chaque cod
 
 ### 9.2 Modèle d'exécution
 - **Une seule boucle d'événements uWebSockets, un seul thread** pour toutes les connexions et tous les salons. Aucun mutex dans `core`/`app`.
-  *Pourquoi* : le UNO est au tour par tour et peu gourmand ; un seul thread sérialise naturellement les actions concurrentes (interceptions, contre-UNO simultanés) et élimine toute une classe de bugs (data races). Si un jour il faut monter en charge, on répartira les salons par thread (sharding), sans changer le moteur.
+  *Pourquoi* : le jeu est au tour par tour et peu gourmand ; un seul thread sérialise naturellement les actions concurrentes (interceptions, contre-UNO simultanés) et élimine toute une classe de bugs (data races). Si un jour il faut monter en charge, on répartira les salons par thread (sharding), sans changer le moteur.
 - Les timers passent par une interface `Scheduler` (`schedule(delay, callback) → TimerHandle`, `cancel`) : `UwsScheduler` en prod, `ManualScheduler` (avance le temps à la main) dans les tests.
 
 ### 9.3 Sessions, salons, reconnexion
@@ -382,7 +382,7 @@ client/src/styles/   tokens.scss, themes.scss, base.scss, typography.scss, backg
 - `GameStore` expose des signals en lecture seule (`view`, `isMyTurn`, `playableIds`, `pendingAnimations`…) et des méthodes d'intention (`playCard(cardId, color?, target?)`, `draw()`, `pass()`, `callUno()`, `catchUno(id)`, `respondPenalty(r)`).
 - **Façade** : les composants n'appellent jamais le transport directement.
 - File d'animations : les `events` d'un `game.update` sont joués dans l'ordre, puis la vue est appliquée. Si l'onglet est masqué ou si `prefers-reduced-motion` est actif, on applique la vue directement.
-- Erreurs : chaque `error` devient un toast en français via `ErrorMessages`. Les erreurs attendues (clic trop tard sur contre-UNO) sont discrètes, les erreurs graves (session expirée) redirigent vers l'accueil avec une explication.
+- Erreurs : chaque `error` devient un toast en français via `ErrorMessages`. Les erreurs attendues (clic trop tard sur « Contre ! ») sont discrètes, les erreurs graves (session expirée) redirigent vers l'accueil avec une explication.
 
 ### 10.5 Routage
 - `/` Accueil — `/r/:code` Salon + table (lien partageable) — `/dev/gallery` (dev uniquement) — `**` page 404 dans le style du jeu.
@@ -422,15 +422,15 @@ Un seul thème : anthracite / bleu nuit très sombre, panneaux en verre sombre. 
 ### 11.4 Les cartes (composant `ui/card`, un seul SVG paramétré)
 - **Le Joker +5 est un « joker doré »**, rare et précieux : fond or en dégradé métallique (un dégradé SVG propre à chaque carte, jamais d'identifiant partagé), bord néon or, cadre intérieur fin, huit rayons clairs autour d'un « +5 » brun très sombre cerné d'or clair (lisible sur l'or), l'anneau des quatre couleurs au-dessus, et un **reflet** qui traverse lentement la carte toutes les 7 s (coupé par `prefers-reduced-motion`, la règle globale). Les couleurs viennent des tokens `--gold-*` (`tokens.scss`).
 - Proportions 5:7. Tailles proportionnelles à la hauteur de l'écran (lisibles dès 1280 × 720) : main de 100 à 136 px (64 px en mobile), défausse et pioche de 96 à 168 px (88 px en mobile), dos d'adversaire de 36 à 60 px.
-- **Face** : **fond plein de la couleur** de la carte (saturée mais pas fluo), **bord néon** de la couleur du jeu, ovale incliné plus sombre au centre, grand chiffre blanc à contour sombre en Fredoka, petite valeur et symbole de couleur (blanc cerné) dans deux coins opposés. Les jokers ont un corps sombre et l'anneau des quatre couleurs.
+- **Face** : **fond plein de la couleur** de la carte (saturée mais pas fluo), **bord néon** de la couleur du jeu, cercle plus sombre au centre, cerclé d'un filet clair (ADR 0042), grand chiffre blanc à contour sombre en Fredoka, petite valeur et symbole de couleur (blanc cerné) dans deux coins opposés. Les jokers ont un corps sombre et l'anneau des quatre couleurs.
 - **Symbole de forme par couleur** (daltonisme, obligatoire partout où une couleur de jeu apparaît) : rouge = triangle ▲, jaune = cercle ●, vert = carré ■, bleu = losange ◆. Présent dans les coins, le sélecteur de couleur, l'indicateur de couleur active et les textes (« Bleu ◆ »).
 - **Icônes d'action** originales : `Skip` = cercle barré ; `Reverse` = deux flèches courbes ; `DrawTwo` = « +2 » et deux mini-cartes ; `Wild` = anneau à quatre quadrants ; `WildDrawFour` = anneau + « +4 ». Un Joker posé montre la couleur choisie dans son anneau.
-- **Dos** : fond uni sombre, wordmark penché au centre, bord néon (`--back-neon`).
+- **Dos** : fond uni sombre, wordmark « NOC » en tube de néon dans un cercle, bord néon (`--back-neon`).
 - **États** : jouable = nettement surélevée (34 px), bord néon et halo de sa couleur, curseur main, et encore plus haute au survol, devant ses voisines ; non jouable = **opaque**, atténuée par un **voile sombre** (`--card-veil`) et une légère baisse de luminosité, **sans désaturer** (le jaune reste jaune, le vert reste vert) et jamais par `opacity` (qui laisserait voir la carte du dessous), abaissée, **toujours lisible** ; dessus de la défausse = bord qui brille ; pas mon tour = toute la main neutre et un peu abaissée, aucune réaction.
 - **Le rendu SVG est la seule source** : pas de fichier image par carte.
 
 ### 11.5 Logo, icônes, composants
-- **Logo** (`ui/logo`) : wordmark « UNO » en **SVG inline**, une tuile arrondie par lettre de `APP_NAME` (`core/app-name.ts`), aux couleurs du jeu, légèrement penchées. Le nom du jeu vient d'une seule constante.
+- **Logo** (`ui/logo`) : wordmark « NOC » en **SVG inline**, une lettre en majuscules par caractère de `APP_NAME` (`core/app-name.ts`), tracée comme un tube de néon creux (ADR 0042). Le nom du jeu vient d'une seule constante.
 - **Icônes** (`ui/icon`) : composant SVG maison (porte, couronne, copier, coche, fermer, flèches de sens, palette), `currentColor`, décoratives (`aria-hidden`), sans `innerHTML` ni dépendance.
 - **Boutons** (`button[appButton]`) : `primary` (vert néon plein), `danger` (contour rouge néon, plein au survol), `uno` (jaune), `neutral`, `ghost`. Un bouton **atténué** pose `aria-disabled` (et non `disabled`) quand son survol ou son focus doit expliquer pourquoi.
 - Autres : `avatar` (**12 personnages SVG** originaux aux couleurs des tokens, choisis sur l'accueil, mémorisés avec le pseudo, envoyés comme un numéro `avatarId` 0 à 11 : rien n'est téléversé, ADR 0037), `avatar-picker` (groupe radio de 12), `player-menu` (masquer / exclure, avec confirmation), `chat-panel` (panneau repliable avec compteur de non-lus), `segmented-control`, `modal` (`<dialog>` natif), `toast`, `connection-banner`.
@@ -462,8 +462,8 @@ Accessible par le lien « Comment jouer ? » sous le panneau de l'accueil, pour 
 - **Centre** : une grande ellipse douce (léger dégradé) dont le **liseré fin prend la couleur active** ; une lueur discrète glisse lentement le long du liseré **dans le sens du jeu** (coupée avec `prefers-reduced-motion`) ; la lueur a pour tête une petite flèche qui montre le sens du jeu (une seule animation CSS pilote la lueur et la flèche, qui restent calées l'une sur l'autre ; elles repartent à l'envers après une inversion). La pioche (cliquable quand le serveur dit `canDraw` ou `canKeepDrawnCard`, info-bulle « Piocher » / « Garder la carte ») et la défausse au milieu, la défausse entourée d'une **lueur de la couleur active** (indispensable après un Joker), et un **seul libellé** sous elle (« ▲ Rouge », forme et nom) ; la pénalité en attente.
 - **Journal** : en haut à droite, les deux dernières lignes, petit, `aria-live="polite"`.
 - **Ma main** : en bas, en éventail, qui **ne montre que les cartes arrivées** : pendant une pioche rythmée chaque carte prend sa place à son arrivée et l'éventail se réorganise en douceur (transition) ; main neutre et paquet muet jusqu'à `actionsOpenAt` ; pendant mon tour les cartes jouables sautent aux yeux (surélevées, bord néon et halo, curseur main) et les autres sont atténuées et abaissées ; hors de mon tour toute la main est neutre et un peu abaissée ; le chevauchement se resserre pour que la main tienne toujours dans la largeur.
-- **Bouton UNO** : grand, rond, jaune, centré entre le centre de la table et ma main, **visible seulement quand il sert** ; mis en avant (taille, pulsation) quand `mustDeclareUno` est vrai, avec une phrase d'explication.
-- **Contre-UNO** : plusieurs fenêtres peuvent coexister (`unoWindows`), donc **un bouton « Contre-UNO ! » par cible**, avec son nom, empilés au même endroit que le bouton UNO, en rouge néon. Chacun est **grisé avec un compte à rebours pendant la grâce**, puis actif jusqu'à l'échéance (heure serveur).
+- **Bouton « Dernière ! »** : grand, rond, jaune, centré entre le centre de la table et ma main, **visible seulement quand il sert** ; mis en avant (taille, pulsation) quand `mustDeclareUno` est vrai, avec une phrase d'explication.
+- **« Contre ! »** : plusieurs fenêtres peuvent coexister (`unoWindows`), donc **un bouton « Contre ! » par cible**, avec son nom, empilés au même endroit que le bouton UNO, en rouge néon. Chacun est **grisé avec un compte à rebours pendant la grâce**, puis actif jusqu'à l'échéance (heure serveur).
 - **Mouvement réduit** : avec `prefers-reduced-motion`, toutes les pulsations et animations sont coupées.
 - **Contestation du +4** : modale façon jeu de cartes : la carte, une ligne d'explication de la règle, « **Contester** » (rouge) et « **Accepter, piocher 4** », puis un **bandeau de résultat** une fois le verdict rendu.
 - **Choix de la cible d'un Joker +5** : à la pose, une fenêtre non modale liste les adversaires (initiale, pseudo, nombre de cartes ; touches 1 à 9, Échap annule) ; **les sièges de la table s'entourent d'or et se visent d'un clic** (ou d'Entrée au clavier). Puis le choix de couleur habituel. Quand un +5 me vise, aucune fenêtre : les cartes arrivent une à une (le paquet reste cliquable pour les prendre plus tôt).
@@ -472,7 +472,7 @@ Accessible par le lien « Comment jouer ? » sous le panneau de l'accueil, pour 
 - **Perte de connexion** : panneau « Connexion perdue — reconnexion… (tentative n) » par-dessus la table. Session expirée : retour à l'accueil avec un message clair.
 
 ### 12.4 Galerie `/dev/gallery` (développement uniquement)
-Toutes les cartes (110 faces + dos) et tous les composants dans tous leurs états ; la table de jeu alimentée par `FixtureTransport` avec des scénarios nommés : début de partie à 2, table pleine à 10, cumul de +4, contestation, fenêtre UNO, interception, fin de manche, reconnexion. Chaque scénario est accessible par une URL (`/dev/gallery?scenario=stacking`) pour que Playwright en prenne des captures.
+Toutes les cartes (110 faces + dos) et tous les composants dans tous leurs états ; la table de jeu alimentée par `FixtureTransport` avec des scénarios nommés : début de partie à 2, table pleine à 10, cumul de +4, contestation, fenêtre de dernière carte, interception, fin de manche, reconnexion. Chaque scénario est accessible par une URL (`/dev/gallery?scenario=stacking`) pour que Playwright en prenne des captures.
 
 ## 13. Animations et son
 
@@ -485,7 +485,7 @@ Toutes les cartes (110 faces + dos) et tous les composants dans tous leurs état
 
 ### 13.2 Catalogue
 
-**Qui voit quoi** (lot N) : un effet qui vise **un seul joueur** (+2, +4, Passe, Contre-UNO, résultat de la contestation du +4) s'affiche **en grand au centre chez lui seulement**, avec une phrase à la deuxième personne (« +2 : tu pioches 2 », « Tu passes ton tour ») ; chez les autres il se joue **sur le siège de la cible**, avec son nom (« +2 : Zoé pioche 2 »), et les cartes volent vers ce siège. Un effet qui concerne **tout le monde** (Inversion, roue de couleur du Joker et du +4) s'affiche au centre chez tous. Un effet prend la **couleur de la carte jouée** (+2 bleu → effet bleu ; blanc pour une carte noire), toujours par les tokens `--game-*`.
+**Qui voit quoi** (lot N) : un effet qui vise **un seul joueur** (+2, +4, Passe, « Contre ! », résultat de la contestation du +4) s'affiche **en grand au centre chez lui seulement**, avec une phrase à la deuxième personne (« +2 : tu pioches 2 », « Tu passes ton tour ») ; chez les autres il se joue **sur le siège de la cible**, avec son nom (« +2 : Zoé pioche 2 »), et les cartes volent vers ce siège. Un effet qui concerne **tout le monde** (Inversion, roue de couleur du Joker et du +4) s'affiche au centre chez tous. Un effet prend la **couleur de la carte jouée** (+2 bleu → effet bleu ; blanc pour une carte noire), toujours par les tokens `--game-*`.
 
 | Événement | Effet |
 |---|---|
@@ -497,8 +497,8 @@ Toutes les cartes (110 faces + dos) et tous les composants dans tous leurs état
 | Joker +5 (`plusFiveTargeted`) | **en or** : chez la cible, « +5 » en grand au centre (ou le total d'une chaîne : « +10 ») avec « Tu pioches 5 », sur un halo sombre pour se détacher de la carte dorée ; chez les autres, une pastille « +5 sur Léa : 5 cartes » au-dessus du siège de la cible. La pénalité qui suit (cartes piochées une à une) fait trembler le siège. Le serveur lui réserve la carte, la roue des couleurs et cet effet (`playStep` + 2 × `effectStep`). |
 | Joker, +4 (`colorChosen`) | une roue des quatre couleurs au centre, le quart choisi grossit, puis le liseré et la lueur de la défausse prennent la nouvelle couleur |
 | `turnChanged` | le siège actif s'illumine et grossit légèrement ; un éclat glisse du siège précédent au suivant |
-| `unoCalled` | éclat « UNO ! » sur le siège |
-| `unoCaught` | tampon « Contre-UNO » en grand chez la cible, sur son siège chez les autres, puis ses cartes de pénalité |
+| `unoCalled` | éclat « Dernière ! » sur le siège |
+| `unoCaught` | tampon « Contre ! » en grand chez la cible, sur son siège chez les autres, puis ses cartes de pénalité |
 | `challengeResolved` | verdict (bluff découvert / contestation ratée) en grand chez le joueur pénalisé, sur son siège chez les autres, puis cartes de pénalité vers lui |
 | `roundEnded` | projecteur sur le gagnant (la modale de fin de manche attend sa fin) |
 | Échange de mains (7/0) | les éventails glissent d'un siège à l'autre (avec les options maison, étape 1.6) |
@@ -509,11 +509,11 @@ Toutes les cartes (110 faces + dos) et tous les composants dans tous leurs état
 - **L'audio ne démarre qu'après une interaction** de l'utilisateur (règle d'autoplay : le premier `pointerdown`, `keydown` ou `touchstart` crée le contexte audio) ; avant, rien ne se joue.
 - **Clic d'interface** (ADR 0032) : un tic discret sur chaque bouton, par une directive unique (`ClickSound`) ; un test vérifie qu'aucun gabarit n'a de bouton sans elle.
 - **Musique d'ambiance générée** (ADR 0032) : une boucle douce (La mineur), sans fichier ni licence, sur son propre circuit audio avec **son propre volume**. Dès qu'il ne reste que **le tiers du temps de mon tour**, elle monte progressivement en tension (tempo de 68 à 132 battements par minute, pouls grave, tic aigu) puis revient à la normale ; ce comportement se désactive.
-- **Malus** : +2, +4, +5, Passe, Inversion et contre-UNO ont des sons à plusieurs couches, plus marquants que les autres.
+- **Malus** : +2, +4, +5, Passe, Inversion et « Contre ! » ont des sons à plusieurs couches, plus marquants que les autres.
 - **Réglages audio**, personnels, en `localStorage` : bouton **« Son activé / Son coupé »** (muet général : ni effets ni musique), panneau **« Réglages audio »** (volume des effets **60 %**, volume de la musique **30 %**, case « Tension de fin de tour » **cochée**), sur l'accueil et sur la table (icônes seules en portrait étroit). Quand le son est coupé, aucun oscillateur n'est même créé.
 
 ### 13.4 Poussière des effets (ADR 0032)
-Les effets les plus forts (+2, +4, +5, Passe, Inversion, contre-UNO, contestation) lancent un nuage de grains « poussière », discret : **une seule couche `<canvas>`**, `requestAnimationFrame`, **40 particules au plus**, boucle **arrêtée quand plus rien ne bouge**, couleurs tirées des tokens (`--game-*`, **or** pour le +5). Rien du tout avec `prefers-reduced-motion`. Un effet = un son = des particules, lancés au même instant par l'`AnimationDirector` et la couche d'effets.
+Les effets les plus forts (+2, +4, +5, Passe, Inversion, « Contre ! », contestation) lancent un nuage de grains « poussière », discret : **une seule couche `<canvas>`**, `requestAnimationFrame`, **40 particules au plus**, boucle **arrêtée quand plus rien ne bouge**, couleurs tirées des tokens (`--game-*`, **or** pour le +5). Rien du tout avec `prefers-reduced-motion`. Un effet = un son = des particules, lancés au même instant par l'`AnimationDirector` et la couche d'effets.
 
 ## 14. Accessibilité (cible WCAG 2.2 AA)
 
@@ -521,7 +521,7 @@ Les effets les plus forts (+2, +4, +5, Passe, Inversion, contre-UNO, contestatio
 - **Jamais la couleur seule** : symbole de forme + libellé texte pour chaque couleur de jeu (§11.4).
 - **Clavier complet** :
   - `Tab` parcourt les zones (main, piles, actions, adversaires) ; dans la main, `←`/`→` déplacent le focus (tabindex mobile via `ListKeyManager`), `Entrée`/`Espace` jouent la carte ;
-  - raccourcis actifs uniquement quand la table a le focus (jamais dans un champ de saisie) et désactivables dans les réglages : `P` piocher, `U` UNO, `1`-`4` couleur dans le sélecteur, `?` aide ;
+  - raccourcis actifs uniquement quand la table a le focus (jamais dans un champ de saisie) et désactivables dans les réglages : `P` piocher, `U` « Dernière ! », `1`-`4` couleur dans le sélecteur, `?` aide ;
   - focus visible partout (anneau cyan 3 px + décalage), jamais supprimé.
 - **Lecteurs d'écran** : `lang="fr"` ; chaque carte a un libellé (« +2 rouge triangle, jouable ») ; `LiveAnnouncer` annonce les événements en `polite` (« Léa pose un 7 bleu ») et « À toi de jouer » en `assertive` ; les compteurs (cartes des adversaires, pioche) sont lisibles.
 - **Modales** : focus piégé, `Échap` pour fermer quand c'est permis, focus rendu à l'élément d'origine.

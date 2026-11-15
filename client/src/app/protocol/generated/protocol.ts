@@ -318,7 +318,7 @@ export interface RoomSettingsPatch {
   maxPlayers?: MaxPlayers;
   drawRule?: DrawRule;
   /**
-   * House rule (ADR 0019): the last card cannot be played before UNO is announced.
+   * House rule (ADR 0019): the last card cannot be played before « Dernière ! » is announced.
    */
   declareUnoToWin?: boolean;
   animationSpeed?: AnimationSpeed;
@@ -498,7 +498,7 @@ export interface RespondPenaltyPayload {
   response: 'accept' | 'challenge';
 }
 /**
- * Announces UNO: with 2 cards on your turn, or with 1 card while the UNO window is open.
+ * Announces « Dernière ! »: with 2 cards on your turn, or with 1 card while the « Dernière ! » window is open.
  */
 export interface CallUnoMessage {
   v: ProtocolVersion;
@@ -507,7 +507,7 @@ export interface CallUnoMessage {
   payload: EmptyPayload;
 }
 /**
- * Catches a player who did not announce UNO while the window is open.
+ * Catches a player who did not announce « Dernière ! » while the window is open.
  */
 export interface CatchUnoMessage {
   v: ProtocolVersion;
@@ -628,7 +628,7 @@ export interface RoomSettings {
   maxPlayers: MaxPlayers;
   drawRule: DrawRule;
   /**
-   * House rule (ADR 0019): the last card cannot be played before UNO is announced.
+   * House rule (ADR 0019): the last card cannot be played before « Dernière ! » is announced.
    */
   declareUnoToWin: boolean;
   animationSpeed: AnimationSpeed;
@@ -755,14 +755,14 @@ export interface PlusFiveTargetedEvent {
   total: number;
 }
 /**
- * A player announced UNO.
+ * A player announced « Dernière ! ».
  */
 export interface UnoCalledEvent {
   kind: 'unoCalled';
   playerId: PlayerId;
 }
 /**
- * A player was caught without announcing UNO and draws a penalty.
+ * A player was caught without announcing « Dernière ! » and draws a penalty.
  */
 export interface UnoCaughtEvent {
   kind: 'unoCaught';
@@ -889,7 +889,7 @@ export interface MyState {
   playableCardIds: CardId[];
   canDraw: boolean;
   /**
-   * House rule declareUnoToWin (ADR 0019): the viewer holds one playable card and cannot play it until they announce UNO (game.callUno). Computed by the server.
+   * House rule declareUnoToWin (ADR 0019): the viewer holds one playable card and cannot play it until they announce « Dernière ! » (game.callUno). Computed by the server.
    */
   mustDeclareUno: boolean;
   /**

@@ -74,7 +74,7 @@ const seat = (
 
 /**
  * Des vues de table écrites à la main pour la page `/dev/table` : on y voit les situations difficiles à provoquer en
- * jouant (fenêtre de contre-UNO ouverte, contestation d'un +4, table pleine). `now` est l'heure locale : les échéances
+ * jouant (fenêtre de « Contre ! » ouverte, contestation d'un +4, table pleine). `now` est l'heure locale : les échéances
  * en dérivent, le décalage d'horloge vaut zéro.
  */
 export function scenarioView(name: ScenarioName, now: number): PlayerView {

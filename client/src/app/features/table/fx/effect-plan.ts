@@ -10,7 +10,7 @@ export type EffectSpec =
       readonly count: number;
       /** Les cartes piochées, connues du seul joueur qui pioche (jamais celles d'un adversaire). */
       readonly cards: readonly Card[] | undefined;
-      /** Pioche infligée (+2, +4, contestation, contre-UNO) : le siège tremble et clignote. */
+      /** Pioche infligée (+2, +4, contestation, « Contre ! ») : le siège tremble et clignote. */
       readonly penalty: boolean;
     }
   /**

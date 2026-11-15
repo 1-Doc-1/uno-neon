@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.28...4.3)
 
 project(uno_neon
     VERSION 0.1.0
-    DESCRIPTION "Authoritative UNO Néon game server"
+    DESCRIPTION "Authoritative NOC game server"
     LANGUAGES CXX)
 
 option(UNO_BUILD_TESTS "Build the Catch2 test suite" ON)

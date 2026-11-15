@@ -713,7 +713,7 @@ Application::Outcome Application::handle(ConnectionId connection, const request:
     }
     const UnoWindowTiming* const window = (*room)->findUnoWindow(request.targetId);
     if (window != nullptr && (*session)->playerId != request.targetId && clock_->nowMillis() < window->graceEndsAt) {
-        return fail(ErrorCode::UnoGracePeriod, "The player may still announce UNO");
+        return fail(ErrorCode::UnoGracePeriod, "The player may still call Dernière !");
     }
     return play(connection, core::CatchUno{.target = request.targetId});
 }
@@ -773,7 +773,7 @@ Application::Outcome Application::applyPlayerAction(Room& current, const core::P
             return fail(ErrorCode::IllegalMove, "Play a card instead of drawing, or the card you drew",
                         IllegalMoveReason::MustPlay);
         case core::DomainError::MustDeclareUno:
-            return fail(ErrorCode::IllegalMove, "Announce UNO before playing your last card",
+            return fail(ErrorCode::IllegalMove, "Call Dernière ! before playing your last card",
                         IllegalMoveReason::MustDeclareUno);
         case core::DomainError::OnlyDrawnCardPlayable:
             return fail(ErrorCode::IllegalMove, "Only the card you just drew can be played",

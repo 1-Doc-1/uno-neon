@@ -106,9 +106,9 @@ export const SOUNDS: Readonly<Record<SoundId, readonly Note[]>> = {
   ],
   // Choix de la couleur : un tourbillon de quatre notes (une par couleur)
   color: run('triangle', [523, 659, 784, 1047], 0.07, 0.1, 0.3),
-  // UNO : deux notes claires, comme un « ding ding »
+  // « Dernière ! » : deux notes claires, comme un « ding ding »
   uno: [note(0, 0.2, 'sine', 880, 0.4), note(0.14, 0.3, 'sine', 1319, 0.4)],
-  // Contre-UNO : un buzzer qui claque, puis une chute
+  // « Contre ! » : un buzzer qui claque, puis une chute
   caught: [
     note(0, 0.24, 'sawtooth', 196, 0.32),
     note(0.16, 0.36, 'sawtooth', 147, 0.32),

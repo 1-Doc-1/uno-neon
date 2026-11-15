@@ -196,14 +196,14 @@ describe('placeEffect', () => {
       });
     });
 
-    it('stamps "Contre-UNO" big for the player caught, and on their seat for the others', () => {
+    it('stamps "Contre" big for the player caught, and on their seat for the others', () => {
       expect(
         placeEffect(effect({ kind: 'caught', targetId: 'me', amount: 2 }), anchors()),
       ).toMatchObject({
         kind: 'label',
         variant: 'caught',
         where: 'center',
-        text: 'Contre-UNO : tu pioches 2',
+        text: 'Contre : tu pioches 2',
       });
       expect(
         placeEffect(effect({ kind: 'caught', targetId: 'zoe', amount: 2 }), anchors()),
@@ -211,7 +211,7 @@ describe('placeEffect', () => {
         kind: 'label',
         variant: 'seat',
         where: 'seat',
-        text: 'Contre-UNO sur Zoé : 2 cartes',
+        text: 'Contre sur Zoé : 2 cartes',
       });
     });
 

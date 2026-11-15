@@ -217,7 +217,7 @@
           "$ref": "#/$defs/DrawRule"
         },
         "declareUnoToWin": {
-          "description": "House rule (ADR 0019): the last card cannot be played before UNO is announced.",
+          "description": "House rule (ADR 0019): the last card cannot be played before « Dernière ! » is announced.",
           "type": "boolean"
         },
         "animationSpeed": {
@@ -283,7 +283,7 @@
           "$ref": "#/$defs/DrawRule"
         },
         "declareUnoToWin": {
-          "description": "House rule (ADR 0019): the last card cannot be played before UNO is announced.",
+          "description": "House rule (ADR 0019): the last card cannot be played before « Dernière ! » is announced.",
           "type": "boolean"
         },
         "animationSpeed": {

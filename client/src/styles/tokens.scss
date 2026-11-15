@@ -1,7 +1,7 @@
 // Tokens de la direction artistique « Nuit » (ADR 0021, SPEC §11). Un composant n'écrit aucune couleur en dur : tout
 // passe par ces variables, ce qui permettrait d'ajouter un thème plus tard en les redéfinissant.
 // Le néon (--glow-*) est réservé aux cartes (bord, carte jouable, dessus de la défausse) et à quelques actions
-// (primaire, destructive, UNO, Contre-UNO) ; tout le reste est sobre : panneaux en verre sombre, un seul niveau d'élévation.
+// (primaire, destructive, « Dernière ! », « Contre ! ») ; tout le reste est sobre : panneaux en verre sombre, un seul niveau d'élévation.
 
 :root {
   // Typographie : display ronde et grasse + sans-serif lisible, auto-hébergées (licence OFL)

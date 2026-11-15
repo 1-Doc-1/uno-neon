@@ -16,7 +16,7 @@ function render(catchButtons: CatchButton[]) {
 }
 
 describe('UnoActions', () => {
-  it('ignores a click on a counter-UNO button still in its grace period, then lets it through', () => {
+  it('ignores a click on a counter call button still in its grace period, then lets it through', () => {
     const grace = render([{ playerId: 'loic', nickname: 'Loïc', inGrace: true, secondsLeft: 2 }]);
     grace.buttons[0].click();
     const open = render([{ playerId: 'loic', nickname: 'Loïc', inGrace: false, secondsLeft: 9 }]);

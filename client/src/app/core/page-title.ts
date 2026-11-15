@@ -4,7 +4,7 @@ import { RouterStateSnapshot, TitleStrategy } from '@angular/router';
 import { inject } from '@angular/core';
 import { APP_NAME } from './app-name';
 
-/** Le titre de l'onglet suit la page : « Comment jouer · UNO », et « UNO » seul quand la route n'a pas de titre. */
+/** Le titre de l'onglet suit la page : « Comment jouer · NOC », et « NOC » seul quand la route n'a pas de titre. */
 @Service()
 export class PageTitleStrategy extends TitleStrategy {
   private readonly title = inject(Title);

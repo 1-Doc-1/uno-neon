@@ -14,8 +14,8 @@ describe('soundOfEffect', () => {
     ['a skip', { kind: 'skip', playerId: ME }, 'skip'],
     ['a reverse', { kind: 'reverse', direction: 'counterClockwise' }, 'reverse'],
     ['a colour choice', { kind: 'wheel', color: 'blue' }, 'color'],
-    ['UNO', { kind: 'uno', playerId: 'zoe' }, 'uno'],
-    ['a counter-UNO', { kind: 'caught', targetId: 'zoe', amount: 2 }, 'caught'],
+    ['« Dernière ! »', { kind: 'uno', playerId: 'zoe' }, 'uno'],
+    ['a counter call', { kind: 'caught', targetId: 'zoe', amount: 2 }, 'caught'],
     [
       'a challenge',
       { kind: 'challenge', succeeded: true, penalizedId: 'zoe', amount: 4 },

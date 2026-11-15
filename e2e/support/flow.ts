@@ -2,7 +2,7 @@ import { expect } from '@playwright/test';
 import type { Lobby } from './fixtures.ts';
 import type { Player } from './player.ts';
 
-/** L'hôte choisit une option du salon (« Manche unique », « UNO obligatoire »…) et l'attend cochée. */
+/** L'hôte choisit une option du salon (« Manche unique », « Dernière ! » obligatoire…) et l'attend cochée. */
 export async function chooseSetting(host: Player, option: string): Promise<void> {
   const radio = host.page.getByRole('radio', { name: option });
   await radio.click();
