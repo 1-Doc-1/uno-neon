@@ -39,9 +39,10 @@ public:
     // Opens the TCP connection and performs the HTTP upgrade. `origin` empty = no Origin header.
     // `status` is the HTTP status of the answer (101 when the upgrade succeeded); the object is only
     // returned usable for frames when it is 101.
-    // `cookie` is sent as the Cookie header when it is not empty.
+    // `cookie` is sent as the Cookie header when it is not empty, `forwardedFor` as X-Forwarded-For.
     [[nodiscard]] static std::optional<TestWebSocket> connect(std::uint16_t port, std::string_view origin, int& status,
-                                                              std::string_view cookie = {});
+                                                              std::string_view cookie = {},
+                                                              std::string_view forwardedFor = {});
 
     // The value of the Set-Cookie header of the upgrade answer, or empty.
     [[nodiscard]] const std::string& setCookie() const;

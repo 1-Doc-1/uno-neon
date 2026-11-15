@@ -1,11 +1,15 @@
 #pragma once
 
+#include <array>
 #include <chrono>
 #include <cstddef>
+#include <cstdint>
 #include <deque>
+#include <expected>
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <vector>
 
 namespace uno::net {
 
@@ -52,12 +56,41 @@ private:
     std::size_t sinceSweep_ = 0;
 };
 
-// The address rate limits are counted against. Behind a reverse proxy every connection comes from the proxy, so
-// its `X-Forwarded-For` header is used, but ONLY when the proxy is declared trusted (UNO_TRUSTED_PROXY) AND the
-// connection comes from this very machine (Caddy runs beside the server, ADR 0036): from anyone else the header is
-// forgeable, whatever the configuration says. The last entry is the one the trusted proxy appended itself.
-// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): two addresses, but told apart by their names at the call
+// The addresses a reverse proxy may connect from (UNO_TRUSTED_PROXY_ADDRESSES). Only a connection that comes from one
+// of them can tell us, in `X-Forwarded-For`, the real address of a visitor. A default-constructed list trusts nobody.
+// IPv4 addresses and CIDR ranges are understood; IPv6 only as exact addresses. A range that would trust (almost) the
+// whole Internet is refused: "trust everything" is never a valid configuration.
+class TrustedProxies {
+public:
+    TrustedProxies() = default;
+
+    // The proxy runs beside the server (tunnel mode, ADR 0033): only this machine is trusted.
+    [[nodiscard]] static TrustedProxies loopback();
+
+    // A comma-separated list such as "172.29.88.2" or "10.0.0.0/8, 172.29.88.0/28"; the error says what is wrong.
+    [[nodiscard]] static std::expected<TrustedProxies, std::string> parse(std::string_view list);
+
+    // Whether a connection from this address (as written by uWebSockets) comes from a trusted proxy.
+    [[nodiscard]] bool trusts(std::string_view remoteAddress) const;
+
+    [[nodiscard]] bool empty() const noexcept { return ipv4Ranges_.empty() && ipv6Addresses_.empty(); }
+
+private:
+    struct Ipv4Range {
+        std::uint32_t network;
+        std::uint32_t mask;
+    };
+
+    std::vector<Ipv4Range> ipv4Ranges_;
+    std::vector<std::array<std::uint8_t, 16>> ipv6Addresses_;
+};
+
+// The address rate limits are counted against. Behind a reverse proxy every connection comes from the proxy, so its
+// `X-Forwarded-For` header is used, but ONLY when the connection comes from a trusted proxy
+// (UNO_TRUSTED_PROXY_ADDRESSES, or this machine alone with UNO_TRUSTED_PROXY): from anyone else the header is
+// forgeable, whatever the configuration says. The last entry is the one the trusted proxy appended itself: with a
+// single trusted hop between the visitor and the server, it is the address of the visitor.
 [[nodiscard]] std::string clientAddress(std::string_view remoteAddress, std::string_view forwardedFor,
-                                        bool trustedProxy);
+                                        const TrustedProxies& trustedProxies);
 
 } // namespace uno::net

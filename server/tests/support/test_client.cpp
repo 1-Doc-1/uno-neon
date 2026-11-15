@@ -289,7 +289,7 @@ TestWebSocket& TestWebSocket::operator=(TestWebSocket&&) noexcept = default;
 TestWebSocket::~TestWebSocket() = default;
 
 std::optional<TestWebSocket> TestWebSocket::connect(std::uint16_t port, std::string_view origin, int& status,
-                                                    std::string_view cookie)
+                                                    std::string_view cookie, std::string_view forwardedFor)
 {
     auto connection = Connection::open(port);
     if (!connection) {
@@ -300,6 +300,9 @@ std::optional<TestWebSocket> TestWebSocket::connect(std::uint16_t port, std::str
                           std::string(kHandshakeKey) + "\r\n";
     if (!origin.empty()) {
         request += "Origin: " + std::string(origin) + "\r\n";
+    }
+    if (!forwardedFor.empty()) {
+        request += "X-Forwarded-For: " + std::string(forwardedFor) + "\r\n";
     }
     if (!cookie.empty()) {
         request += "Cookie: " + std::string(cookie) + "\r\n";

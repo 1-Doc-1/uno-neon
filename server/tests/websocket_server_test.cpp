@@ -4,6 +4,7 @@
 #include "uno/net/codec.hpp"
 #include "uno/net/crypto_runtime.hpp"
 #include "uno/net/origin_policy.hpp"
+#include "uno/net/rate_limiter.hpp"
 #include "uno/net/session_cookie.hpp"
 #include "uno/net/websocket_server.hpp"
 
@@ -18,6 +19,7 @@
 #include <string>
 #include <utility>
 #include <variant>
+#include <vector>
 
 // Integration tests of the real server, through real sockets (SPEC §17, §9.4).
 
@@ -95,6 +97,18 @@ TEST_CASE("GET /health reports the state of the server", "[net][server]")
     REQUIRE(body.at("rooms") == 3);
     REQUIRE(body.at("connections") == 1);
     REQUIRE(body.at("uptimeSeconds").is_number_unsigned());
+}
+
+TEST_CASE("GET /sante answers a bare ok and reveals nothing about the server", "[net][server][health]")
+{
+    REQUIRE(uno::net::initializeCryptoRuntime());
+    const Fixture fixture(3);
+    const auto socket = fixture.connect();
+
+    const auto response = require(uno::testing::httpGet(fixture.server.port(), "/sante"));
+
+    REQUIRE(response.status == 200);
+    REQUIRE(response.body == "ok");
 }
 
 TEST_CASE("Any other HTTP path is a 404", "[net][server]")
@@ -457,4 +471,58 @@ TEST_CASE("The whole server holds a limited number of connections", "[net][serve
     REQUIRE(status == 503);
     static_cast<void>(refused);
     static_cast<void>(only);
+}
+
+// ---- La vraie adresse du visiteur derrière un proxy (ADR 0044) ----
+
+namespace {
+
+// Opens connections with a different forged X-Forwarded-For each; returns how many the server accepted before refusing.
+int acceptedConnectionsWithDistinctForwardedAddresses(uno::net::TrustedProxies trusted, int attempts)
+{
+    uno::net::WebSocketServerConfig config;
+    config.originPolicy = uno::net::OriginPolicy({kAllowedOrigin});
+    config.connectionLimits = {.maxConnections = 100, .maxConnectionsPerAddress = 1};
+    config.trustedProxies = std::move(trusted);
+    RecordingHandler handler;
+    const RunningServer server(std::move(config), handler,
+                               [&handler](uno::net::WebSocketServer& running) { handler.attach(running); });
+    std::vector<TestWebSocket> kept;
+    int accepted = 0;
+    for (int visitor = 1; visitor <= attempts; ++visitor) {
+        int status = 0;
+        auto socket =
+            TestWebSocket::connect(server.port(), kAllowedOrigin, status, {}, "203.0.113." + std::to_string(visitor));
+        if (status == kSwitchingProtocols && socket) {
+            ++accepted;
+            kept.push_back(std::move(*socket));
+        }
+    }
+    return accepted;
+}
+
+} // namespace
+
+TEST_CASE("A connection from a trusted proxy is counted under the address the proxy reports", "[net][server][proxy]")
+{
+    REQUIRE(uno::net::initializeCryptoRuntime());
+    // One connection per address allowed, three visitors behind the proxy: each has their own address
+    REQUIRE(acceptedConnectionsWithDistinctForwardedAddresses(uno::net::TrustedProxies::loopback(), 3) == 3);
+}
+
+TEST_CASE("A connection from an address that is not a trusted proxy cannot choose its own address",
+          "[net][server][proxy]")
+{
+    REQUIRE(uno::net::initializeCryptoRuntime());
+    // The test connects from the loopback, but only 10.9.9.9 is trusted: the forged headers are ignored, so the
+    // three attempts share one address and only the first one is accepted.
+    auto elsewhere = uno::net::TrustedProxies::parse("10.9.9.9");
+    REQUIRE(elsewhere.has_value());
+    REQUIRE(acceptedConnectionsWithDistinctForwardedAddresses(*elsewhere, 3) == 1);
+}
+
+TEST_CASE("Without any trusted proxy the forwarded address is never believed", "[net][server][proxy]")
+{
+    REQUIRE(uno::net::initializeCryptoRuntime());
+    REQUIRE(acceptedConnectionsWithDistinctForwardedAddresses(uno::net::TrustedProxies{}, 3) == 1);
 }
