@@ -2,15 +2,16 @@
 
 #include <algorithm>
 #include <array>
-#include <cctype>
 #include <charconv>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <expected>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <vector>
 
 namespace uno::net {
 namespace {
@@ -35,89 +36,113 @@ std::string_view trim(std::string_view text)
     return text;
 }
 
+std::vector<std::string_view> splitOn(std::string_view text, char separator)
+{
+    std::vector<std::string_view> parts;
+    for (;;) {
+        const auto at = text.find(separator);
+        parts.push_back(text.substr(0, at));
+        if (at == std::string_view::npos) {
+            return parts;
+        }
+        text.remove_prefix(at + 1);
+    }
+}
+
+// A number written in `base` with nothing around it, at most `maximum`.
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): named at every call site
+std::optional<unsigned> parseNumber(std::string_view digits, int base, unsigned maximum)
+{
+    unsigned value = 0;
+    const char* const begin = std::to_address(digits.begin());
+    const char* const end = std::to_address(digits.end());
+    const auto [parsedUpTo, error] = std::from_chars(begin, end, value, base);
+    if (digits.empty() || error != std::errc{} || parsedUpTo != end || value > maximum) {
+        return std::nullopt;
+    }
+    return value;
+}
+
 // Four decimal numbers from 0 to 255, nothing else.
 std::optional<std::uint32_t> parseIpv4(std::string_view text)
 {
+    constexpr std::size_t kParts = 4;
+    constexpr std::size_t kMaxDigits = 3;
+    const auto parts = splitOn(text, '.');
+    if (parts.size() != kParts) {
+        return std::nullopt;
+    }
     std::uint32_t value = 0;
-    for (int part = 0; part < 4; ++part) {
-        const auto dot = text.find('.');
-        const auto digits = text.substr(0, dot);
-        if (digits.empty() || digits.size() > 3 || (part < 3) != (dot != std::string_view::npos)) {
+    for (const auto part : parts) {
+        const auto number = part.size() <= kMaxDigits ? parseNumber(part, 10, 255) : std::nullopt;
+        if (!number) {
             return std::nullopt;
         }
-        unsigned number = 0;
-        const auto [parsedUpTo, error] = std::from_chars(digits.data(), digits.data() + digits.size(), number);
-        if (error != std::errc{} || parsedUpTo != digits.data() + digits.size() || number > 255) {
-            return std::nullopt;
-        }
-        value = (value << 8U) | number;
-        text = dot == std::string_view::npos ? std::string_view{} : text.substr(dot + 1);
+        value = (value << 8U) | *number;
     }
     return value;
 }
 
 using Ipv6 = std::array<std::uint8_t, 16>;
 
-// An IPv6 address as text, in any spelling: compressed ("::1", "fd00::5") or in full as uWebSockets writes it
-// ("0000:0000:0000:0000:0000:0000:0000:0001"), possibly ending with a dotted IPv4 ("::ffff:172.29.88.2").
-std::optional<Ipv6> parseIpv6(std::string_view text)
+// The 16-bit groups of one side of an IPv6 address ("fd00:5", or "ffff:172.29.88.2" with a dotted IPv4 at the end).
+// No text at all is no group at all.
+std::optional<std::vector<std::uint16_t>> parseGroups(std::string_view text)
 {
-    std::vector<std::uint16_t> head;
-    std::vector<std::uint16_t> tail;
-    bool compressed = false;
-    bool justCompressed = false; // right after a "::": a third colon is not allowed
-    auto* current = &head;
-    while (!text.empty()) {
-        if (text.starts_with("::")) {
-            if (compressed) {
-                return std::nullopt;
-            }
-            compressed = true;
-            justCompressed = true;
-            current = &tail;
-            text.remove_prefix(2);
-            continue;
-        }
-        if (text.front() == ':') {
-            if (justCompressed || (current->empty() && !compressed)) {
-                return std::nullopt;
-            }
-            text.remove_prefix(1);
-            if (text.empty()) {
-                return std::nullopt;
-            }
-        }
-        const auto end = text.find(':');
-        const auto group = text.substr(0, end);
-        if (group.find('.') != std::string_view::npos) {
-            const auto ipv4 = parseIpv4(group);
-            if (!ipv4 || end != std::string_view::npos) {
-                return std::nullopt;
-            }
-            current->push_back(static_cast<std::uint16_t>(*ipv4 >> 16U));
-            current->push_back(static_cast<std::uint16_t>(*ipv4 & 0xFFFFU));
-            break;
-        }
-        unsigned value = 0;
-        const auto [parsedUpTo, error] = std::from_chars(group.data(), group.data() + group.size(), value, 16);
-        if (group.empty() || group.size() > 4 || error != std::errc{} || parsedUpTo != group.data() + group.size()) {
+    std::vector<std::uint16_t> groups;
+    std::string_view hex = text;
+    std::optional<std::uint32_t> dotted;
+    if (text.contains('.')) {
+        const auto cut = text.rfind(':');
+        dotted = parseIpv4(cut == std::string_view::npos ? text : text.substr(cut + 1));
+        if (!dotted) {
             return std::nullopt;
         }
-        current->push_back(static_cast<std::uint16_t>(value));
-        justCompressed = false;
-        text = end == std::string_view::npos ? std::string_view{} : text.substr(end);
+        hex = cut == std::string_view::npos ? std::string_view{} : text.substr(0, cut);
     }
-    const auto groups = head.size() + tail.size();
-    if (compressed ? groups > 7 : groups != 8) {
+    if (!hex.empty()) {
+        for (const auto part : splitOn(hex, ':')) {
+            const auto value = part.size() <= 4 ? parseNumber(part, 16, 0xFFFFU) : std::nullopt;
+            if (!value) {
+                return std::nullopt;
+            }
+            groups.push_back(static_cast<std::uint16_t>(*value));
+        }
+    }
+    if (dotted) {
+        groups.push_back(static_cast<std::uint16_t>(*dotted >> 16U));
+        groups.push_back(static_cast<std::uint16_t>(*dotted & 0xFFFFU));
+    }
+    return groups;
+}
+
+// An IPv6 address as text, in any spelling: compressed ("::1", "fd00::5") or in full as uWebSockets writes it
+// ("0000:0000:0000:0000:0000:0000:0000:0001").
+std::optional<Ipv6> parseIpv6(std::string_view text)
+{
+    constexpr std::size_t kGroups = 8;
+    const auto gap = text.find("::");
+    const bool compressed = gap != std::string_view::npos;
+    if (compressed && text.find("::", gap + 1) != std::string_view::npos) {
+        return std::nullopt; // two compressions, or three colons in a row
+    }
+    const auto head = parseGroups(text.substr(0, gap));
+    const auto tail = compressed ? parseGroups(text.substr(gap + 2)) : std::optional<std::vector<std::uint16_t>>{{}};
+    if (!head || !tail) {
         return std::nullopt;
     }
-    std::vector<std::uint16_t> all = head;
-    all.insert(all.end(), 8 - groups, std::uint16_t{0});
-    all.insert(all.end(), tail.begin(), tail.end());
+    const auto present = head->size() + tail->size();
+    if (compressed ? present >= kGroups : present != kGroups) {
+        return std::nullopt;
+    }
+    std::vector<std::uint16_t> groups = *head;
+    groups.insert(groups.end(), kGroups - present, std::uint16_t{0});
+    groups.insert(groups.end(), tail->begin(), tail->end());
+
     Ipv6 bytes{};
-    for (std::size_t index = 0; index < all.size(); ++index) {
-        bytes[2 * index] = static_cast<std::uint8_t>(all[index] >> 8U);
-        bytes[2 * index + 1] = static_cast<std::uint8_t>(all[index] & 0xFFU);
+    for (std::size_t index = 0; index < kGroups; ++index) {
+        bytes.at(2 * index) = static_cast<std::uint8_t>(groups.at(index) >> 8U);
+        bytes.at((2 * index) + 1) = static_cast<std::uint8_t>(groups.at(index) & 0xFFU);
     }
     return bytes;
 }
@@ -125,16 +150,40 @@ std::optional<Ipv6> parseIpv6(std::string_view text)
 // ::ffff:a.b.c.d is the IPv4 address a.b.c.d seen through a dual-stack socket.
 std::optional<std::uint32_t> mappedIpv4(const Ipv6& address)
 {
-    constexpr std::array<std::uint8_t, 12> prefix{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xFF, 0xFF};
-    if (!std::equal(prefix.begin(), prefix.end(), address.begin())) {
+    constexpr std::array<std::uint8_t, 12> kMappedPrefix{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xFF, 0xFF};
+    if (!std::equal(kMappedPrefix.begin(), kMappedPrefix.end(), address.begin())) {
         return std::nullopt;
     }
-    return (std::uint32_t{address[12]} << 24U) | (std::uint32_t{address[13]} << 16U) |
-           (std::uint32_t{address[14]} << 8U) | address[15];
+    return (std::uint32_t{address.at(12)} << 24U) | (std::uint32_t{address.at(13)} << 16U) |
+           (std::uint32_t{address.at(14)} << 8U) | std::uint32_t{address.at(15)};
 }
 
 // The broadest range we accept is a /8: anything wider is "trust everybody" in disguise.
-constexpr int kBroadestPrefix = 8;
+constexpr unsigned kBroadestPrefix = 8;
+
+struct Ipv4Block {
+    std::uint32_t network;
+    std::uint32_t mask;
+};
+
+// "172.29.88.2" or "172.29.88.0/28": the address, then the width of the range in bits.
+std::expected<Ipv4Block, std::string> parseIpv4Block(std::string_view entry, std::uint32_t address)
+{
+    unsigned prefix = 32;
+    const auto slash = entry.find('/');
+    if (slash != std::string_view::npos) {
+        const auto width = parseNumber(entry.substr(slash + 1), 10, 32);
+        if (!width) {
+            return std::unexpected("'" + std::string(entry) + "' is not an IPv4 range like 172.29.88.0/28");
+        }
+        if (*width < kBroadestPrefix) {
+            return std::unexpected("'" + std::string(entry) + "' is too broad: that would trust almost every address");
+        }
+        prefix = *width;
+    }
+    const std::uint32_t mask = 0xFFFFFFFFU << (32U - prefix);
+    return Ipv4Block{.network = address & mask, .mask = mask};
+}
 
 } // namespace
 
@@ -195,32 +244,20 @@ TrustedProxies TrustedProxies::loopback()
 std::expected<TrustedProxies, std::string> TrustedProxies::parse(std::string_view list)
 {
     TrustedProxies proxies;
-    while (!list.empty()) {
-        const auto comma = list.find(',');
-        const auto entry = trim(list.substr(0, comma));
-        list = comma == std::string_view::npos ? std::string_view{} : list.substr(comma + 1);
+    for (const auto item : splitOn(list, ',')) {
+        const auto entry = trim(item);
         if (entry.empty()) {
             continue;
         }
         const auto slash = entry.find('/');
         const auto address = entry.substr(0, slash);
         if (const auto ipv4 = parseIpv4(address)) {
-            int prefix = 32;
-            if (slash != std::string_view::npos) {
-                const auto digits = entry.substr(slash + 1);
-                const auto [parsedUpTo, error] = std::from_chars(digits.data(), digits.data() + digits.size(), prefix);
-                if (digits.empty() || error != std::errc{} || parsedUpTo != digits.data() + digits.size() ||
-                    prefix < 0 || prefix > 32) {
-                    return std::unexpected("'" + std::string(entry) + "' is not an IPv4 range like 172.29.88.0/28");
-                }
-                if (prefix < kBroadestPrefix) {
-                    return std::unexpected("'" + std::string(entry) +
-                                           "' is too broad: that would trust almost every address");
-                }
+            const auto block = parseIpv4Block(entry, *ipv4);
+            if (!block) {
+                return std::unexpected(block.error());
             }
-            const std::uint32_t mask = 0xFFFFFFFFU << (32U - static_cast<unsigned>(prefix));
-            proxies.ipv4Ranges_.push_back({.network = *ipv4 & mask, .mask = mask});
-        } else if (const auto ipv6 = slash == std::string_view::npos ? parseIpv6(address) : std::nullopt) {
+            proxies.ipv4Ranges_.push_back({.network = block->network, .mask = block->mask});
+        } else if (const auto ipv6 = slash == std::string_view::npos ? parseIpv6(address) : std::optional<Ipv6>{}) {
             if (const auto mapped = mappedIpv4(*ipv6)) {
                 proxies.ipv4Ranges_.push_back({.network = *mapped, .mask = 0xFFFFFFFFU});
             } else {
@@ -248,7 +285,7 @@ bool TrustedProxies::trusts(std::string_view remoteAddress) const
         }
         ipv4 = mappedIpv4(*ipv6);
         if (!ipv4) {
-            return std::ranges::find(ipv6Addresses_, *ipv6) != ipv6Addresses_.end();
+            return std::ranges::contains(ipv6Addresses_, *ipv6);
         }
     }
     return std::ranges::any_of(ipv4Ranges_,

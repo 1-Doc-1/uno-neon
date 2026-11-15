@@ -169,7 +169,17 @@ TEST_CASE("Addresses that are not addresses are trusted by nobody", "[net][rate]
 {
     const auto proxies = TrustedProxies::parse("172.29.88.2, ::1");
     REQUIRE(proxies.has_value());
-    for (const char* text : {"", "caddy", "172.29.88", "172.29.88.2.1", "1::2::3", ":::1", "::1:", "12345::1", "::g"}) {
+    for (const char* text : {
+             "",
+             "caddy",
+             "172.29.88",
+             "172.29.88.2.1",
+             "1::2::3",
+             ":::1",
+             "::1:",
+             "12345::1",
+             "::g",
+         }) {
         INFO("text: '" << text << "'");
         REQUIRE_FALSE(proxies->trusts(text));
     }
@@ -178,8 +188,23 @@ TEST_CASE("Addresses that are not addresses are trusted by nobody", "[net][rate]
 TEST_CASE("Trusting everybody is not a configuration: broad ranges, nonsense and empty lists are refused",
           "[net][rate][proxy]")
 {
-    for (const char* list : {"0.0.0.0/0", "10.0.0.0/7", "0.0.0.0/1", "", " , ", "172.29.88.256", "172.29.88.0/33",
-                             "172.29.88.0/", "172.29.88", "*", "all", "true", "fd00::/8", "caddy", "172.29.88.2/abc"}) {
+    for (const char* list : {
+             "0.0.0.0/0",
+             "10.0.0.0/7",
+             "0.0.0.0/1",
+             "",
+             " , ",
+             "172.29.88.256",
+             "172.29.88.0/33",
+             "172.29.88.0/",
+             "172.29.88",
+             "*",
+             "all",
+             "true",
+             "fd00::/8",
+             "caddy",
+             "172.29.88.2/abc",
+         }) {
         INFO("list: '" << list << "'");
         REQUIRE_FALSE(TrustedProxies::parse(list).has_value());
     }
