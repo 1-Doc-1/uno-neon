@@ -5,6 +5,9 @@
 #   UNO_SERVER_PORT   port local du serveur de jeu
 #   UNO_WEB_ROOT      dossier du client compilé (client/dist/client/browser)
 #   UNO_CSP_SCRIPT    sources de scripts autorisées, tirées de l'index.html compilé (hachages d'Angular `autoCsp`)
+# Facultatif (ADR 0043) :
+#   SITE_PASSWORD_HASH  hachage bcrypt (jamais le mot de passe) : s'il est défini, TOUT le site, WebSocket compris, exige
+#                       le nom d'utilisateur « noc » et ce mot de passe ; absent, le site reste ouvert
 {
 	admin off
 	auto_https off
@@ -20,6 +23,13 @@
 # c'est l'adresse d'écoute (bind) qui le protège.
 http://:{$UNO_WEB_PORT} {
 	bind 127.0.0.1
+
+	# Accès protégé (ADR 0043). Sans SITE_PASSWORD_HASH, la condition est fausse et rien n'est demandé ; la valeur par
+	# défaut (« none » en base64) ne sert qu'à rendre la configuration valide et n'est jamais comparée.
+	@locked expression `"{$SITE_PASSWORD_HASH:}" != ""`
+	basic_auth @locked {
+		noc {$SITE_PASSWORD_HASH:bm9uZQ==}
+	}
 
 	encode zstd gzip
 

@@ -9,6 +9,8 @@
     4. lance le serveur sur 127.0.0.1 seulement, avec cette adresse pour SEULE origine autorisée ;
     5. vérifie la sécurité (écoute locale seulement, en-têtes, origine, pas de /health public) ;
     6. affiche l'adresse en grand et la copie dans le presse-papiers.
+    Avec -Password, Caddy exige un mot de passe (nom d'utilisateur : noc) pour tout le site, WebSocket compris ; seul
+    son hachage bcrypt est utilisé (ADR 0043). Sans -Password, le site reste ouvert.
     Le PC ne se met pas en veille tant que le script tourne. Ctrl+C arrête tout (tunnel, Caddy, serveur) ; si la
     fenêtre est fermée, Windows arrête aussi les trois programmes (objet Job).
     Prérequis : ./scripts/setup-online.ps1 (le script ouvre lui-même l'environnement MSVC comme dev64).
@@ -16,15 +18,29 @@
 .EXAMPLE
     ./scripts/play-online.ps1
     ./scripts/play-online.ps1 -SkipBuild
+    ./scripts/play-online.ps1 -Password     # soirée protégée par mot de passe (voir ./scripts/set-password.ps1)
 #>
 param(
     [switch]$SkipBuild,
+    [switch]$Password,
     [int]$WebPort = 8080,
     [int]$ServerPort = 9001
 )
 
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'online-common.ps1')
+
+# Le hachage du mot de passe : celui de la variable SITE_PASSWORD_HASH s'il existe, sinon celui de set-password.ps1.
+# Sans -Password, la variable est ignorée : le site reste ouvert, et le script le dit.
+$siteHash = $null
+if ($Password) {
+    $siteHash = if ($env:SITE_PASSWORD_HASH) { $env:SITE_PASSWORD_HASH } else { Get-StoredPasswordHash }
+    if (-not $siteHash) { throw 'Aucun mot de passe enregistré : lance d''abord ./scripts/set-password.ps1' }
+}
+elseif ($env:SITE_PASSWORD_HASH) {
+    Write-Warning 'SITE_PASSWORD_HASH est ignorée sans -Password : le site sera OUVERT à tous ceux qui ont le lien.'
+    Remove-Item Env:SITE_PASSWORD_HASH
+}
 
 $root = Split-Path $PSScriptRoot -Parent
 $serverDir = Join-Path $root 'server'
@@ -128,6 +144,13 @@ function Assert-Secure([string]$PublicUrl) {
         if ($open.Count -gt 0) { throw "Le port $port écoute sur $($open[0].LocalAddress) : il doit rester sur 127.0.0.1." }
     }
 
+    if ($siteHash) {
+        # Protégé : sans identifiants, ni la page ni le WebSocket ne répondent (le parcours avec mot de passe est joué par les tests E2E)
+        if ((Get-HttpStatus $PublicUrl) -ne 401) { throw 'Le site est protégé par mot de passe, mais la page répond sans identifiants.' }
+        if (Test-WebSocket (($PublicUrl -replace '^https', 'wss') + '/ws') $PublicUrl) { throw 'Le WebSocket répond sans mot de passe.' }
+        return
+    }
+
     # Comme un navigateur : on demande la page compressée (PowerShell 5.1 ne le fait pas tout seul)
     $page = Invoke-WebRequest -Uri $PublicUrl -UseBasicParsing -Headers @{ 'Accept-Encoding' = 'gzip' }
     $csp = $page.Headers['Content-Security-Policy'] -join ' '
@@ -149,7 +172,10 @@ function Assert-Secure([string]$PublicUrl) {
 # Vrai quand l'adresse sert la vraie page du jeu (et non la page vide de Cloudflare qui précède l'établissement du tunnel).
 function Test-PageServed([string]$Url) {
     try { return (Invoke-WebRequest -Uri $Url -UseBasicParsing).Content.Length -gt 0 }
-    catch { return $false }
+    catch {
+        # Avec un mot de passe, Caddy répond 401 : c'est bien lui qui répond (la page vide de Cloudflare, elle, est un 200)
+        return ($siteHash -and $_.Exception.Response -and [int]$_.Exception.Response.StatusCode -eq 401)
+    }
 }
 
 # Le code HTTP d'une adresse, même une erreur (404...) ; 0 si personne ne répond.
@@ -226,12 +252,14 @@ Get-ChildItem $logDir -Filter '*.log' | Remove-Item -Force
 $caddyProcess = $null; $tunnelProcess = $null; $serverProcess = $null
 try {
     Write-Host 'Démarrage de Caddy...' -ForegroundColor Cyan
-    $caddyProcess = Start-Child 'caddy' $caddy @('run', '--config', $caddyfile, '--adapter', 'caddyfile') @{
-        UNO_WEB_PORT   = "$WebPort"
+    $caddyEnvironment = @{
+        UNO_WEB_PORT    = "$WebPort"
         UNO_SERVER_PORT = "$ServerPort"
-        UNO_WEB_ROOT   = ($webRoot -replace '\\', '/')
-        UNO_CSP_SCRIPT = $scriptCsp
+        UNO_WEB_ROOT    = ($webRoot -replace '\\', '/')
+        UNO_CSP_SCRIPT  = $scriptCsp
     }
+    if ($siteHash) { $caddyEnvironment['SITE_PASSWORD_HASH'] = $siteHash }
+    $caddyProcess = Start-Child 'caddy' $caddy @('run', '--config', $caddyfile, '--adapter', 'caddyfile') $caddyEnvironment
     Wait-Listening $WebPort $caddyProcess 'Caddy'
 
     Write-Host 'Ouverture du tunnel Cloudflare...' -ForegroundColor Cyan
@@ -281,6 +309,10 @@ try {
     Write-Host "     $publicUrl" -ForegroundColor Yellow
     Write-Host ''
     Write-Host '   (copié dans le presse-papiers)' -ForegroundColor Green
+    if ($siteHash) {
+        Write-Host '   Accès protégé : nom d''utilisateur  noc  et le mot de passe que tu as choisi' -ForegroundColor Green
+        Write-Host '   (à envoyer à tes amis par un autre canal que le lien).' -ForegroundColor Green
+    }
     Write-Host '   Ctrl+C pour tout arrêter. Ne ferme pas cette fenêtre,' -ForegroundColor Green
     Write-Host '   et ne mets pas le PC en veille pendant la partie.' -ForegroundColor Green
     Write-Host '  ==========================================================' -ForegroundColor Green

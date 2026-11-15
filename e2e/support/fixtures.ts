@@ -21,6 +21,8 @@ interface Options {
   drawAmount: 'one' | 'untilPlayable';
   /** Les E2E tournent en mouvement réduit ; les scénarios qui mesurent les animations réelles passent 'no-preference'. */
   motion: 'reduce' | 'no-preference';
+  /** Mot de passe du site (ADR 0043) : la pile est servie derrière Caddy et les joueurs le saisissent. Absent : site ouvert. */
+  sitePassword: string | undefined;
 }
 
 interface Fixtures {
@@ -40,14 +42,15 @@ export const test = base.extend<Options & Fixtures>({
   paceMs: [40, { option: true }],
   drawAmount: ['one', { option: true }],
   motion: ['reduce', { option: true }],
+  sitePassword: [undefined, { option: true }],
 
-  stack: async ({ seed, reconnectGraceMs, paceMs }, use) => {
-    const stack = await startStack({ seed, reconnectGraceMs, paceMs });
+  stack: async ({ seed, reconnectGraceMs, paceMs, sitePassword }, use) => {
+    const stack = await startStack({ seed, reconnectGraceMs, paceMs, sitePassword });
     await use(stack);
     await stack.stop();
   },
 
-  lobby: async ({ browser, stack, drawAmount, motion }, use) => {
+  lobby: async ({ browser, stack, drawAmount, motion, sitePassword }, use) => {
     const contexts: BrowserContext[] = [];
     const newPlayer = async (name: string): Promise<Player> => {
       const context = await browser.newContext({
@@ -55,6 +58,10 @@ export const test = base.extend<Options & Fixtures>({
         viewport: { width: 1280, height: 720 },
         locale: 'fr-FR',
         reducedMotion: motion,
+        httpCredentials:
+          sitePassword === undefined
+            ? undefined
+            : { username: stack.siteUser, password: sitePassword },
       });
       contexts.push(context);
       return new Player(await context.newPage(), name);
