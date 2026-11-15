@@ -7,6 +7,7 @@
 #include "uno/core/random_source.hpp"
 #include "uno/net/crypto_runtime.hpp"
 #include "uno/net/protocol_version.hpp"
+#include "uno/net/rate_limiter.hpp"
 #include "uno/net/server_message_sink.hpp"
 #include "uno/net/system_clock.hpp"
 #include "uno/net/uws_scheduler.hpp"
@@ -83,6 +84,21 @@ std::expected<uno::app::ServerConfig, std::string> loadConfig()
     return config;
 }
 
+// Who may tell us the real address of a visitor. UNO_TRUSTED_PROXY_ADDRESSES names the proxies exactly (the Caddy
+// container of a deployment, ADR 0044); UNO_TRUSTED_PROXY alone trusts this machine only (tunnel mode, ADR 0033);
+// neither: nobody, X-Forwarded-For is ignored.
+std::expected<uno::net::TrustedProxies, std::string> loadTrustedProxies(const uno::app::ServerConfig& config)
+{
+    if (const auto addresses = readEnvironmentVariable("UNO_TRUSTED_PROXY_ADDRESSES")) {
+        auto parsed = uno::net::TrustedProxies::parse(*addresses);
+        if (!parsed) {
+            return std::unexpected("UNO_TRUSTED_PROXY_ADDRESSES is invalid: " + parsed.error());
+        }
+        return *parsed;
+    }
+    return config.trustedProxy ? uno::net::TrustedProxies::loopback() : uno::net::TrustedProxies{};
+}
+
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): written by a signal handler
 std::atomic<bool> gStopRequested{false};
 static_assert(std::atomic<bool>::is_always_lock_free, "needed to be set from a signal handler");
@@ -109,6 +125,12 @@ int run()
         return EXIT_FAILURE;
     }
 
+    const auto trustedProxies = loadTrustedProxies(*config);
+    if (!trustedProxies) {
+        spdlog::critical("{}", trustedProxies.error());
+        return EXIT_FAILURE;
+    }
+
     const auto random = uno::bootstrap::makeRandomSource(readEnvironmentVariable);
     const uno::net::SystemClock clock;
     uno::net::UwsScheduler scheduler;
@@ -121,7 +143,7 @@ int run()
     serverConfig.port = config->port;
     serverConfig.bindAddress = config->bindAddress;
     serverConfig.originPolicy = uno::net::OriginPolicy(config->allowedOrigins);
-    serverConfig.trustedProxy = config->trustedProxy;
+    serverConfig.trustedProxies = *trustedProxies;
     serverConfig.roomCount = [&rooms] { return rooms.size(); };
     serverConfig.onStop = [&scheduler] { scheduler.cancelAll(); };
     uno::net::WebSocketServer server(std::move(serverConfig), application);

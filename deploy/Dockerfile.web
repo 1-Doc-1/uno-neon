@@ -1,0 +1,49 @@
+# Client NOC compilé en production + Caddy (ADR 0044).
+# Contexte de construction : la racine du dépôt.   docker build -f deploy/Dockerfile.web -t noc-web .
+
+# ---- 1. Construction du client ----------------------------------------------------------------------------------
+FROM node:26-alpine AS client
+
+WORKDIR /app/client
+COPY client/package.json client/package-lock.json ./
+RUN npm ci
+
+COPY client/ ./
+COPY protocol/ /app/protocol/
+# Le build de production n'a aucune page /dev ; ce contrôle fait échouer la construction s'il en reste une.
+RUN npm run build && node scripts/check-prod-bundle.mjs
+
+# La politique de sécurité des scripts (CSP) : les empreintes des scripts de l'index.html compilé, calculées ICI, à la
+# construction de l'image. Le démarrage du conteneur ne calcule plus rien. Pas d'empreinte = la construction échoue.
+RUN set -eu; \
+    hashes="$(grep -oE "'sha256-[A-Za-z0-9+/=]+'" dist/client/browser/index.html | sort -u | tr '\n' ' ')"; \
+    [ -n "$hashes" ] || { echo "Aucune empreinte de script dans index.html : la CSP ne peut pas être construite." >&2; exit 1; }; \
+    printf "header Content-Security-Policy \"default-src 'self'; script-src 'strict-dynamic' %s; style-src 'self' 'unsafe-inline'; connect-src 'self' wss://{host}; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'\"\n" "$hashes" > /app/csp.caddy; \
+    cat /app/csp.caddy
+
+# ---- 2. Caddy ---------------------------------------------------------------------------------------------------
+FROM caddy:2.11.7-alpine AS runtime
+
+# Une copie du binaire SANS la capacité « écouter sous le port 1024 » (inutile sur 8080) : elle empêcherait de lancer
+# Caddy avec toutes les capacités retirées (cap_drop: ALL dans docker-compose.yml).
+RUN cp /usr/bin/caddy /usr/local/bin/caddy-noc \
+    && adduser -S -D -H -u 10001 -s /sbin/nologin noc
+
+COPY --from=client /app/client/dist/client/browser /srv
+COPY --from=client /app/csp.caddy /etc/caddy/csp.caddy
+COPY deploy/Caddyfile.production /etc/caddy/Caddyfile
+COPY deploy/web-entrypoint.sh /usr/local/bin/noc-web
+RUN chmod 0555 /usr/local/bin/noc-web
+
+# Caddy écrit sa configuration automatique et ses données dans un dossier temporaire (système de fichiers en lecture seule).
+ENV XDG_CONFIG_HOME=/tmp/caddy/config \
+    XDG_DATA_HOME=/tmp/caddy/data
+
+USER 10001:10001
+EXPOSE 8080
+
+# /sante traverse toute la chaîne (Caddy puis le serveur de jeu) sans demander de mot de passe et ne révèle rien.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD ["wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/sante"]
+
+ENTRYPOINT ["/usr/local/bin/noc-web"]

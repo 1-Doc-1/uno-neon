@@ -144,7 +144,7 @@ struct WebSocketServer::Impl {
             return;
         }
         std::string address = clientAddress(response->getRemoteAddressAsText(), request->getHeader("x-forwarded-for"),
-                                            config.trustedProxy);
+                                            config.trustedProxies);
         if (connections.size() >= config.connectionLimits.maxConnections ||
             addressConnections(address) >= config.connectionLimits.maxConnectionsPerAddress) {
             spdlog::warn("WebSocket refused: too many connections");
@@ -217,6 +217,9 @@ WebSocketServer::WebSocketServer(WebSocketServerConfig config, app::ConnectionHa
     impl.app = std::make_unique<uWS::App>();
 
     impl.app->get("/health", [&impl](auto* response, auto* /*request*/) { impl.handleHealth(response); });
+    impl.app->get("/sante", [](auto* response, auto* /*request*/) {
+        response->writeHeader("Content-Type", "text/plain")->writeHeader("Cache-Control", "no-store")->end("ok");
+    });
     impl.app->ws<ConnectionData>(
         "/ws",
         {
