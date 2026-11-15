@@ -41,6 +41,28 @@ web_address() {
         "$(compose ps -q web)"
 }
 
+# Quand un conteneur ne devient pas sain : son état (code de sortie, OOM, erreur Docker) et le même conteneur lancé à la main,
+# avec puis sans chaque durcissement, pour désigner le coupable.
+diagnose() {
+    local service="$1" id image
+    id="$(compose ps -aq "$service")"
+    echo "--- État du conteneur $service" >&2
+    docker inspect -f '{{json .State}} restarts={{.RestartCount}}' "$id" >&2 || true
+    sudo dmesg 2>/dev/null | tail -n 40 | grep -iE "oom|killed process" >&2 || true
+    if [ "$service" = web ]; then
+        echo "--- Le conteneur web lancé à la main, variante par variante (124 = toujours en vie après 8 s : bon signe)" >&2
+        local hardening="--read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges:true -m 96m --memory-swap 96m --pids-limit 128 --cpus 1"
+        local variants=("$hardening" "--tmpfs /tmp --cap-drop ALL -m 96m --memory-swap 96m" "--read-only --tmpfs /tmp -m 96m --memory-swap 96m" "--read-only --tmpfs /tmp --cap-drop ALL" "--read-only --tmpfs /tmp --cap-drop ALL -m 96m --memory-swap 96m --cpus 1" "")
+        local flags code
+        for flags in "${variants[@]}"; do
+            # shellcheck disable=SC2086
+            timeout 8 docker run --rm -e GOMEMLIMIT=64MiB $flags "$WEB_IMAGE" >"$WORK/diag.log" 2>&1; code=$?
+            echo "[${flags:-sans aucune option}] -> code $code" >&2
+            tail -n 3 "$WORK/diag.log" >&2
+        done
+    fi
+}
+
 wait_healthy() {
     local service="$1" deadline=$((SECONDS + 120)) id state
     id="$(compose ps -q "$service")"
@@ -49,7 +71,8 @@ wait_healthy() {
         [ "$state" = healthy ] && return 0
         sleep 2
     done
-    compose logs "$service" >&2 || true
+    compose logs "$service" 2>&1 | tail -n 12 >&2 || true
+    diagnose "$service"
     fail "$service n'est pas devenu « healthy » en 120 s"
 }
 
