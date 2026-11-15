@@ -181,6 +181,22 @@
 - [x] W2.4 MODE-EMPLOI : activer, changer, désactiver, partager
 - [x] W2.5 Tests : sans mot de passe 401 sur la page et sur /ws ; avec : partie complète (E2E)
 
+#### Lot X — mise en ligne de NOC sur Coolify (2 PR : X1, X2)
+> Images construites par GitHub Actions et publiées sur GHCR, Coolify ne fait que les télécharger (ADR 0044). Reprise après interruption : relire cette section, `git status`, `git log --oneline -10`, les PR ouvertes, puis continuer au premier point non coché.
+
+**X1 — Images, Compose et chaîne de confiance (`feat/deploy-coolify`, ADR 0044)**
+- [x] X1.1 Serveur : `UNO_TRUSTED_PROXY_ADDRESSES` (adresses et plages, jamais « tout »), adresses IPv6 de uWebSockets comprises, route `GET /sante`, tests unitaires et d'intégration
+- [x] X1.2 `Dockerfile.server` (Release sans crochets de test, utilisateur 10001), `Dockerfile.web` (client de production, CSP calculée à la construction), `web-entrypoint.sh` (vérifie le hachage bcrypt et les plages de confiance, refuse de démarrer sinon), `Caddyfile.production`
+- [x] X1.3 `docker-compose.yml` (aucun port publié, serveur seul avec Caddy sur un réseau `internal` /28, limites de mémoire, durcissement), `deploy/.env.example`, `set-password.ps1 -Coolify`
+- [x] X1.4 `publish-images.yml` (GHCR, tag `sha-<commit>`, puis redéploiement Coolify par l'API et le webhook, sauté sans les secrets) ; deux actions Docker épinglées par SHA
+- [x] X1.5 Tests : E2E `proxy-chain.spec.ts` (vrai Caddyfile de production), job CI `deploy-smoke` (images construites, inspectées, Compose lancé dans quatre configurations)
+- [ ] X1.6 Vérification locale complète, PR, CI (dont `deploy-smoke`), fusion
+
+**X2 — Guide de déploiement et clôture (`docs/deployment-guide`)**
+- [ ] X2.1 `docs/DEPLOIEMENT.md`, pas à pas et clic par clic
+- [ ] X2.2 Alerte Dependabot n° 25 (minimatch, développement seulement) : override et vérification, ou justification
+- [ ] X2.3 Bilan, et la liste de ce que l'utilisateur fait lui-même (GitHub, Coolify, secrets)
+
 #### Phase 1 (suite)
 - [x] 1.6 Options maison : lot V3 (`strict` et `sevenZero` faits, `jumpIn` retiré : ADR 0040 et 0041)
 
@@ -246,6 +262,7 @@
 - [0041 — Options maison : Joker +4 strict et échange des mains (7-0)](adr/0041-strict-wild-draw-four-and-seven-zero.md)
 - [0042 — Nouvelle identité « NOC » : nom, logo, cartes et annonces sans rapport avec un jeu du commerce](adr/0042-noc-identity.md)
 - [0043 — Accès protégé par mot de passe : basic_auth de Caddy, activé par SITE_PASSWORD_HASH](adr/0043-site-password.md)
+- [0044 — Déploiement sur Coolify : images GHCR, Compose à deux conteneurs, chaîne de confiance exacte](adr/0044-coolify-deployment.md)
 
 ## Journal
 - 2026-09-30 — 0.1 — arborescence du monorepo, `.editorconfig`, README, modèle d'ADR, BOM retiré de `.gitattributes` — `chore/phase-0-foundations`
