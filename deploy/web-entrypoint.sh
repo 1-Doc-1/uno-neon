@@ -8,6 +8,12 @@ fail() {
     exit 1
 }
 
+# 0. Docker Compose passe SITE_PASSWORD_HASH VIDE quand personne ne l'a définie (${SITE_PASSWORD_HASH:-}). Pour Caddy, une
+#    variable vide n'est pas une variable absente : elle ferait échouer la configuration (mot de passe vide). On la retire.
+if [ -z "${SITE_PASSWORD_HASH:-}" ]; then
+    unset SITE_PASSWORD_HASH
+fi
+
 # 1. Le hachage du mot de passe, s'il y en a un : un bcrypt de 60 caractères ($2a$, $2b$ ou $2y$, coût à deux chiffres).
 #    Les « $ » d'un bcrypt sont mangés par l'interpolation de Docker Compose s'ils ne sont pas protégés ($$ ou
 #    « Literal » dans Coolify, voir docs/DEPLOIEMENT.md) : on le détecte ici, sans jamais afficher la valeur.

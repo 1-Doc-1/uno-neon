@@ -56,7 +56,8 @@ diagnose() {
         local flags code
         for flags in "${variants[@]}"; do
             # shellcheck disable=SC2086
-            timeout 8 docker run --rm -e GOMEMLIMIT=64MiB $flags "$WEB_IMAGE" >"$WORK/diag.log" 2>&1; code=$?
+            code=0
+            timeout 8 docker run --rm -e GOMEMLIMIT=64MiB $flags "$WEB_IMAGE" >"$WORK/diag.log" 2>&1 || code=$?
             echo "[${flags:-sans aucune option}] -> code $code" >&2
             tail -n 3 "$WORK/diag.log" >&2
         done
