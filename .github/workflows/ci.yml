@@ -40,6 +40,7 @@ jobs:
       server: ${{ steps.filter.outputs.server }}
       client: ${{ steps.filter.outputs.client }}
       e2e: ${{ steps.filter.outputs.e2e }}
+      deploy: ${{ steps.filter.outputs.deploy }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -51,26 +52,28 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          server=false client=false e2e=false
+          server=false client=false e2e=false deploy=false
           if [ -z "$BASE_SHA" ]; then
             # Lancement manuel : tout tourne.
-            server=true client=true e2e=true
+            server=true client=true e2e=true deploy=true
           else
             while IFS= read -r file; do
               case "$file" in
-                protocol/* | .github/*) server=true client=true e2e=true ;;
-                client/*) client=true e2e=true ;;
-                server/*) server=true e2e=true ;;
+                protocol/* | .github/*) server=true client=true e2e=true deploy=true ;;
+                client/*) client=true e2e=true deploy=true ;;
+                server/*) server=true e2e=true deploy=true ;;
+                deploy/* | .dockerignore) e2e=true deploy=true ;;
                 e2e/*) e2e=true ;;
                 docs/* | .claude/* | *.md | skills-lock.json | .gitignore | .gitleaksignore) ;;
-                *) server=true client=true e2e=true ;;
+                *) server=true client=true e2e=true deploy=true ;;
               esac
             done < <(git diff --name-only --no-renames "$BASE_SHA...$HEAD_SHA")
           fi
           echo "server=$server" >> "$GITHUB_OUTPUT"
           echo "client=$client" >> "$GITHUB_OUTPUT"
           echo "e2e=$e2e" >> "$GITHUB_OUTPUT"
-          echo "server=$server client=$client e2e=$e2e"
+          echo "deploy=$deploy" >> "$GITHUB_OUTPUT"
+          echo "server=$server client=$client e2e=$e2e deploy=$deploy"
 
   server-linux:
     name: server-linux (${{ matrix.compiler }})
@@ -358,3 +361,29 @@ jobs:
             e2e/test-results
             e2e/playwright-report
           retention-days: 7
+
+  # Le déploiement (ADR 0044) : les deux images sont construites comme en production (SANS crochets de test), inspectées,
+  # puis docker-compose.yml est lancé dans quatre configurations (site ouvert, mot de passe protégé de deux façons,
+  # mot de passe mal protégé) avec la chaîne de confiance X-Forwarded-For vérifiée sur les vrais conteneurs.
+  deploy-smoke:
+    name: deploy-smoke
+    needs: changes
+    if: needs.changes.outputs.deploy == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 26
+
+      - name: Docker and Compose versions
+        run: |
+          docker version
+          docker compose version
+
+      - name: Build the images and test the deployment
+        run: bash deploy/smoke-test.sh

@@ -1,0 +1,130 @@
+# Publication des images de NOC sur GHCR, puis redéploiement sur Coolify (ADR 0044).
+#
+# Déclencheurs : la fusion d'un changement qui touche le jeu dans `main` (un changement de documentation seul ne publie
+# rien), et le lancement manuel. Ce n'est PAS le CI des pull requests (ci.yml) : il publie, donc il ne tourne que sur `main`.
+#
+# Le déploiement automatique de Coolify (« Auto Deploy ») doit rester DÉSACTIVÉ : il relancerait l'ancienne image
+# pendant que celle-ci se construit. C'est ce workflow qui déclenche le redéploiement, APRÈS la publication, avec le tag
+# `sha-<commit>` qu'il vient de publier (jamais `latest`) : revenir en arrière = remettre un ancien tag dans Coolify.
+#
+# Secrets facultatifs du dépôt (Settings → Secrets and variables → Actions) : COOLIFY_WEBHOOK_URL (le « Deploy Webhook »
+# de la ressource) et COOLIFY_TOKEN (un jeton d'API Coolify). Absents, les images sont publiées et le redéploiement est
+# sauté sans échec. Voir docs/DEPLOIEMENT.md.
+name: Publish images
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - server/**
+      - client/**
+      - protocol/**
+      - deploy/**
+      - .dockerignore
+      - .github/workflows/publish-images.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Une publication à la fois, sans jamais en annuler une en cours : deux fusions rapprochées se suivent.
+concurrency:
+  group: publish-images
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: publish (${{ matrix.image }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - image: noc-server
+            dockerfile: deploy/Dockerfile.server
+          - image: noc-web
+            dockerfile: deploy/Dockerfile.web
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # GHCR veut des noms en minuscules ; le propriétaire du dépôt peut en avoir en majuscules.
+      - name: Compute the image names
+        id: names
+        run: |
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          echo "repository=ghcr.io/${owner}/${{ matrix.image }}" >> "$GITHUB_OUTPUT"
+          echo "tag=sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: |
+            ${{ steps.names.outputs.repository }}:${{ steps.names.outputs.tag }}
+            ${{ steps.names.outputs.repository }}:latest
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+  redeploy:
+    name: redeploy (Coolify)
+    needs: publish
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions: {}
+    steps:
+      - name: Point Coolify at the published tag, then redeploy
+        env:
+          COOLIFY_WEBHOOK_URL: ${{ secrets.COOLIFY_WEBHOOK_URL }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${COOLIFY_WEBHOOK_URL}" ] || [ -z "${COOLIFY_TOKEN}" ]; then
+            echo "::notice::COOLIFY_WEBHOOK_URL ou COOLIFY_TOKEN n'est pas défini : les images sont publiées, le redéploiement est sauté."
+            exit 0
+          fi
+          echo "::add-mask::${COOLIFY_TOKEN}"
+
+          # https://<coolify>/api/v1/deploy?uuid=<uuid>&force=false : l'adresse de Coolify et l'identifiant de la ressource
+          case "${COOLIFY_WEBHOOK_URL}" in
+            https://*/api/v1/deploy\?*) ;;
+            *) echo "::error::COOLIFY_WEBHOOK_URL doit ressembler à https://<coolify>/api/v1/deploy?uuid=<uuid>"; exit 1 ;;
+          esac
+          base="${COOLIFY_WEBHOOK_URL%%/api/v1/deploy*}"
+          uuid="$(printf '%s' "${COOLIFY_WEBHOOK_URL}" | sed -n 's/.*[?&]uuid=\([^&]*\).*/\1/p')"
+          if ! printf '%s' "${uuid}" | grep -Eq '^[A-Za-z0-9_-]+$'; then
+            echo "::error::Aucun uuid lisible dans COOLIFY_WEBHOOK_URL."
+            exit 1
+          fi
+
+          tag="sha-${GITHUB_SHA::7}"
+          echo "Tag publié : ${tag}"
+
+          # 1. NOC_IMAGE_TAG devient le tag qu'on vient de publier (la variable existe déjà dans Coolify : elle est obligatoire)
+          curl --fail-with-body --silent --show-error --max-time 60 --request PATCH \
+            "${base}/api/v1/applications/${uuid}/envs" \
+            --header "Authorization: Bearer ${COOLIFY_TOKEN}" \
+            --header "Content-Type: application/json" \
+            --data "{\"key\":\"NOC_IMAGE_TAG\",\"value\":\"${tag}\",\"is_preview\":false}"
+          echo
+          echo "NOC_IMAGE_TAG = ${tag}"
+
+          # 2. Le redéploiement, une fois les images publiées
+          curl --fail-with-body --silent --show-error --max-time 60 \
+            "${COOLIFY_WEBHOOK_URL}" \
+            --header "Authorization: Bearer ${COOLIFY_TOKEN}"
+          echo
+          echo "Redéploiement demandé à Coolify."
