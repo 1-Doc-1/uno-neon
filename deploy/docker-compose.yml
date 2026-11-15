@@ -43,6 +43,8 @@ services:
       # Réseau `internal: true` partagé avec Caddy UNIQUEMENT : le serveur ne peut ni sortir ni être atteint d'ailleurs, et
       # Coolify ne l'attache pas au réseau de Traefik (pas de domaine, un seul réseau).
       noc-internal:
+        # Adresse fixe aussi : sans elle, Docker donne au serveur (démarré en premier) la première adresse libre, celle de Caddy.
+        ipv4_address: ${NOC_SERVER_ADDRESS:-10.231.77.3}
 
   web:
     <<: *hardening
@@ -77,5 +79,5 @@ networks:
       config:
         # Un petit sous-réseau (/28 : 14 machines) peu courant, à l'écart des plages que Docker distribue seul. Si une autre
         # application l'utilise déjà, Docker REFUSE de créer le réseau (« Pool overlaps ») et le déploiement échoue
-        # bruyamment : changez alors NOC_INTERNAL_SUBNET ET NOC_WEB_ADDRESS (voir docs/DEPLOIEMENT.md).
+        # bruyamment : changez alors NOC_INTERNAL_SUBNET, NOC_WEB_ADDRESS ET NOC_SERVER_ADDRESS (voir docs/DEPLOIEMENT.md).
         - subnet: ${NOC_INTERNAL_SUBNET:-10.231.77.0/28}

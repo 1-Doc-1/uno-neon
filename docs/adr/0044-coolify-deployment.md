@@ -49,7 +49,7 @@ d'environnement, et surtout **rien qui puisse gêner les autres applications** (
 ### 4. Réseaux : le serveur de jeu n'est joignable que par Caddy
 - Le serveur est sur `noc-internal` (`internal: true`, sous-réseau privé **/28** `10.231.77.0/28`) **seul avec Caddy**, sans domaine : pas de sortie, pas de port.
   Caddy y a l'adresse fixe `10.231.77.2` et est aussi sur le réseau par défaut (celui de Traefik).
-- Un chevauchement avec un autre réseau Docker du VPS fait **échouer le déploiement** (Docker refuse de créer le réseau) : voulu. `NOC_INTERNAL_SUBNET` et `NOC_WEB_ADDRESS` se changent ensemble.
+- Un chevauchement avec un autre réseau Docker du VPS fait **échouer le déploiement** (Docker refuse de créer le réseau) : voulu. `NOC_INTERNAL_SUBNET`, `NOC_WEB_ADDRESS` et `NOC_SERVER_ADDRESS` se changent ensemble ; les deux conteneurs ont une adresse fixe (sans cela, Docker donne au serveur, démarré en premier, l'adresse prévue pour Caddy : défaut trouvé par le test de fumée).
 - Le test de fumée vérifie que le serveur est sur ce seul réseau, qu'il est `internal`, qu'aucun port n'est publié et que chaque conteneur a une limite de mémoire.
 - **À vérifier une fois dans Coolify** (je n'ai pas d'accès au serveur) : que `docker network inspect` ne montre pas Traefik sur `noc-internal` (commande dans le guide).
 
